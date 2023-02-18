@@ -1,0 +1,73 @@
+As is well known, in the type-free \lambda-calculus exactly the recursive functions are
+definable(1). The concept used here of the definability of a function
+is also useful for the A-calculus with types. We answer the question here?
+according to the then definable functions.
+Types are 0 and with o, r also (sr). terms (denoted by r", s', t).
+formed from variables with types by application and A-abstraction. type
+indices that result from the context or that are immaterial,
+we often leave it out. Terms that differ only by bound renaming
+divorce, are identified. The relation t=|! (£ is reducible to r’) becomes
+inductively defined by
+
+...
+
+A term is called ın normal form if it has no subterms of the form (ax)s
+owns. As is well known, for every term t there is a uniquely determined normal
+form t' with t=|t'. Two terms are equal if they have the same normal form
+own. One can now introduce natural numbers as terms r:= A «" vom
+type v:=(0-0)>(0—0); where «” is the nth iterate of a, i.e. =Ix-a(&...(&x)...).
+Every closed term of type v in normal form is an n. So defined
+every closed term t of the type v>(v> ...(v−v)...) is a number-theoretic one
+Function f determined by tn,...n,=/(n,,...,n,). For example will?
+
+...
+
+[F,G, H variables of type v, t*'os'”":= Ax°- t(sx)]. The set of
+bare functions is apparently closed against insertions. So are all
+
+
+Polynomials definable, and more generally all functions resulting from polynomials
+Case distinction according to disappearance or non-disappearance of arguments
+are definable; in the 2-digit case, these are the functions
+
+...
+
+with polynomials P,, P,, P;. In the following it will be shown that this is all
+
+definable functions are.
+
+So t defines a roughly 2-place function. Bring t FGa« to normal form.
+
+Each subterm (of the normal form of zFGx) has one of the types 0, 00, or v.
+
+Each subterm of type v is identical to F or G. Possible subterms from
+
+Type 0>0 are:
+
+(l) «.
+
+(2) With s also Fs, Gs.
+
+(3) With s,,...,s, formed according to (1), (2) also Ay-s, (...s,(z)...), where z also iden-
+table with y can be
+
+In the following, s stands for subterms of the type 0-0. — For F, G set n,m,
+
+where initially n,m21 is assumed. By induction over s one shows:
+
+Each s:= 5; [R, m] is equal to a «”*” or equal to a constant function
+
+[formula]
+
+To 3). Case 1: None of the s; is constant.
+
+[formula]
+
+Case 2: There is a first constant s;, say {= Ay- af: "mz,
+
+[formula]
+
+Since the normal form of tFGa does not contain a free variable of type 0, it is nach
+replacing F, G with 7, m (n,m2 1) equal to an a?" ”),
+If about wan=0,m21, then one can replace all outermost subterms of the form F's
+by Axx and gets a «P» like before

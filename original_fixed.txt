@@ -1,0 +1,91 @@
+Arch. math. Logik 17 (1976), 113114
+
+DEFINIERBARE FUNKTIONEN IM A-KALKÜL MIT TYPEN*
+
+Von Helmut Schwichtenberg
+
+Bekanntlich sind im typenfreien A-Kalkül genau die rekursiven Funktionen
+definierbar(1). Der dabei verwendete Begriff der Definierbarkeit einer Funktion
+ist auch für den A-Kalkül mit Typen sinnvoll. Wir beantworten hier die Frage?
+nach den dann definierbaren Funktionen.
+Typen sind 0 und mit o, r auch (sr). Terme (bezeichnet mit r", s’, t) werden
+aus Variablen mit Typen durch Anwendung und A-Abstraktion gebildet. Typen-
+indizes, die sich aus dem Zusammenhang ergeben oder die unwesentlich sind,
+lassen wir häufig weg. Terme, die sich nur durch gebundene Umbenennung unter-
+scheiden, werden identifiziert. Die Relation t=|! (£ ist reduzierbar auf r’) wird
+induktiv definiert durch
+
+[enumaration]
+
+
+Ein Term heißt ın Normalform, wenn er keine Teilterme der Gestalt (Axt)s
+besitzt. Bekanntlich gibt es zu jedem Term t eine eindeutig bestimmte Normal-
+form t' mit t=|t'. Zwei Terme heißen gleich, wenn sie dieselbe Normalform
+besitzen. Man kann jetzt natürliche Zahlen einführen als Terme r:= A «" vom
+Typ v:=(0-0)>(0—0); dabei ist «” die n-te Iterierte von a, also =Ix-a(&...(&x)...).
+Jeder abgeschlossene Term vom Typ v in Normalform ist ein n. Also definiert
+jeder abgeschlossene Term t vom Typ v>(v> ...(v—v)...) eine zahlentheoretische
+Funktion f, die durch tn, ...n,=/(n,,...,n,) bestimmt ist. Zum Beispiel wird?
+
+[enumaration]
+
+[F,G, H Variable vom Typ v, t*'os'”":= Ax°- t(sx)]. Die Menge der so definier-
+baren Funktionen ist offenbar abgeschlossen gegen Einsetzungen. Also sind alle
+
+
+Polynome definierbar, und allgemeiner alle Funktionen, die aus Polynomen durch
+Fallunterscheidung nach Verschwinden oder Nicht-Verschwinden von Argumen-
+ten definierbar sind; im 2-stelligen Fall sind dies die Funktionen
+
+[formula]
+
+mit Polynomen P,, P,, P;. Im folgenden soll gezeigt werden, daß dies schon alle
+
+definierbaren Funktionen sind.
+
+t definiere also eine etwa 2-stellige Funktion. Man bringe t FGa« auf Normalform.
+
+Jeder Teilterm (der Normalform von zFGx) hat einen der Typen 0, 00 oder v.
+
+Jeder Teilterm vom Typ v ist identisch mit F oder G. Mögliche Teilterme vom
+
+Typ 0>0 sind:
+
+(l) «.
+
+(2) Mit s auch Fs, Gs.
+
+(3) Mit s,,...,s, gebildet nach (1), (2) auch Ay-s, (...s,(z)...), wobei z auch iden-
+tisch mit y sein kann,
+
+s steht im folgenden für Teilterme vom Typ 0-0. — Für F, G setze man n,m,
+
+wobei zunächst n,m21 angenommen sei. Durch Induktion über s zeigt man:
+
+Jedes s:= 5; [R, m] ist gleich einem «”*” oder gleich einer konstanten Funktion
+
+[formulas]
+
+Zu (3). Fall 1: Keines der s; ist konstant.
+
+[formulas]
+
+Fall 2: Es gibt ein erstes konstantes s;, etwa {= Ay- af: "mz,
+
+[formulas]
+
+Da die Normalform von tFGa keine freie Variable vom Typ 0 enthält, ist sie nach
+Ersetzung von F, G durch 7, m (n,m2 1) gleich einem a?" ”),
+Istetwan=0,m21, so kann man alle äußersten Teilterme der Form F's ersetzen
+durch Axx und erhält wie eben ein «P”,
+
+LITERATUR
+
+[1] Curry,H.B., Hindley,J.R., Seldin,J.P.: Combinatory logic, Bd. II. Amsterdam 1972.
+
+[2] Hermes,H.: Aufzählbarkeit, Entscheidbarkeit, Berechenbarkeit. Berlin 1961.
+
+[33 Hindley,J.R., Lercher,B., Seldin,J.P.: Introduction to combinatory logic. Cambridge
+1972.
+
+[4] Schütte,K.: Theorie der Funktionale endlicher Typen. Hektographiert, München 1968.
