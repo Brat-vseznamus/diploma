@@ -1,0 +1,117 @@
+\documentclass[11pt]{article}
+
+\usepackage{sectsty}
+\usepackage{graphicx}
+\usepackage{mathtools}
+
+% Margins
+\topmargin=-0.45in
+\evensidemargin=0in
+\oddsidemargin=0in
+\textwidth=6.5in
+\textheight=9.0in
+\headsep=0.25in
+
+\title{ Translation }
+% \author{ Author }
+% \date{\today}
+
+\newcommand{\ga}{\alpha}
+\newcommand{\gb}{\beta}
+\newcommand{\gl}{\lambda}
+\newcommand{\gt}{\tau}
+
+
+
+\begin{document}
+\maketitle	
+
+\section*{}
+
+
+As is well known, in the type-free $\lambda$-calculus exactly the recursive functions are
+$definable^1$. The concept used here of the definability of a function
+is also useful for the $\lambda$-calculus with types. We answer the question $here^2$ according to the then definable functions.
+
+Types are $0$ and with $\sigma$, $\tau$ also \((\sigma \rightarrow \tau)\). Terms (denoted by \(r^\tau\), \(s^\tau\), \(t^\tau\))
+formed from variables with types by application and \(\lambda\)-abstraction. Type indices that result from the context or that are immaterial,
+we often leave it out. Terms that differ only by bound renaming
+divorce, are identified. The relation \(t \models t'\) ($t$ is reducible to $t'$) becomes inductively defined by
+
+\begin{enumerate}
+    \item $(\lambda x. t) s \models t_x[s]$
+    \item When \(t \models t'\) and \(s \models s'\), so \(t s \models t' s'\)
+    \item When \(t \models t'\), so \(\lambda x.t \models \lambda x.t'\)
+    \item \(t \models t\)
+    \item When \(t \models t'\) and \(t' \models t''\), so \(t \models t''\)
+\end{enumerate}
+
+A term is called in normal form if it has no subterms of the form \((\lambda x.t) s\). As is well known, for every term $t$ there is a uniquely determined normal form \(t'\) with \(t \models t'\). Two terms are equal if they have the same normal form. One can now introduce natural numbers as terms 
+\( \overline{n} \equiv \lambda \alpha . \alpha^n\) vom
+type \(\nu \equiv (0 \rightarrow 0) \rightarrow (0 \rightarrow 0)\); where \(\alpha^n\) is the n-th iterate of \(\alpha\), i.e. \(\equiv \lambda x.\alpha(\alpha...(\alpha x)...)\).
+Every closed term of type \(\nu\) in normal form is an \(\overline{n}\). So defined every closed term \(t\) of the type \(\nu \rightarrow (\nu \rightarrow ...(\nu \rightarrow \nu)...)\) is a number-theoretic one
+Function $f$ determined by $t\overline{n_1},...\overline{n_k} = \overline{f(n_1,...,n_k)}$. For example $will^3$
+
+\begin{enumerate}
+    \item \(n + m\) define as \(\lambda F G \alpha. (F \alpha) \circ (G \alpha)\)
+    \item \(n \cdot m\) define as \(\lambda F G \alpha. F \circ G\)
+    \item \(k\) (constant function) define as \(\lambda F \alpha . \alpha ^ k\)
+    \item \[ d(n, m, i) =
+        \begin{dcases}
+            n & i = 0 \\
+            m & i \neq 0 \\
+        \end{dcases}
+    \] define as \(\lambda F G H \alpha x. H(\lambda y. G \alpha x) (F \alpha x)\)
+\end{enumerate}
+
+[F,G, H variables of type \(\nu, t^{\tau \rightarrow \tau}, s^{\tau \rightarrow \tau} \equiv \lambda x^\tau. t(s x)\)]. The set of
+bare functions is apparently closed against insertions. So are all Polynomials definable, and more generally all functions resulting from polynomials Case distinction according to disappearance or non-disappearance of arguments
+are definable; in the 2-digit case, these are the functions
+
+\[ f(n, m) =
+        \begin{dcases}
+            k & n = 0 \text{ and } m = 0 \\
+            P_1(m) & n = 0 \text{ and } m \neq 0 \\
+            P_2(m) & n \neq 0 \text{ and } m = 0 \\
+            P_3(n, m) & n \neq 0 \text{ and } m \neq 0 \\
+        \end{dcases}
+\]
+
+with polynomials \(P_1, P_2, P_3\). In the following it will be shown that this is all definable functions are.
+
+So \(t\) defines a roughly 2-place function. Bring \(t F G \alpha\) to normal form.
+
+Each subterm (of the normal form of \(t F G \alpha\)) has one of the types $0$, $0 \rightarrow 0$, or \(nu\). Each subterm of type \(\nu\) is identical to $F$ or $G$. Possible subterms from Type \(0 \rightarrow 0\) are:
+
+\begin{enumerate}
+    \item \(\alpha\)
+    \item With $s$ also $Fs$, $Gs$.
+    \item With \(s_1, ..., s_q\), formed according to (1), (2) also \(\lambda y. s_1 (... s_q(z)...)\), where $z$ also iden-
+    table with $y$ can be.
+\end{enumerate}
+
+In the following, \(s\) stands for subterms of the type \(0 \rightarrow 0\). — For $F$, $G$ set $\overline{n}$, $\overline{m}$, where initially \(n, m \geq 1\) is assumed. By induction over s one shows:eEach \(s' \equiv s_{F, G} \overline{n}, \overline{m}\) is equal to \(\alpha^{P(n, m)}\) or equal to a constant function \(y. \alpha^{P(n, m) z}\). Proof: To (2)
+
+\begin{align*} 
+    (\gl \gb. \gb^n) \ga^{P(n, m)} &= \ga^{P(n, m) \cdot n}\\ 
+    (\gl \gb. \gb^n) (\gl y. \ga^{P(n, m) z}) &= \gl y. \ga^{P(n, m)} z
+\end{align*}
+
+To (3). Case 1: None of the \(s_i'\) is constant.
+
+\begin{align*}
+    \gl y. s_1' (...s_q'(z)...) = \gl y. \ga^{P_1(n, m) + \dots + P_q(n, m)} z
+\end{align*}
+
+Case 2: There is a first constant \(s_i'\), say \(s_i' = \gl \tilde{y}. \ga^{P_i(n, m)} \tilde{z}\)
+
+\begin{align*}
+    \gl y. s_1' (...s_q'(z)...) = \gl y. \ga^{P_1(n, m) + \dots + P_q(n, m)} z
+\end{align*}
+
+Since the normal form of \(t F G \ga\) does not contain a free variable of type $0$, it is nach replacing $F$, $G$ with \(\overline{n}\), \(\overline{m}\) $(n,m \geq 1)$ equal to an \(\ga^{P(n, m)}\).
+
+If about \(n = 0, m \geq 1\), then one can replace all outermost subterms of the form \(F s\) by \(\gl x. x\) and gets \(\ga^{P(m)}\) like before.
+
+
+\end{document}

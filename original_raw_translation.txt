@@ -1,8 +1,8 @@
 As is well known, in the type-free \lambda-calculus exactly the recursive functions are
 definable(1). The concept used here of the definability of a function
-is also useful for the A-calculus with types. We answer the question here?
+is also useful for the \lambda-calculus with types. We answer the question here(2)
 according to the then definable functions.
-Types are 0 and with o, r also (sr). terms (denoted by r", s', t).
+Types are 0 and with , r also (sr). terms (denoted by r", s', t).
 formed from variables with types by application and A-abstraction. type
 indices that result from the context or that are immaterial,
 we often leave it out. Terms that differ only by bound renaming
