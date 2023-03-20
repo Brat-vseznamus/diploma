@@ -1,0 +1,103 @@
+\import Arith.Nat
+\import Data.Bool
+\import Data.Maybe
+\import Logic.Meta
+\import Set
+
+\data LType : \Set
+  | Base Nat
+  | Func LType LType
+
+\func sameType (t1 t2 : LType) : Bool \elim t1, t2
+  | Base n, Base n1 => n == n1
+  | Base n, Func t2 t1 => false
+  | Func t1 t2, Base n => false
+  | Func t1 t2, Func t3 t4 => and (sameType t1 t3) (sameType t2 t4)
+
+\data Expr : \Set
+  | Con Nat
+  | Var Nat -- x_i : T
+  | Lam Nat LType Expr -- \lam x_i: T. e
+  | App Expr Expr
+
+\data Context
+  | emptyContext
+  | withAssum (\Sigma Nat LType) Context
+
+\func eqContexts (c1 c2 : Context) : Bool \elim c1, c2
+  | emptyContext, emptyContext => true
+  | emptyContext, withAssum _x c3 => false
+  | withAssum _x c3, emptyContext => false
+  | withAssum (i, t) c1-con, c2 => \case checkVarType c2 i \with {
+    | nothing => false
+    | just a => \case sameType a t \with {
+      | false => false
+      | true => eqContexts c1-con (removeAssumtion c2 (i, t))
+    }
+  }
+
+\func checkVarType (c : Context) (i : Nat) : Maybe LType \elim c
+  | emptyContext => nothing
+  | withAssum (j, type) c => if (i == j) (just type) (checkVarType c i)
+
+\func var-in-context (i : Nat) (c : Context) : Bool =>
+  \case checkVarType c i \with {
+    | nothing => false
+    | just _ => true
+  }
+
+\func addAssumtion (c : Context) (assum : \Sigma Nat LType) : Maybe Context \elim assum
+  | (n,l) => \case checkVarType c n \with {
+    | nothing => just (withAssum (n, l) c)
+    | just a => if (sameType a l) (just c) nothing
+  }
+
+\func removeAssumtion (c : Context) (assum : \Sigma Nat LType) : Context \elim c, assum
+  | emptyContext, (_, _) => emptyContext
+  | withAssum (m, t1) c-con, (n, t2) => if (n == m)
+      (if (sameType t1 t2) c-con (withAssum (m, t1) c-con))
+      (removeAssumtion c-con (n, t2))
+
+\func assum-in-context (c : Context) (assum : \Sigma Nat LType) : Bool \elim assum
+  | (n,l) => \case checkVarType c n \with {
+    | nothing => false
+    | just a => sameType a l
+  }
+
+
+-- 1)           C |- e : t
+--    ------------------------------ (!) vi not in C
+--          C, vi : t1 |- e : t
+
+-- 2)          vi : t in C
+--     ----------------------------
+--             C |- vi : t
+
+-- 3)         C, vi : t1 |- e1 : t2
+--      --------------------------------- (!) vi not in C
+--           C |- (\lam vi: t1 . e1) : (t1 -> t2)
+
+-- 4)    C |- e1 : t1 -> t           C |- e2 : t1
+--      ----------------------------------------
+--                 C |- (e1 e2) : t
+
+
+\data TypedExpr'' (c : Context) (e : Expr) (t : LType)
+  | ContextExpand {i : Nat}
+                  {c2 : Context}
+                  {p1  : var-in-context i c2 = false}
+                  {p1' : var-in-context i c = true}
+                  (p2  : eqContexts c2 (removeAssumtion c (i, t)) = true)
+                  (p3  : TypedExpr'' c2 e t)
+  | VarIntro {i : Nat}
+             (p : e = Var i)
+             (inC : assum-in-context c (i, t) = true)
+  | Lambda {i : Nat} {t1 t2 : LType} {e1 : Expr}
+           (p1 : t = Func t1 t2)
+           (p2 : e = Lam i t1 e1)
+           (p3 : assum-in-context c (i, t) = false)
+           (requ : TypedExpr'' (withAssum (i, t1) c) e1 t2)
+  | Application {t1 : LType} {e1 e2 : Expr}
+            (req1 : TypedExpr'' c e1 (Func t1 t))
+            (req2 : TypedExpr'' c e2 t1)
+            (p1 : e = App e1 e2)

@@ -1,0 +1,102 @@
+\import Arith.Nat
+\import Data.Bool
+\import Data.Maybe
+\import Logic
+\import Set
+
+-- wiki
+\data LType
+  | Base Nat
+  | Func LType LType
+
+\data Expr
+  | Con Nat
+  | Var Nat -- x_i : T
+  | Lam Nat LType Expr -- \lam x_i: T. e
+  | App Expr Expr
+
+
+\data Context
+  | Correct (map : Nat -> Maybe LType)
+  | Wrong
+
+\func contextExpansion (context : Context) (newAssumption : \Sigma Nat LType): Context \elim context {
+  | Correct map => \case newAssumption \with {
+    | (n,l) => \case map n \with {
+      | nothing => Correct \lam (i : Nat) => if (n == i) (just l) (map i)
+      | just a => Wrong
+    }
+  }
+  | Wrong => Wrong
+}
+
+\func contextReduction (context : Context) (oldAssumption : \Sigma Nat LType): Context \elim context {
+  | Correct map => \case oldAssumption \with {
+    | (n,l) => \case map n \with {
+      | nothing => Wrong
+      | just a => Correct \lam (i : Nat) => if (n == i) nothing (map i)
+    }
+  }
+  | Wrong => Wrong
+}
+
+\func inContext (i : Nat) (c : Context) : Bool \elim c {
+  | Correct map => \case map i \with {
+    | nothing => false
+    | just a => true
+  }
+  | Wrong => false
+}
+
+\func getAbsurd (a : Bool) (p1 : a = true) (p2 : a = false) : Empty
+  | true, p1, ()
+
+\func typed (c : Context) (i : Nat) (exist : inContext i c = true) : LType => \case c, i \with {
+  | Correct map, n => \case map n \with {
+    | nothing => \case (inContext i c) \as x \with {
+      | false \as r => absurd (getAbsurd (inContext i c) exist {?})
+      | true => {?}
+    }
+    | just a => a
+  }
+  | Wrong, n => {?}
+}
+
+\data TypedExpr (context : Context)
+  | Const Nat LType -- introduction
+  | Trivial (i : Nat) (inContextProof : inContext i context = true)
+  | Pair (e : Expr) \elim e {
+
+  }
+--  | TApp (te1 te2 : TypedExpr) {a b : LType} {e1 e1_ e2 : Expr} {i : Nat} (p1 : te1 = Lam i a e1_ <-> Func a b) (p2 : te2 = e2 <-> a)
+--        \elim te1, te2 {
+--    | (Lam _ _ e1_ <-> Func _ b), (_ <-> _) => e1_ <-> b
+--  }
+--  | TLam (te1 te2 : TypedExpr)
+--          {a b : LType}
+--
+--\func a (c : Context) (t : TypedExpr c) : Nat \elim t {
+--  | Const n l => {?}
+--  | e & l => {?}
+--  | Pair e => {?}
+--}
+--
+--
+----  | P (e : Expr) (t : LType) \elim e, t {
+----    | Var n, t => Const n t
+----    | Lam n l e1, Base n1 => {?}
+----    | Lam n l e1, Func t1 t2 => {?}
+----    | App e1 e2, Base n => {?}
+----    | App e1 e2, Func t1 t2 => {?}
+----  }
+--
+--
+--\func add {a b : LType} (e e1 : Expr) {i : Nat} (p : e = Lam i a e1): LType \elim e {
+--  | Var n => absurd
+--  | Lam n l e => {?}
+--  | App e2 e3 => {?}
+--}
+
+
+
+--\func fromContext (c : Context) ()
