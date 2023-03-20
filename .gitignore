@@ -1,3 +1,7 @@
+arend2/.idea/**
+arend2/bin/**
+src/**
+arend2/src/data/**
 **.aux
 **.fdb_latexmk
 **.fls
