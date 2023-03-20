@@ -64,7 +64,7 @@ Function $f$ determined by $t\overline{n_1},...\overline{n_k} = \overline{f(n_1,
     \] define as \(\lambda F G H \alpha x. H(\lambda y. G \alpha x) (F \alpha x)\)
 \end{enumerate}
 
-[F,G, H variables of type \(\nu, t^{\tau \rightarrow \tau}, s^{\tau \rightarrow \tau} \equiv \lambda x^\tau. t(s x)\)]. The set of
+[F, G, H variables of type \(\nu, t^{\tau \rightarrow \tau} \circ s^{\tau \rightarrow \tau} \equiv \lambda x^\tau. t(s x)\)]. The set of
 bare functions is apparently closed against insertions. So are all Polynomials definable, and more generally all functions resulting from polynomials Case distinction according to disappearance or non-disappearance of arguments
 are definable; in the 2-digit case, these are the functions
 
@@ -81,7 +81,7 @@ with polynomials \(P_1, P_2, P_3\). In the following it will be shown that this 
 
 So \(t\) defines a roughly 2-place function. Bring \(t F G \alpha\) to normal form.
 
-Each subterm (of the normal form of \(t F G \alpha\)) has one of the types $0$, $0 \rightarrow 0$, or \(nu\). Each subterm of type \(\nu\) is identical to $F$ or $G$. Possible subterms from Type \(0 \rightarrow 0\) are:
+Each subterm (of the normal form of \(t F G \alpha\)) has one of the types $0$, $0 \rightarrow 0$, or \(\nu\). Each subterm of type \(\nu\) is identical to $F$ or $G$. Possible subterms from Type \(0 \rightarrow 0\) are:
 
 \begin{enumerate}
     \item \(\alpha\)
@@ -90,11 +90,11 @@ Each subterm (of the normal form of \(t F G \alpha\)) has one of the types $0$, 
     table with $y$ can be.
 \end{enumerate}
 
-In the following, \(s\) stands for subterms of the type \(0 \rightarrow 0\). — For $F$, $G$ set $\overline{n}$, $\overline{m}$, where initially \(n, m \geq 1\) is assumed. By induction over s one shows:eEach \(s' \equiv s_{F, G} \overline{n}, \overline{m}\) is equal to \(\alpha^{P(n, m)}\) or equal to a constant function \(y. \alpha^{P(n, m) z}\). Proof: To (2)
+In the following, \(s\) stands for subterms of the type \(0 \rightarrow 0\). — For $F$, $G$ set $\overline{n}$, $\overline{m}$, where initially \(n, m \geq 1\) is assumed. By induction over s one shows: Each \(s' \equiv s_{F, G} [\overline{n}, \overline{m}]\) is equal to \(\alpha^{P(n, m)}\) or equal to a constant function \(\gl y. \alpha^{P(n, m)} z\) (\(P(n, m)\) polynom). Proof: To (2)
 
 \begin{align*} 
     (\gl \gb. \gb^n) \ga^{P(n, m)} &= \ga^{P(n, m) \cdot n}\\ 
-    (\gl \gb. \gb^n) (\gl y. \ga^{P(n, m) z}) &= \gl y. \ga^{P(n, m)} z
+    (\gl \gb. \gb^n) (\gl y. \ga^{P(n, m) } z) &= \gl y. \ga^{P(n, m)} z  & (n \geq 1)
 \end{align*}
 
 To (3). Case 1: None of the \(s_i'\) is constant.
