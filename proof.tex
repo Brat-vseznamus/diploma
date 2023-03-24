@@ -1,0 +1,157 @@
+\documentclass[11pt]{article}
+
+\usepackage[english]{babel}
+\usepackage{amsthm}
+\usepackage{sectsty}
+\usepackage{graphicx}
+\usepackage{mathtools}
+
+% Margins
+\topmargin=-0.45in
+\evensidemargin=0in
+\oddsidemargin=0in
+\textwidth=6.5in
+\textheight=9.0in
+\headsep=0.25in
+
+\title{ Proof }
+% \author{ Author }
+% \date{\today}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{corollary}{Corollary}[theorem]
+\newtheorem{lemma}[theorem]{Lemma}
+
+\newcommand{\ga}{\alpha}
+\newcommand{\gb}{\beta}
+\newcommand{\gl}{\lambda}
+\newcommand{\gt}{\tau}
+\newcommand{\too}{\rightarrow}
+
+
+\begin{document}
+\maketitle	
+
+\section*{}
+
+\begin{align*}
+    \nu = (0 \too 0) \too (0 \too 0) \\
+\end{align*}
+
+Let's consider \(t\) - two-digit function and \(N, M\) - two numerals and \(f\) as general number function, then their types are:
+
+\begin{align*}
+    t &: \nu \too \nu \too \nu \\
+    N, M &: \nu \\
+    f &: 0 \too 0
+\end{align*}
+
+Then lets consider normal form of \(t' = t N M f : 0 \too 0\)
+
+Import to notice that \(t\) is closed.
+
+We will proof that any subterm of \(t'\) has one of types from set \(S = \{0, 0 \too 0, \nu\}\).
+
+Declare function for our comfort in usage \(T\) which return type of expression in some context: 
+
+\begin{align*}
+    \forall e - \text{term}, \Gamma - \text{context} : T(\Gamma, e) = \gt,\ \text{if \(\Gamma \vdash e:\gt\)}
+\end{align*}
+
+For this let introduce Lemma which will helps us in it:
+
+\begin{lemma}
+    Consider some expression in normal form \(e\) in context \(\Gamma\) with such requirements:
+    \begin{enumerate}
+        \item Lets consider \(e\) has type \(\tau\) then \(\tau\) must be in set \(S\)
+        \item For each free variable \(x \in FV(e)\) is true that \(T(\Gamma, x) \in S\)
+    \end{enumerate}
+    Then each subterm of \(e\) also has type which is in set \(S\)
+\end{lemma}
+
+\begin{proof}
+    
+    We will proof this by induction on each step considering expression constructed by one of the possible ways.
+
+    Consider all possible deconstructions of expression \(e\)
+
+    \begin{enumerate}
+        \item \(e = c_i\) where \(c_i \in FV(e)\)
+        \item \(e = \gl x. B\) then \(\tau = t_1 \too t_2\)
+        \item \(e = P Q\) then \(\exists \ga. P : \ga \too \tau, Q : \ga\)
+    \end{enumerate}
+
+    For case 1 the lemma is explicitly satisfied since \(e\) doesn't have any subterm, except itself so lemma is correct
+
+    For case 2 consider few options
+    
+    Option 1:
+    \begin{align*}
+        \begin{dcases}
+            \tau &= 0 \too 0 \\
+            t_1 &= 0 \\
+            t_2 &= 0
+        \end{dcases}
+    \end{align*}
+
+    Then \(FV(B) = FB(e) \cup \{x\}\) and because of B exists in context \(\Gamma' = \Gamma, x:0\) and has type \(0\) then by induction case is clear that each \(B\)'s subterm has correct type, but because if \(x\) s is subterm \(B\), then \(x\) is subterm of \(e\).
+
+    Other option:
+    \begin{align*}
+        \begin{dcases}
+            \tau &= \nu \\
+            t_1 &= 0 \too 0 \\
+            t_2 &= 0 \too 0
+        \end{dcases}
+    \end{align*}
+
+    Same proof as for option 1.
+
+    For case 3 let's recall that \(e\) in normal form that means \(P\) - is not lambda (otherwise it would be reduced) and two options
+
+    \begin{enumerate}
+        \item \(P \in FV(e)\) than the same variants for type \(\tau\) as for case 2 with induction step for \(Q\)
+        \item \(P = P_2 Q_1\)
+
+    \end{enumerate}
+
+    We can repeat choosing option 2 finite number of times because we are in normal form.
+
+    Then consider
+
+    \begin{align*}
+        e = P A_1 A_2 ... A_k, \text{where \(P \in FV(e)\)}
+    \end{align*}
+
+    Again few options:
+
+    \begin{align*}
+        \begin{dcases}
+            e &: 0 \\
+            P &: \nu \\
+            A_1 &: 0 \to 0 \\
+            A_2 &: 0
+        \end{dcases}
+    \end{align*}
+
+    \begin{align*}
+        \begin{dcases}
+            e &: 0 \\
+            P &: 0 \to 0 \\
+            A_1 &: 0 \\
+        \end{dcases}
+    \end{align*}
+
+    \begin{align*}
+        \begin{dcases}
+            e &: 0 \to 0 \\
+            P &: \nu \\
+            A_1 &: 0 \to 0 \\
+        \end{dcases}
+    \end{align*}
+
+    Again induction
+
+\end{proof}
+
+\end{document}
