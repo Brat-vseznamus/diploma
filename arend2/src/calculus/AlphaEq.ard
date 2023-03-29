@@ -41,6 +41,7 @@
   | (App P1 Q1), (App P2 Q2) => app-eq (A-Eq P1 P2) (A-Eq Q1 Q2)
   | (Lam i1 B1), (Lam i2 B2) =>
     lam-eq
-      (i : Nat)
-      {proof-new : i = common-new-var-no B1 B2}
-      (A-Eq (replace B1 i1 (Var i)) (replace B2 i2 (Var i)))
+      (A-Eq
+          (replace B1 i1 (Var (common-new-var-no B1 B2)))
+          (replace B2 i2 (Var (common-new-var-no B1 B2)))
+      )

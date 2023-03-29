@@ -1,8 +1,6 @@
 \import Arith.Nat
 \import Data.Bool
-\import Order.StrictOrder
 \import Set
-\import math.utils
 
 \data SimpleType
   | Base Nat
@@ -29,3 +27,4 @@
   | Var n => if (n == v) target (Var n)
   | Lam n e => Lam n (if (n == v) e (replace e v target))
   | App e1 e2 => App (replace e1 v target) (replace e2 v target)
+

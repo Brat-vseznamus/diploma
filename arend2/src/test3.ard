@@ -1,0 +1,5 @@
+\import calculus.AlphaEq
+\import calculus.Base
+
+
+\func EXPAMPLE1 : A-Eq (Lam 0 (Lam 1 (Var 0))) (Lam 1 (Lam 0 (Var 1))) => lam-eq (lam-eq (var-eq idp))
