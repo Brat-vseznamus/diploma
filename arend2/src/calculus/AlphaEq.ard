@@ -1,0 +1,46 @@
+\import Arith.Nat
+\import Order.StrictOrder
+\import calculus.Base
+\import math.utils
+
+\func maxVar (e : Expr) : Nat \elim e
+  | Con n => 0
+  | Var n => n
+  | Lam n e1 => max n (maxVar e1)
+  | App e1 e2 => max (maxVar e1) (maxVar e2)
+
+\data NewVar (i : Nat) (e : Expr)
+  | nv (maxVar e < i)
+
+\func create-newvar (e : Expr) : NewVar (suc (maxVar e)) e =>
+  nv (id<suc {maxVar e})
+
+\func common-new-var-no (e1 e2 : Expr) : Nat => suc (max (maxVar e1) (maxVar e2))
+\func common-new-var (e1 e2 : Expr) :
+  \Sigma
+    (NewVar (common-new-var-no e1 e2) e1)
+    (NewVar (common-new-var-no e1 e2) e2) =>
+  \let
+    | m1 => maxVar e1
+    | m2 => maxVar e2
+  \in
+    \case create-newvar e1, create-newvar e2 \with {
+      | nv m1<sm1, nv m2<sm2 => \let
+        | (m1<=max, m2<=max) => max.a_b<=max {m1} {m2}
+        | sm1<=smax => suc<=suc m1<=max
+        | sm2<=smax => suc<=suc m2<=max
+        \in (
+          nv (<-<=-transitive m1<sm1 sm1<=smax),
+          nv (<-<=-transitive m2<sm2 sm2<=smax)
+        )
+    }
+
+\data A-Eq (e1 e2 : Expr) \elim e1, e2
+  | (Con i), (Con j) => con-eq (p : i = j)
+  | (Var i), (Var j) => var-eq (p : i = j)
+  | (App P1 Q1), (App P2 Q2) => app-eq (A-Eq P1 P2) (A-Eq Q1 Q2)
+  | (Lam i1 B1), (Lam i2 B2) =>
+    lam-eq
+      (i : Nat)
+      {proof-new : i = common-new-var-no B1 B2}
+      (A-Eq (replace B1 i1 (Var i)) (replace B2 i2 (Var i)))
