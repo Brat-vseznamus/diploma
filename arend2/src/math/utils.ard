@@ -1,0 +1,49 @@
+\import Arith.Nat
+\import Data.Or
+\import Logic
+\import Order.LinearOrder
+\import Order.PartialOrder
+\import Order.StrictOrder
+\import Paths
+\import Paths.Meta
+
+\func max (a b : Nat) : Nat \elim a, b
+  | 0, 0 => 0
+  | 0, suc b1 => suc b1
+  | suc a1, 0 => suc a1
+  | suc a1, suc b1 => suc (max a1 b1)
+  \where {
+    \func max-0-0 : max 0 0 = 0 => \case max 0 0 \with {
+      | 0 => idp
+      | suc n => idp
+    }
+    \func max-sym (a b : Nat) : max a b = max b a \elim a, b
+      | 0, 0 => idp
+      | 0, suc b => idp
+      | suc a, 0 => idp
+      | suc a, suc b => pmap suc (max-sym a b)
+    -- жесть осознал вещи
+    \func a<=b->max=b (a b : Nat) (p : a <= b) : max a b = b \elim a, b
+      | 0, 0 => max-0-0
+      | 0, suc b => idp
+      | suc a, 0 => absurd (suc/=0 (<=-antisymmetric p (zero<=_ {suc a})))
+      | suc a, suc b => pmap suc (a<=b->max=b a b (suc<=suc.conv p))
+
+    \func a_b<=max {a b : Nat} : \Sigma (a <= max a b) (b <= max a b) =>
+      \case NatSemiring.totality a b \with {
+        | byLeft a<=b => \let
+          | b_<=_max_a_b => NatSemiring.<=_= (inv (a<=b->max=b a b a<=b))
+                         \in (<=∘ a<=b b_<=_max_a_b, b_<=_max_a_b)
+        | byRight b<=a => \let
+          | a_<=_max_b_a => NatSemiring.<=_= (inv (a<=b->max=b b a b<=a))
+          | a_<=_max_a_b => <=∘ a_<=_max_b_a (NatSemiring.<=_= (max-sym b a))
+                          \in (a_<=_max_a_b , <=∘ b<=a a_<=_max_a_b )
+      }
+  }
+
+
+\func <-<=-transitive {a b c : Nat} (a<b : a < b) (b<=c : b <= c) : a < c =>
+  \case LinearOrder.<=-dec b<=c \with {
+    | inl b<c => NatSemiring.<-transitive a<b b<c
+    | inr b=c => rewriteF b=c a<b
+  }
