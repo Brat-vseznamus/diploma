@@ -1,5 +1,9 @@
 \import calculus.AlphaEq
 \import calculus.Base
+\import calculus.Beta
 
+\func EXAMPLE1 : A-Eq (Lam 0 (Lam 1 (Var 0))) (Lam 1 (Lam 0 (Var 1))) => lam-eq (lam-eq (var-eq idp))
 
-\func EXPAMPLE1 : A-Eq (Lam 0 (Lam 1 (Var 0))) (Lam 1 (Lam 0 (Var 1))) => lam-eq (lam-eq (var-eq idp))
+\func EXAMPLE2 : Beta-red (App (Lam 0 (Var 0)) (Var 1)) (Var 1) => beta-repl-right (var-eq idp)
+\func EXAMPLE3 : Beta-red (App (Con 0) (App (Lam 0 (Var 0)) (Var 1))) (App (Con 0) (Var 1)) =>
+  beta-app-left (con-eq idp) EXAMPLE2
