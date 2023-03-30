@@ -19,8 +19,11 @@
 -- CHUCH
 \func Church => Func (Func T0 T0) (Func T0 T0)
 
+-- \f.\x.x
 \func zero => Lam 0 (Lam 1 (Var 1))
+-- \c.\f.\x. f (C f x)
 \func succ => Lam 0 (Lam 1 (Lam 2 (App (Var 1) (App (App (Var 0) (Var 1)) (Var 2)))))
+-- \f.\x. f^n x
 \func numeral (n : Nat) : Expr \elim n
   | 0 => zero
   | suc n => App succ (numeral n)
