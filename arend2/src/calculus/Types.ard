@@ -1,0 +1,45 @@
+\import Arith.Nat
+\import Paths (inv, pmap, pmap2)
+\import Set
+
+\data SimpleType : \Set
+  | Base Nat
+  | Func SimpleType SimpleType
+
+\instance STDecSet : DecSet SimpleType
+  | decideEq => decideEqImpl
+  \where {
+    \func decideEqImpl (x y : SimpleType) : Dec (x = y) \elim x, y
+      | Base n, Base n1 => \case NatSemiring.decideEq n n1 \with {
+        | yes n=n1 => yes (pmap Base n=n1)
+        | no n/=n1 => no (\lam p => n/=n1 (rmBase {n} {n1} p))
+      }
+      | Base n, Func s s1 => no (\lam p => suc/=0 {0} (inv (pmap conNo p)))
+      | Func s s1, Base n => no (\lam p => suc/=0 {0} (pmap conNo p))
+      | Func a1 b1, Func a2 b2 => \let
+        | a1?=a2 => decideEqImpl a1 a2
+        | b1?=b2 => decideEqImpl b1 b2
+                                  \in \case a1?=a2, b1?=b2 \with {
+          | yes a1=a2, yes b1=b2 => yes (pmap2 Func a1=a2 b1=b2)
+          | yes a1=a2, no b1/=b2 => no (\lam p => b1/=b2 (rmFunc p).2)
+          | no a1/=a2, _         => no (\lam p => a1/=a2 (rmFunc p).1)
+        }
+
+    \func rmBase {n n1 : Nat} (p : Base n = Base n1) : n = n1 =>
+      \let
+        | df => \lam (x : SimpleType) => \case x \return Nat \with {
+          | Base i => i
+          | Func s s1 => 0
+        } \in pmap df p
+
+    \func rmFunc {a1 a2 b1 b2 : SimpleType} (p : Func a1 b1 = Func a2 b2) : \Sigma (a1 = a2) (b1 = b2) =>
+      \let
+        | df => \lam (x : SimpleType) => \case x \return \Sigma SimpleType SimpleType \with {
+          | Base n => (Base 0, Base 0)
+          | Func s s1 => (s, s1)
+        } \in (pmap (\lam t => (df t).1) p, pmap (\lam t => (df t).2) p)
+
+    \func conNo (x : SimpleType) : Nat \elim x
+      | Base n => 0
+      | Func x1 x2 => 1
+  }

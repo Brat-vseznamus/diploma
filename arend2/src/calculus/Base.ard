@@ -1,10 +1,7 @@
 \import Arith.Nat
 \import Data.Bool
 \import Set
-
-\data SimpleType
-  | Base Nat
-  | Func SimpleType SimpleType
+\import calculus.Types
 
 \data Context
   | empty
@@ -13,6 +10,9 @@
     \func addToContext (newAssumption : \Sigma Nat SimpleType) (context : Context) : Context \elim newAssumption, context
       | (n,s), with _x _context => if (_x.1 == n) _context (addToContext (n, s)  _context)
       | (n,s), empty => with (n, s) empty
+    \func var-in-context (var-with-type : \Sigma Nat SimpleType) (c : Context) : Bool \elim c
+      | empty => false
+      | with (i, t) c => if (i == var-with-type.1) (t STDecSet.== var-with-type.2) (var-in-context (i, t) c)
   }
 
 \data Expr : \Set
@@ -21,10 +21,12 @@
   | Lam Nat Expr -- \lam x_i: T. e
   | App Expr Expr
 
-
 \func replace (e : Expr) (v : Nat) (target : Expr) : Expr \elim e
   | Con n => Con n
   | Var n => if (n == v) target (Var n)
   | Lam n e => Lam n (if (n == v) e (replace e v target))
   | App e1 e2 => App (replace e1 v target) (replace e2 v target)
 
+\data TypedExpr (e : Expr) (t : SimpleType) (c : Context) \elim e, t
+  | (Con _), t => typed-const
+  | (Var i), t => typed-var
