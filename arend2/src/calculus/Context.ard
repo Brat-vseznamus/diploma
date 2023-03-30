@@ -1,0 +1,25 @@
+\import Arith.Nat
+\import Data.Bool
+\import Set
+\import calculus.Types
+
+\data Context
+  | empty
+  | with (\Sigma Nat SimpleType) Context
+  \where {
+    \func rm-assump (assumption : \Sigma Nat SimpleType) (context : Context) : Context \elim assumption, context
+      | (n,s), with _x _context => if (_x.1 == n) _context (with _x (rm-assump (n, s) _context))
+      | (n,s), empty => empty
+    \func add-assump (newAssumption : \Sigma Nat SimpleType) (context : Context) : Context \elim newAssumption, context
+      | (n,s), with _x _context => with _x (if (_x.1 == n) _context (add-assump (n, s)  _context))
+      | (n,s), empty => with (n, s) empty
+    \func var-in-context (var : Nat) (c : Context) : Bool \elim c
+      | empty => false
+      | with (i, _) c => if (i == var) true (var-in-context var c)
+    \func typed-var-in-context (var-with-type : \Sigma Nat SimpleType) (c : Context) : Bool \elim c
+      | empty => false
+      | with (i, t) c =>
+        if (i == var-with-type.1)
+            (t STDecSet.== var-with-type.2)
+            (typed-var-in-context var-with-type c)
+  }

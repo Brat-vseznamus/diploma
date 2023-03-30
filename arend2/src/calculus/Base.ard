@@ -1,24 +1,13 @@
 \import Arith.Nat
 \import Data.Bool
 \import Set
+\import calculus.Context
 \import calculus.Types
-
-\data Context
-  | empty
-  | with (\Sigma Nat SimpleType) Context
-  \where {
-    \func addToContext (newAssumption : \Sigma Nat SimpleType) (context : Context) : Context \elim newAssumption, context
-      | (n,s), with _x _context => if (_x.1 == n) _context (addToContext (n, s)  _context)
-      | (n,s), empty => with (n, s) empty
-    \func var-in-context (var-with-type : \Sigma Nat SimpleType) (c : Context) : Bool \elim c
-      | empty => false
-      | with (i, t) c => if (i == var-with-type.1) (t STDecSet.== var-with-type.2) (var-in-context (i, t) c)
-  }
 
 \data Expr : \Set
   | Con Nat
-  | Var Nat -- x_i : T
-  | Lam Nat Expr -- \lam x_i: T. e
+  | Var Nat
+  | Lam Nat Expr
   | App Expr Expr
 
 \func replace (e : Expr) (v : Nat) (target : Expr) : Expr \elim e
@@ -27,6 +16,13 @@
   | Lam n e => Lam n (if (n == v) e (replace e v target))
   | App e1 e2 => App (replace e1 v target) (replace e2 v target)
 
-\data TypedExpr (e : Expr) (t : SimpleType) (c : Context) \elim e, t
-  | (Con _), t => typed-const
-  | (Var i), t => typed-var
+\data TypedExpr (e : Expr) (t : SimpleType) (c : Context) \elim e, t, c
+  | (Con _), t, c => typed-const
+  | (Var i), t, c => typed-var (i-exists : Context.typed-var-in-context (i, t) c = true)
+  | (Lam i B), (Func a b), c => typed-lam
+    (b-exists      : TypedExpr B b (Context.add-assump (i, a) c))
+    (i-is-not-free : Context.var-in-context i c = false)
+  | (App P Q), t, c => typed-app
+    (Qt : SimpleType)
+    (p-typed : TypedExpr P (Func Qt t) c)
+    (q-typed : TypedExpr Q Qt c)
