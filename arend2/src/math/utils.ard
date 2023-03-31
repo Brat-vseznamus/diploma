@@ -1,4 +1,5 @@
 \import Arith.Nat
+\import Data.Bool
 \import Data.Or
 \import Logic
 \import Order.LinearOrder
@@ -46,3 +47,6 @@
     | inl b<c => NatSemiring.<-transitive a<b b<c
     | inr b=c => rewriteF b=c a<b
   }
+
+\func if-left {A : \Type}  (a b : A) : if true a b = a => idp
+\func if-right {A : \Type} (a b : A) : if false a b = b => idp
