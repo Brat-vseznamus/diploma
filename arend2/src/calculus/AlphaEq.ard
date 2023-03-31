@@ -1,5 +1,9 @@
 \import Arith.Nat
+\import Data.Bool
 \import Order.StrictOrder
+\import Paths
+\import Paths.Meta
+\import Set
 \import calculus.Base
 \import math.utils
 
@@ -16,6 +20,10 @@
   nv (id<suc {maxVar e})
 
 \func common-new-var-no (e1 e2 : Expr) : Nat => suc (max (maxVar e1) (maxVar e2))
+    \where {
+      \func sym {e1 e2 : Expr} : common-new-var-no e1 e2 = common-new-var-no e2 e1 =>
+        pmap suc (max.max-sym (maxVar e1) (maxVar e2))
+    }
 \func common-new-var (e1 e2 : Expr) :
   \Sigma
     (NewVar (common-new-var-no e1 e2) e1)
@@ -35,6 +43,12 @@
         )
     }
 
+\func repl-index (e : Expr) (from to : Nat) : Expr \elim e
+  | Con n => Con n
+  | Var n => if (n == from) (Var to) (Var n)
+  | Lam n e => if (n == from) (Lam n e) (Lam n (repl-index e from to))
+  | App e1 e2 => App (repl-index e1 from to) (repl-index e2 from to)
+
 \data A-Eq (e1 e2 : Expr) \elim e1, e2
   | (Con i), (Con j) => con-eq (p : i = j)
   | (Var i), (Var j) => var-eq (p : i = j)
@@ -42,6 +56,19 @@
   | (Lam i1 B1), (Lam i2 B2) =>
     lam-eq
       (A-Eq
-          (replace B1 i1 (Var (common-new-var-no B1 B2)))
-          (replace B2 i2 (Var (common-new-var-no B1 B2)))
+          (repl-index B1 i1 (common-new-var-no B1 B2))
+          (repl-index B2 i2 (common-new-var-no B1 B2))
       )
+  \where {
+    \func refl {e : Expr} : A-Eq e e \elim e
+      | Con n => con-eq idp
+      | Var n => var-eq idp
+      | Lam n e => lam-eq (refl {repl-index e n (common-new-var-no e e)})
+      | App e1 e2 => app-eq (refl {e1}) (refl {e2})
+
+    \func sym {e1 e2 : Expr} (p : A-Eq e1 e2) : A-Eq e2 e1 \elim e1, e2, p
+      | Con i, Con j, con-eq p => con-eq (inv p)
+      | Var i, Var j, var-eq p => var-eq (inv p)
+      | App e1 e2, App e3 e4, app-eq p1 p2 => app-eq (sym p1) (sym p2)
+      | Lam i1 e1, Lam i2 e2, lam-eq p => lam-eq (sym (rewriteF common-new-var-no.sym p))
+  }

@@ -1,11 +1,12 @@
 \import calculus.AlphaEq
 \import calculus.Base
 
-\data Beta-red (e1 e2 : Expr) \elim e1, e2
-  | (App P1 Q1), (App P2 Q2) => beta-app-left (A-Eq P1 P2) (Beta-red Q1 Q2)
-  | (App P1 Q1), (App P2 Q2) => beta-app-right (Beta-red P1 P2) (A-Eq Q1 Q2)
+\data Beta-Red (e1 e2 : Expr) \elim e1, e2
+  | (App P1 Q1), (App P2 Q2) => beta-app-left (A-Eq P1 P2) (Beta-Red Q1 Q2)
+  | (App P1 Q1), (App P2 Q2) => beta-app-right (Beta-Red P1 P2) (A-Eq Q1 Q2)
   | (App (Lam i P) Q), s => beta-repl-right (A-Eq s (replace P i Q)) -- question: maybe a-eq?
-  | (Lam i B1), (Lam j B2) =>  beta-lam (i = j) (Beta-red B1 B2)
+  | (Lam i B1), (Lam j B2) =>  beta-lam (i = j) (Beta-Red B1 B2)
 
-
-
+--\data Beta-Eq (e1 e2 : Expr)
+--  | one-step (Beta-Red e1 e2)
+--  | chain (tmp : Expr) (Beta-Red e1 tmp) (Beta-Eq tmp e2)

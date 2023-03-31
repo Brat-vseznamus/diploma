@@ -6,8 +6,8 @@
 
 \func EXAMPLE1 : A-Eq (Lam 0 (Lam 1 (Var 0))) (Lam 1 (Lam 0 (Var 1))) => lam-eq (lam-eq (var-eq idp))
 
-\func EXAMPLE2 : Beta-red (App (Lam 0 (Var 0)) (Var 1)) (Var 1) => beta-repl-right (var-eq idp)
-\func EXAMPLE3 : Beta-red (App (Con 0) (App (Lam 0 (Var 0)) (Var 1))) (App (Con 0) (Var 1)) =>
+\func EXAMPLE2 : Beta-Red (App (Lam 0 (Var 0)) (Var 1)) (Var 1) => beta-repl-right (var-eq idp)
+\func EXAMPLE3 : Beta-Red (App (Con 0) (App (Lam 0 (Var 0)) (Var 1))) (App (Con 0) (Var 1)) =>
   beta-app-left (con-eq idp) EXAMPLE2
 
 \func T0 => Base 0
@@ -58,3 +58,13 @@
   | 0 => zeroIsChurch
   | suc n => typed-app Church succIsCh->Ch (numeralIsChurch n)
 
+\func repeat (n : Nat) (f : Expr) (x : Expr) : Expr \elim n
+  | 0 => x
+  | suc n => App f (repeat n f x)
+
+\func numeral2 (n : Nat) : Expr => Lam 0 (Lam 1 (repeat n (Var 0) (Var 1)))
+
+--\func same0 : A-Eq (numeral2 0) zero => lam-eq (lam-eq (var-eq idp))
+--\func sameN (n : Nat) : A-Eq (numeral2 n) (numeral n) \elim n
+--  | 0 => same0
+--  | suc n => \let | sameN-1 => sameN n \in {?}
