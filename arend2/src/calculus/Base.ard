@@ -1,5 +1,6 @@
 \import Arith.Nat
 \import Data.Bool
+\import Logic
 \import Set
 \import calculus.Context
 \import calculus.Types
@@ -16,6 +17,15 @@
   | Lam n e => Lam n (if (n == v) e (replace e v target))
   | App e1 e2 => App (replace e1 v target) (replace e2 v target)
 
+\data Repl (e e' : Expr) (from to : Nat) \elim e, e'
+  | Con _ , Con _  => repl-con
+  | Var n1, Var n2 => repl-var-succ (n1 = from) (n2 = to)
+  | Var n1, Var n2 => repl-var-fail (Not (n1 = from)) (n1 = n2)
+  | App P1 Q1, App P2 Q2 => repl-app (Repl P1 P2 from to) (Repl Q1 Q2 from to)
+  | Lam i1 B1, Lam i2 B2 => repl-lam-stps (i1 = i2) (i1 = from) (B1 = B2)
+  | Lam i1 B1, Lam i2 B2 => repl-lam-cont (i1 = i2) (Not (i1 = from)) (Repl B1 B2 from to)
+
+
 \data TypedExpr (e : Expr) (t : SimpleType) (c : Context) \elim e, t, c
   | (Con _), t, c => typed-const
   | (Var i), t, c => typed-var (i-exists : Context.typed-var-in-context (i, t) c = true)
@@ -26,3 +36,6 @@
     (Qt : SimpleType)
     (p-typed : TypedExpr P (Func Qt t) c)
     (q-typed : TypedExpr Q Qt c)
+
+
+\func s (e : Expr) (i j : Nat) (r : Repl e i j) : Nat \elim r

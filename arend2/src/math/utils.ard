@@ -1,6 +1,7 @@
 \import Arith.Nat
 \import Data.Bool
 \import Data.Or
+\import Function.Meta
 \import Logic
 \import Order.LinearOrder
 \import Order.PartialOrder
@@ -40,6 +41,18 @@
           | a_<=_max_a_b => <=∘ a_<=_max_b_a (NatSemiring.<=_= (max-sym b a))
                           \in (a_<=_max_a_b , <=∘ b<=a a_<=_max_a_b )
       }
+    \func max-monotone {a b a' b' : Nat} (a<a' : a < a') (b<b' : b < b') : max a b < max a' b' =>
+      \case totality a b \with {
+        | byLeft a<=b => <=-<-transitive
+            (NatSemiring.<=_= (a<=b->max=b a b a<=b))
+            (<-<=-transitive b<b' (a_b<=max {a'} {b'}).2)
+        | byRight b<=a =>
+          rewrite (max-sym a' b') $
+          rewrite (max-sym a b) $
+            <=-<-transitive
+              (NatSemiring.<=_= (a<=b->max=b b a b<=a))
+              (<-<=-transitive a<a' (a_b<=max {b'} {a'}).2)
+      }
   }
 
 \func <-<=-transitive {a b c : Nat} (a<b : a < b) (b<=c : b <= c) : a < c =>
@@ -47,6 +60,13 @@
     | inl b<c => NatSemiring.<-transitive a<b b<c
     | inr b=c => rewriteF b=c a<b
   }
+
+\func <=-<-transitive {a b c : Nat} (a<=b : a <= b) (b<c : b < c) : a < c =>
+  \case LinearOrder.<=-dec a<=b \with {
+    | inl a<b => NatSemiring.<-transitive a<b b<c
+    | inr a=b => rewriteF (inv a=b) b<c
+  }
+
 
 \func if-left {A : \Type}  (a b : A) : if true a b = a => idp
 \func if-right {A : \Type} (a b : A) : if false a b = b => idp

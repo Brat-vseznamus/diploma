@@ -4,7 +4,7 @@
 \import calculus.Context
 \import calculus.Types
 
-\func EXAMPLE1 : A-Eq (Lam 0 (Lam 1 (Var 0))) (Lam 1 (Lam 0 (Var 1))) => lam-eq (lam-eq (var-eq idp))
+\func EXAMPLE1 : A-Eq (Lam 0 (Lam 1 (Var 0))) (Lam 1 (Lam 0 (Var 1))) => A-Eq.lam-eq (A-Eq.lam-eq (var-eq idp))
 
 \func EXAMPLE2 : Beta-Red (App (Lam 0 (Var 0)) (Var 1)) (Var 1) => beta-repl-right (var-eq idp)
 \func EXAMPLE3 : Beta-Red (App (Con 0) (App (Lam 0 (Var 0)) (Var 1))) (App (Con 0) (Var 1)) =>
