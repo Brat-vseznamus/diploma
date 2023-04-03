@@ -50,52 +50,6 @@
         )
     }
 
-\func repl-index (e : Expr) (from to : Nat) : Expr \elim e
-  | Con n => Con n
-  | Var n => if (n == from) (Var to) (Var n)
-  | Lam n e => if (n == from) (Lam n e) (Lam n (repl-index e from to))
-  | App e1 e2 => App (repl-index e1 from to) (repl-index e2 from to)
-  \where {
-    \func replId (i : Nat) (B : Expr) : repl-index B i i = B \elim B
-      | Con n => idp
-      | Var n => \case decideEq n i \as p \return if (decToBool p) (Var i) (Var n) = Var n \with {
-        | yes n=i => inv $ pmap Var n=i
-        | no n/=i => pmap Var idp
-      }
-      | Lam n B => \case n == i \as p \return if p (Lam n B) (Lam n (repl-index B i i)) = Lam n B \with {
-        | false => idp *> pmap (Lam n) (replId i B)
-        | true => idp
-      }
-      | App B1 B2 => \let
-        | b1repl => replId i B1
-        | b2repl => replId i B2
-                     \in pmap2 App b1repl b2repl
-
---    \func repl-save-Var {i j : Nat} (e e' : Expr) (res : e' = repl-index e i j) {k : Nat} (isVar : e = Var k)
-    \func repl-refl (e : Expr) (i j : Nat) : A-Eq (repl-index e i j) (repl-index e i j) \elim e
-      | Con n => con-eq idp
-      | Var n => \case decideEq n i \as p
-                  \return A-Eq (if (decToBool p) (Var j) (Var n)) (if (decToBool p) (Var j) (Var n))
-      \with {
-        | yes e => var-eq idp
-        | no n1 => var-eq idp
-      }
-      | Lam n e => \case decideEq n i \as p
-                    \return A-Eq (if {Expr} (decToBool p) (Lam n e) (Lam n (repl-index e i j))) (if {Expr} (decToBool p) (Lam n e) (Lam n (repl-index e i j)))
-      \with {
-        | yes e1 => A-Eq.lam-eq (repl-refl e n (common-new-var-no e e))
-        | no n1 => {?} -- A-Eq.lam-eq (repl-refl (repl-index e i j) n (common-new-var-no (repl-index e i j) (repl-index e i j)))
-      }
-      | App e1 e2 => app-eq (repl-refl e1 i j) (repl-refl e2 i j)
-
-    -- TODO for sym
-    \func unknown
-      (i : Nat) (B : Expr)
-      {j : Nat} (new-v : NewVar j (Lam i B))
-      : A-Eq (Lam j (repl-index B i j)) (Lam i B) =>
-      lam-eq-base {?} {?} {?} {?}
-  }
-
 -- TODO change lam-eq to NewVar
 \data A-Eq (e1 e2 : Expr) \elim e1, e2
   | (Con i), (Con j) => con-eq (p : i = j)
@@ -103,34 +57,55 @@
   | (App P1 Q1), (App P2 Q2) => app-eq (A-Eq P1 P2) (A-Eq Q1 Q2)
   | (Lam i1 B1), (Lam i2 B2) => lam-eq-base
       (i : Nat)
-      (new-B1 : NewVar i B1)
-      (new-B2 : NewVar i B2)
-      (A-Eq
-        (repl-index B1 i1 i)
-        (repl-index B2 i2 i)
-      )
+      (new-i-B1 : NewVar i B1)
+      (new-i-B2 : NewVar i B2)
+      {B1' B2' : Expr}
+      {new-B1 : Repl B1 B1' i1 i}
+      {new-B2 : Repl B2 B2' i2 i}
+      (A-Eq B1' B2')
+
   \where {
-    \func lam-eq {B1 B2 : Expr} {i1 i2 : Nat}
-          (p : A-Eq (repl-index B1 i1 (common-new-var-no B1 B2)) (repl-index B2 i2 (common-new-var-no B1 B2)))
+    \func lam-eq
+      {B1 B2 : Expr}
+      {i1 i2 : Nat}
+      (p : A-Eq (Repl.provide2 B1 i1 (common-new-var-no B1 B2)).1 (Repl.provide2 B2 i2 (common-new-var-no B1 B2)).1)
       : A-Eq (Lam i1 B1) (Lam i2 B2) =>
+      \let
+        | (B1', rB1') => Repl.provide2 B1 i1 (common-new-var-no B1 B2)
+        | (B2', rB2') => Repl.provide2 B2 i2 (common-new-var-no B1 B2)
+      \in
       lam-eq-base
         (common-new-var-no B1 B2)
         (common-new-var B1 B2).1
         (common-new-var B1 B2).2
+        {B1'}
+        {B2'}
+        {rB1'}
+        {rB2'}
         p
 
-    \func refl {e : Expr} : A-Eq e e \elim e
-      | Con n => con-eq idp
-      | Var n => var-eq idp
-      | Lam n e => lam-eq $ repl-index.repl-refl e n (common-new-var-no e e) -- lam-eq (refl {repl-index e n (common-new-var-no e e)})
-      | App e1 e2 => app-eq (refl {e1}) (refl {e2})
+    \func lam-eq2
+      {B1 B2 : Expr}
+      {i1 i2 : Nat}
+      (p : A-Eq (Repl.repl B1 i1 (common-new-var-no B1 B2)) (Repl.repl B2 i2 (common-new-var-no B1 B2)))
+      : A-Eq (Lam i1 B1) (Lam i2 B2) =>
+      lam-eq-base
+          (common-new-var-no B1 B2)
+          (common-new-var B1 B2).1
+          (common-new-var B1 B2).2
+          {Repl.repl B1 i1 (common-new-var-no B1 B2)}
+          {Repl.repl B2 i2 (common-new-var-no B1 B2)}
+          {Repl.provide B1 i1 (common-new-var-no B1 B2)}
+          {Repl.provide B2 i2 (common-new-var-no B1 B2)}
+          p
+
+    \func refl {e : Expr} : A-Eq e e => {?}
 
     \func sym {e1 e2 : Expr} (p : A-Eq e1 e2) : A-Eq e2 e1 \elim e1, e2, p
       | Con i, Con j, con-eq p => con-eq (inv p)
       | Var i, Var j, var-eq p => var-eq (inv p)
       | App e1 e2, App e3 e4, app-eq p1 p2 => app-eq (sym p1) (sym p2)
       | Lam i1 e1, Lam i2 e2, lam-eq-base i ne1 ne2 p => {?}
-    --      | Lam i1 e1, Lam i2 e2, lam-eq p => {?} -- lam-eq (sym (rewriteF common-new-var-no.sym p))
 
     \func trans {e1 e2 e3 : Expr} (p1 : A-Eq e1 e2) (p2 : A-Eq e2 e3) : A-Eq e1 e3 \elim e1, e2, e3, p1, p2
       | Con i, Con j, Con k, con-eq i=j, con-eq j=k => con-eq (i=j *> j=k)
@@ -141,6 +116,5 @@
         Lam j B2,
         Lam k B3,
         lam-eq-base n1 new-B1-1 new-B2-1 p1,
-        lam-eq-base n2 new-B2-2 new-B3-2 p2 =>
-        lam-eq-base {?} {?} {?} {?}
+        lam-eq-base n2 new-B2-2 new-B3-2 p2 => {?}
   }

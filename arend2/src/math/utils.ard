@@ -31,6 +31,12 @@
       | suc a, 0 => absurd (suc/=0 (<=-antisymmetric p (zero<=_ {suc a})))
       | suc a, suc b => pmap suc (a<=b->max=b a b (suc<=suc.conv p))
 
+    \func maxa_b=avb {a b : Nat} : (max a b = a) || (max a b = b) =>
+      \case NatSemiring.totality a b \with {
+        | byLeft a<=b => byRight (a<=b->max=b a b a<=b)
+        | byRight b<=a => byLeft (rewriteF (max-sym b a) (a<=b->max=b b a b<=a))
+      }
+
     \func a_b<=max {a b : Nat} : \Sigma (a <= max a b) (b <= max a b) =>
       \case NatSemiring.totality a b \with {
         | byLeft a<=b => \let
@@ -67,6 +73,11 @@
     | inr a=b => rewriteF (inv a=b) b<c
   }
 
+\func split-max {c a b : Nat} (p : c = max a b) : (c = a) || (c = b) =>
+  \case max.maxa_b=avb {a} {b} \with {
+    | byLeft max=a => byLeft (p *> max=a)
+    | byRight max=b => byRight (p *> max=b)
+  }
 
 \func if-left {A : \Type}  (a b : A) : if true a b = a => idp
 \func if-right {A : \Type} (a b : A) : if false a b = b => idp
