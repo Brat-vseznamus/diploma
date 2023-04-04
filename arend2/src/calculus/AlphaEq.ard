@@ -1,5 +1,6 @@
 \import Arith.Nat
 \import Data.Bool
+\import Data.Maybe
 \import Function.Meta ($)
 \import Order.StrictOrder
 \import Paths
@@ -49,6 +50,56 @@
           nv (<-<=-transitive m2<sm2 sm2<=smax)
         )
     }
+
+\data A-Eq2 (e1 e2 : Expr) (f1 f2 : Nat -> Nat) \elim e1, e2
+  | (Con i), (Con j) => a2con-eq (p : i = j)
+  | (Var i), (Var j) => a2var-eq (p : f1 i = f2 j)
+  | (App P1 Q1), (App P2 Q2) => a2app-eq (A-Eq2 P1 P2 f1 f2) (A-Eq2 Q1 Q2 f1 f2)
+  | (Lam i1 B1), (Lam i2 B2) => a2lam-eq-base
+    (i : Nat)
+    (new-i-B1 : NewVar i B1)
+    (new-i-B2 : NewVar i B2)
+    (A-Eq2 B1 B2 (extMod f1 i1 i) (extMod f2 i2 i))
+  \where {
+    \func extMod (f : Nat -> Nat) (from to : Nat) : Nat -> Nat =>
+      \lam x => if (x == from) to (f x)
+
+    \func ref {e : Expr} {f : Nat -> Nat} : A-Eq2 e e f f \elim e
+      | Con n => a2con-eq idp
+      | Var n => a2var-eq (pmap f idp)
+      | Lam n e =>
+        \let
+          | newVar => suc (maxVar e)
+          | isNewVar => create-newvar e
+        \in  a2lam-eq-base newVar isNewVar isNewVar ref
+      | App P Q => a2app-eq ref ref
+
+    \func sym {e1 e2 : Expr} {f1 f2 : Nat -> Nat} (same : A-Eq2 e1 e2 f1 f2) : A-Eq2 e2 e1 f2 f1 \elim e1, e2, same
+      | Con i, Con j, a2con-eq p => a2con-eq (inv p)
+      | Var i, Var j, a2var-eq p => a2var-eq (inv p)
+      | App P1 Q1, App P2 Q2, a2app-eq same1 same2 =>
+        a2app-eq (sym {P1} {P2} {f1} {f2} same1) (sym {Q1} {Q2} {f1} {f2} same2)
+      | Lam i1 B1, Lam i2 B2, a2lam-eq-base i new-i-B1 new-i-B2 same =>
+        a2lam-eq-base
+            i
+            new-i-B2
+            new-i-B1
+            (sym {B1} {B2} {extMod f1 i1 i} {extMod f2 i2 i} same)
+
+    \func trans {e1 e2 e3 : Expr} {f1 f2 f3 : Nat -> Nat}
+                (p12 : A-Eq2 e1 e2 f1 f2) (p23 : A-Eq2 e2 e3 f2 f3) : A-Eq2 e1 e3 f1 f3 \elim e1, e2, e3, p12, p23
+      | Con i, Con j, Con k, a2con-eq p, a2con-eq p1 => a2con-eq (p *> p1)
+      | Var i, Var j, Var k, a2var-eq p, a2var-eq p1 => a2var-eq (p *> p1)
+      | App P1 Q1, App P2 Q2, App P3 Q3, a2app-eq p12 q12, a2app-eq p23 q23 =>
+        a2app-eq
+            (trans {P1} {P2} {P3} p12 p23)
+            (trans {Q1} {Q2} {Q3} q12 q23)
+      | Lam i1 B1, Lam i2 B2, Lam i3 B3,
+        a2lam-eq-base i12 new-i1-B1 new-i1-B2 p12,
+        a2lam-eq-base i23 new-i2-B2 new-i2-B3 p23 => a2lam-eq-base {?} {?} {?} {?}
+
+  }
+
 
 -- TODO change lam-eq to NewVar
 \data A-Eq (e1 e2 : Expr) \elim e1, e2

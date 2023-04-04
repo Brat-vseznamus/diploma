@@ -8,6 +8,7 @@
 \import Order.StrictOrder
 \import Paths
 \import Paths.Meta
+\import Set
 
 \func max (a b : Nat) : Nat \elim a, b
   | 0, 0 => 0
@@ -81,3 +82,12 @@
 
 \func if-left {A : \Type}  (a b : A) : if true a b = a => idp
 \func if-right {A : \Type} (a b : A) : if false a b = b => idp
+\func =->== {a b : Nat} (p : a = b) : a == b = true => \case decideEq a b \as p \return decToBool p = true \with {
+  | yes e => idp
+  | no n => absurd $ n p
+}
+
+\func /=->/== {a b : Nat} (p : Not(a = b)) : a == b = false => \case decideEq a b \as p \return decToBool p = false \with {
+  | yes e => absurd $ p e
+  | no n => idp
+}
