@@ -28,6 +28,6 @@
   (typed : TypedExpr e t c)
   (t-inS : inS t)
   (each-var-typed : \Pi (i : Nat) (ti : SimpleType) (Context.typed-var-in-context (i, ti) c = true) -> inS ti) :
-  \Pi (se : Expr) (s-term : SubTerm e se) (tse : SimpleType) (typedSe : TypedExpr se tse c) -> inS tse =>
+  \Pi (se : Expr) (sub : SubTerm e se) -> inS (SubTerm.type-subterm {e} {se} {sub} t c typed).1 =>
   {?}
   
