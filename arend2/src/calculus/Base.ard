@@ -1,14 +1,13 @@
 \import Arith.Nat
 \import Data.Bool
-\import Logic
 \import Paths
 \import Paths.Meta
 \import Set
 \import calculus.AlphaEq
+\import calculus.AlphaEq2
+\import calculus.Beta
 \import calculus.Context
 \import calculus.Types
-\import math.utils
-
 
 \data Expr : \Set
   | Con Nat
@@ -26,3 +25,19 @@
     (Qt : SimpleType)
     (p-typed : TypedExpr P (Func Qt t) c)
     (q-typed : TypedExpr Q Qt c)
+
+\func replace (e : Expr) (var-no : Nat) (to-expr : Expr) : Expr \elim e
+  | Con n => Con n
+  | Var n => if (n == var-no) to-expr (Var n)
+  | Lam n e => if (n == var-no) (Lam n e) (Lam n (replace e var-no to-expr))
+  | App e1 e2 => App (replace e1 var-no to-expr) (replace e2 var-no to-expr)
+    \where {
+      \func same-con-lam {e B : Expr} {i : Nat} (p : A-Eq e (Lam i B)) : \Sigma (B' : Expr) (j : Nat) (e = Lam j B') \elim e, p
+        | Lam i1 e, a2lam-eq-base i2 new-i-B1 new-i-B2 a => (e, i1, idp)
+
+      \func same-con-app {e P Q : Expr} (p : A-Eq e (App P Q)) : \Sigma (P' Q' : Expr) (e = App P' Q') \elim e, p
+        | App e e1, a2app-eq a a1 => (e, e1, idp)
+
+      \func same-con-app-lam {e P Q : Expr} {i : Nat} (p : A-Eq e (App (Lam i P) Q)) : \Sigma (P' Q' : Expr) (j : Nat) (e = App (Lam j P') Q') \elim e, p
+        | App e e1, a2app-eq a a1 => \let (P', j, e=lam) => same-con-lam a \in (P', e1, j, pmap (\lam x => App x e1) e=lam)
+    }

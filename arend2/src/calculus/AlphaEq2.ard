@@ -64,14 +64,14 @@
     (new-i-B2 : NewVar2 i B2 f2)
     (A-Eq2 B1 B2 (extMod f1 i1 i) (extMod f2 i2 i))
   \where {
-    \func a2-lam-eq {i1 i2 : Nat} {B1 B2 : Expr} {f1 f2 : Nat -> Nat}
-          (p : A-Eq2 B1 B2 (extMod f1 i1 $ common-new-var-no B1 B2 f1 f2) (extMod f2 i2 $ common-new-var-no B1 B2 f1 f2))
-                    : A-Eq2 (Lam i1 B1) (Lam i2 B2) f1 f2 =>
-      a2lam-eq-base
-          (common-new-var-no B1 B2 f1 f2)
-          (common-new-var B1 B2 f1 f2).1
-          (common-new-var B1 B2 f1 f2).2
-          p
+    \func a2lam-eq {f1 f2 : Nat -> Nat} {i1 i2 : Nat} {B1 B2 : Expr}
+         (p : A-Eq2 B1 B2
+            (extMod f1 i1 $ common-new-var-no B1 B2 f1 f2)
+            (extMod f2 i2 $ common-new-var-no B1 B2 f1 f2)
+         ) : A-Eq2 (Lam i1 B1) (Lam i2 B2) f1 f2 => a2lam-eq-base (common-new-var-no B1 B2 f1 f2)
+              (common-new-var B1 B2 f1 f2).1
+              (common-new-var B1 B2 f1 f2).2
+              p
 
     \func extMod (f : Nat -> Nat) (from to : Nat) : Nat -> Nat =>
       \lam x => if (x == from) to (f x)

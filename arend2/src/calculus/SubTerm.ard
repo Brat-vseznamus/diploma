@@ -1,0 +1,103 @@
+\import Data.Or
+\import Function.Meta
+\import Logic
+\import Paths
+\import Paths.Meta
+\import calculus.AlphaEq
+\import calculus.AlphaEq2
+\import calculus.Base
+\import calculus.Beta
+
+\data SubTerm (e se : Expr) \elim e
+  | Lam i B => sub-lam  (SubTerm B se)
+  | App P Q => sub-app  (Or (SubTerm P se) (SubTerm Q se))
+  | e       => sub-same (e = se)
+
+\data NormalForm (e e' : Expr)
+  | nf (Beta-Chain e e') (Not (\Sigma (e'' : Expr) (Beta-Red e' e'')))
+
+\func unwrap-not-NF (e : Expr) (nf : Not (NormalForm e e)) : \Sigma (e' : Expr) (Beta-Red e e') \elim e
+  | Con n => absurd (nf $ con-is-nf n)
+  | Var n => absurd (nf $ var-is-nf n)
+  | Lam n e => \let (B', red-B') => unwrap-not-NF e (body-not-nf-if-not-lam-nf n e nf) \in (Lam n B', beta-lam idp red-B')
+  | App e1 e2 => {?}
+
+\func var-is-nf (i : Nat) : NormalForm (Var i) (Var i) =>
+  nf (Beta-Chain.end (a2var-eq idp)) (\lam _x => \case _x \with {| (e'',b) => lemma1 i e'' b })
+  \where {
+    \func lemma1 (i : Nat) (e : Expr) (red : Beta-Red (Var i) e) : Empty
+  }
+
+\func con-is-nf (i : Nat) : NormalForm (Con i) (Con i) =>
+  nf (Beta-Chain.end (a2con-eq idp)) (\lam _x => \case _x \with {| (e'',b) => lemma1 i e'' b })
+  \where {
+    \func lemma1 (i : Nat) (e : Expr) (red : Beta-Red (Con i) e) : Empty
+  }
+
+\func decideNF (e : Expr) : Or (NormalForm e e) (Not (NormalForm e e)) \elim e
+  | Con n => inl (con-is-nf n)
+  | Var n => inl (var-is-nf n)
+  | Lam n e => \let dec => decideNF e \in
+    \case dec \with {
+      | inl a => inl $ lam-nf-if-body-nf n e a
+      | inr b => inr $ lam-not-nf-if-not-body-nf n e b
+    }
+  | App e1 e2 => \case decideNF e1, decideNF e2 \with {
+    | inl a, inl a1 =>
+      \case a, a1 \with {
+        | nf _ n, nf _ n1 => inl (nf (end A-Eq2.ref) (\lam (x, red-x) => {?}))
+      }
+    | inl a, inr b => {?}
+    | inr b, inl a => {?}
+    | inr b, inr b1 => {?}
+  }
+
+\func not-app-nf-parts-nf {e P Q : Expr} {p : e = App P Q} (not-nf : Not (NormalForm e e)) : Or (Not (NormalForm P P)) (Not (NormalForm Q Q)) =>
+  {?}
+
+  \where {
+    \func and-to-or {A B : \Type} (p : Not (\Sigma A B)) (p1 : Or A (Not A)) (p2 : Or B (Not B)) : Or (Not A) (Not B) \elim p1, p2
+      | inl a, inl b => absurd (p (a, b))
+      | inl a, inr nb => inr nb
+      | inr na, inl b => inl na
+      | inr na, inr nb => inl na
+  }
+
+\func lam-not-nf-if-not-body-nf (i : Nat) (B : Expr) (b-nf : Not(NormalForm B B)) : Not(NormalForm (Lam i B) (Lam i B)) =>
+  \lam n => b-nf (body-nf-if-lam-nf i B n)
+
+\func lam-nf-if-body-nf (i : Nat) (B : Expr) (b-nf : NormalForm B B) : NormalForm (Lam i B) (Lam i B) \elim b-nf
+  | nf b n => nf
+      (end A-Eq2.ref)
+      (\lam _x =>
+          \let (se, beta) => _x \in lam-nf-if-body-nf-lemma se beta n
+      )
+  \where {
+    \func lam-nf-if-body-nf-lemma
+        {i : Nat}
+        {B : Expr}
+        (se : Expr)
+        (beta : Beta-Red (Lam i B) se)
+        (n : Not (\Sigma (e'' : Expr) (Beta-Red B e''))) : Empty \elim se, beta
+      | Lam j se, beta-lam p beta => n (se, beta)
+  }
+
+\func body-not-nf-if-not-lam-nf (i : Nat) (B : Expr) (lam-nf : Not(NormalForm (Lam i B) (Lam i B))) : Not(NormalForm B B) =>
+  \lam p => lam-nf (lam-nf-if-body-nf i B p)
+
+\func body-nf-if-lam-nf (i : Nat) (B : Expr) (lam-nf : NormalForm (Lam i B) (Lam i B)) : NormalForm B B \elim lam-nf
+  | nf _ n => nf (end A-Eq2.ref) $ \lam (x, red-x) => n (Lam i x, beta-lam idp red-x)
+
+\func app-with-lam-reducable {e B Q : Expr} {i : Nat} (p : e = App (Lam i B) Q) : Beta-Red e (replace B i Q) =>
+  rewriteF (inv p) (beta-repl-right (idp {Expr} {replace B i Q}))
+
+-- TODO
+\func no-lam-app-in-nf (e P Q : Expr) (i : Nat) (has-lam : SubTerm e (App (Lam i P) Q)) : Not (NormalForm e e) \elim e, has-lam
+  | Lam i1 e, sub-lam has-lam => \lam n => (no-lam-app-in-nf e P Q i has-lam) (body-nf-if-lam-nf i1 e n)
+  | App e e1, sub-app o => \case o \with {
+    | inl a => {?}
+    | inr b => {?}
+  }
+  | e, sub-same a => \lam n => \case n \with {
+    | nf _ n1 => n1 (replace P i Q, app-with-lam-reducable a)
+  }
