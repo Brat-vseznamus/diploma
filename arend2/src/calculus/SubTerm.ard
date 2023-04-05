@@ -1,3 +1,4 @@
+\import Arith.Nat
 \import Data.Or
 \import Function.Meta
 \import Logic
@@ -42,14 +43,85 @@
       | inl a => inl $ lam-nf-if-body-nf n e a
       | inr b => inr $ lam-not-nf-if-not-body-nf n e b
     }
-  | App e1 e2 => \case decideNF e1, decideNF e2 \with {
-    | inl a, inl a1 =>
-      \case a, a1 \with {
-        | nf _ n, nf _ n1 => inl (nf (end A-Eq2.ref) (\lam (x, red-x) => {?}))
+  | App e1 e2 => \case e1 \as P, decideNF P \as dec \return Or (NormalForm (App P e2) (App P e2)) (Not (NormalForm (App P e2) (App P e2))) \with {
+    | Con n, dec => \case decideNF e2 \with {
+      | inl a1 => \case con-is-nf n, a1 \return Or (NormalForm (App (Con n) e2) (App (Con n) e2)) (Not (NormalForm (App (Con n) e2) (App (Con n) e2))) \with {
+        | nf _ n, nf _ n1 => inl (nf (end A-Eq2.ref) (\lam (x, red-x) => lemma1 red-x n n1 (lemma2-2 idp)))
       }
-    | inl a, inr b => {?}
-    | inr b, inl a => {?}
-    | inr b, inr b1 => {?}
+      | inr b => inr (\lam n1 => \case n1 \with {
+        | nf _ n2 => b (nf (end A-Eq2.ref) (\lam (e2', red-e2') => n2 (App (Con n) e2', beta-app-left A-Eq2.ref red-e2')))
+      })
+    }
+    | Var n, dec => \case decideNF e2 \with {
+      | inl a1 => \case var-is-nf n, a1 \return Or (NormalForm (App (Var n) e2) (App (Var n) e2)) (Not (NormalForm (App (Var n) e2) (App (Var n) e2))) \with {
+        | nf _ n, nf _ n1 => inl (nf (end A-Eq2.ref) (\lam (x, red-x) => lemma1 red-x n n1 (lemma2-1 idp)))
+      }
+      | inr b => inr (\lam n1 => \case n1 \with {
+        | nf _ n2 => b (nf (end A-Eq2.ref) (\lam (e2', red-e2') => n2 (App (Var n) e2', beta-app-left A-Eq2.ref red-e2')))
+      })
+    }
+    | Lam n P, dec => inr (\lam n1 => \case n1 \with {
+      | nf b n2 => n2 (replace P n e2, beta-repl-right idp)
+    })
+    | App P1 P2, inl a =>
+      \case decideNF e2 \with {
+      | inl a1 => \case a, a1 \return Or (NormalForm (App (App P1 P2) e2) (App (App P1 P2) e2)) (Not (NormalForm (App (App P1 P2) e2) (App (App P1 P2) e2))) \with {
+        | nf _ n, nf _ n1 => inl (nf (end A-Eq2.ref) (\lam (x, red-x) => lemma1 red-x n n1 (lemma2-3 idp)))
+      }
+      | inr b => inr (\lam n1 => \case n1 \with {
+        | nf _ n2 => b (nf (end A-Eq2.ref) (\lam (e2', red-e2') => n2 (App (App P1 P2) e2', beta-app-left A-Eq2.ref red-e2')))
+      })
+    }
+    | App P P1, inr b => inr (\lam n1 => \case n1 \with {
+      | nf _ n2 => b (nf (end A-Eq2.ref) (\lam (e1', red-e1') => n2 (App e1' e2, beta-app-right red-e1' A-Eq2.ref)))
+    })
+  }
+  \where {
+    -- Or (\Sigma (e1' e2' : Expr) (x = App e1' e2')) (\Sigma (P : Expr) (i : Nat) (e1 = Lam i P))
+    \func lemma1 {x e1 e2 : Expr} (b-red : Beta-Red (App e1 e2) x)
+                 (n : Not (\Sigma (e'' : Expr) (Beta-Red e1 e'')))
+                 (n1 : Not (\Sigma (e'' : Expr) (Beta-Red e2 e'')))
+                 (e1/=Lam : Not (\Sigma (B : Expr) (i : Nat) (e1 = Lam i B))) : Empty
+    \elim x, e1, e2, b-red
+      | App x x1, e1, e2, beta-app-left a b-red => n1 (x1, b-red)
+      | App x x1, e1, e2, beta-app-right b-red a => n (x, b-red)
+      | x, Lam i e1, e2, beta-repl-right p => e1/=Lam (e1, i, idp)
+
+    \func lemma2-1 {e : Expr} {i : Nat} (p : e = Var i) : Not (\Sigma (B : Expr) (j : Nat) (e = Lam j B)) =>
+      \lam _x => suc/=0
+          (pmap
+              (\lam (smth : Expr) => \case smth \with {
+                | Con n => 4
+                | Var n => 0
+                | Lam n e1 => 1
+                | App e1 e2 => 2
+              })
+            (inv _x.3 *> p)
+          )
+
+    \func lemma2-2 {e : Expr} {i : Nat} (p : e = Con i) : Not (\Sigma (B : Expr) (j : Nat) (e = Lam j B)) =>
+      \lam _x => suc/=0
+          (pmap
+              (\lam (smth : Expr) => \case smth \with {
+                | Con n => 0
+                | Var n => 4
+                | Lam n e1 => 1
+                | App e1 e2 => 2
+              })
+              (inv _x.3 *> p)
+          )
+
+    \func lemma2-3 {e P Q : Expr}  (p : e = App P Q) : Not (\Sigma (B : Expr) (j : Nat) (e = Lam j B)) =>
+      \lam _x => suc/=0
+          (pmap
+              (\lam (smth : Expr) => \case smth \with {
+                | Con n => 2
+                | Var n => 4
+                | Lam n e1 => 1
+                | App e1 e2 => 0
+              })
+              (inv _x.3 *> p)
+          )
   }
 
 \func not-app-nf-parts-nf {e P Q : Expr} {p : e = App P Q} (not-nf : Not (NormalForm e e)) : Or (Not (NormalForm P P)) (Not (NormalForm Q Q)) =>

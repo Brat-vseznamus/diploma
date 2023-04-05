@@ -7,7 +7,7 @@
 
 \func EXAMPLE1 : A-Eq (Lam 0 (Lam 1 (Var 0))) (Lam 1 (Lam 0 (Var 1))) => A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))
 
-\func EXAMPLE2 : Beta-Red (App (Lam 0 (Var 0)) (Var 1)) (Var 1) => beta-repl-right (a2var-eq idp)
+\func EXAMPLE2 : Beta-Red (App (Lam 0 (Var 0)) (Var 1)) (Var 1) => beta-repl-right idp
 \func EXAMPLE3 : Beta-Red (App (Con 0) (App (Lam 0 (Var 0)) (Var 1))) (App (Con 0) (Var 1)) =>
   beta-app-left (a2con-eq idp) EXAMPLE2
 
