@@ -25,6 +25,17 @@
     (Qt : SimpleType)
     (p-typed : TypedExpr P (Func Qt t) c)
     (q-typed : TypedExpr Q Qt c)
+  \where {
+    \func lam-has-func-type {B : Expr} {i : Nat} {t : SimpleType} {c : Context} (typed : TypedExpr (Lam i B) t c) :
+      \Sigma (a b : SimpleType) (t = Func a b)
+      \elim t, typed
+        | Func t1 t2, typed-lam typed i-is-not-free => (t1, t2, idp)
+
+    \func app-parts-types {P Q : Expr} {t : SimpleType} {c : Context} (typed : TypedExpr (App P Q) t c) :
+      \Sigma (a b : SimpleType) (TypedExpr P (Func a b) c) (TypedExpr Q a c)
+      \elim t, typed
+        | Rt, typed-app Qt typed typed1 => (Qt, Rt, typed, typed1)
+  }
 
 \func replace (e : Expr) (var-no : Nat) (to-expr : Expr) : Expr \elim e
   | Con n => Con n

@@ -1,0 +1,33 @@
+\import Data.Bool
+\import calculus.Base
+\import calculus.Context
+\import calculus.SubTerm
+\import calculus.Types
+
+\func A => Base 0
+
+\func \infixr 6 --> (a a' : SimpleType) => Func a a'
+
+\func s1 : A --> (A --> A) = Func A (Func A A) => idp
+\func s2 : (A --> A) --> A --> A = Func (Func A A) (Func A A) => idp
+
+
+\data Set3 {T : \Type} (e1 e2 e3 : T) (e : T)
+  | is1 (e = e1)
+  | is2 (e = e2)
+  | is3 (e = e3)
+
+\func inS (e : SimpleType) => Set3 {SimpleType} A (A --> A) ((A --> A) --> A --> A) e
+
+
+\func theorema
+  (e : Expr)
+  (t : SimpleType)
+  (c : Context)
+  (nf : NormalForm e e)
+  (typed : TypedExpr e t c)
+  (t-inS : inS t)
+  (each-var-typed : \Pi (i : Nat) (ti : SimpleType) (Context.typed-var-in-context (i, ti) c = true) -> inS ti) :
+  \Pi (se : Expr) (s-term : SubTerm e se) (tse : SimpleType) (typedSe : TypedExpr se tse c) -> inS tse =>
+  {?}
+  

@@ -8,15 +8,40 @@
 \import calculus.AlphaEq2
 \import calculus.Base
 \import calculus.Beta
+\import calculus.Context
+\import calculus.Types
 
 \data SubTerm (e se : Expr) \elim e
   | Lam i B => sub-lam  (SubTerm B se)
   | App P Q => sub-app  (Or (SubTerm P se) (SubTerm Q se))
   | e       => sub-same (e = se)
+  \where {
+    \func type-subterm
+      {e se : Expr}
+      {sub : SubTerm e se}
+      (t : SimpleType) (c : Context) (typed : TypedExpr e t c) :
+    \Sigma (t' : SimpleType) (c' : Context) (TypedExpr se t' c') \elim e, se, sub
+      | Lam i e1, se1, sub-lam sub =>
+        \let
+          | (a, b, t=a->b) => TypedExpr.lam-has-func-type typed
+        \in \case (rewriteF t=a->b typed) \with {
+          | typed-lam b-exists i-is-not-free => type-subterm {e1} {se1} {sub} b (Context.add-assump (i, a) c) b-exists
+        }
+      | App e1 e2, se1, sub-app o =>
+        \let
+          | (Qt, Rt, t1, t2) => TypedExpr.app-parts-types typed
+        \in \case o \with {
+        | inl a => type-subterm {e1} {se1} {a} (Func Qt Rt) c t1
+        | inr b => type-subterm {e2} {se1} {b} Qt c t2
+      }
+      | e1, se1, sub-same p => (t, c, rewriteF p typed)
+  }
+
 
 \data NormalForm (e e' : Expr)
   | nf (Beta-Chain e e') (Not (\Sigma (e'' : Expr) (Beta-Red e' e'')))
 
+-- TODO
 \func unwrap-not-NF (e : Expr) (nf : Not (NormalForm e e)) : \Sigma (e' : Expr) (Beta-Red e e') \elim e
   | Con n => absurd (nf $ con-is-nf n)
   | Var n => absurd (nf $ var-is-nf n)
