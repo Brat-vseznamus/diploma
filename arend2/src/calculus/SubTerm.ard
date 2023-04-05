@@ -124,16 +124,38 @@
           )
   }
 
-\func not-app-nf-parts-nf {e P Q : Expr} {p : e = App P Q} (not-nf : Not (NormalForm e e)) : Or (Not (NormalForm P P)) (Not (NormalForm Q Q)) =>
-  {?}
-
-  \where {
-    \func and-to-or {A B : \Type} (p : Not (\Sigma A B)) (p1 : Or A (Not A)) (p2 : Or B (Not B)) : Or (Not A) (Not B) \elim p1, p2
-      | inl a, inl b => absurd (p (a, b))
-      | inl a, inr nb => inr nb
-      | inr na, inl b => inl na
-      | inr na, inr nb => inl na
+-- TODO
+\func not-app-conclusion {e P Q : Expr} (is-app : e = App P Q) (notNF : Not (NormalForm e e)) :
+  Or
+      (Or
+          (Not (NormalForm P P))
+          (Not (NormalForm Q Q))
+      )
+      (\Sigma (B : Expr) (i : Nat) (P = Lam i B)) =>
+  \case
+    P \as P', decideNF P', decideNF Q
+  \return Or
+      (Or
+          (Not (NormalForm P' P'))
+          (Not (NormalForm Q Q))
+      )
+      (\Sigma (B : Expr) (i : Nat) (P' = Lam i B))
+  \with {
+    | _, inl a, inr b => inl (inr b)
+    | _, inr b, inl a => inl (inl b)
+    | _, inr b, inr b1 => inl (inl b)
+    | Con n, inl a, inl a1 => {?}
+    | Var n, inl a, inl a1 => {?}
+    | Lam n P', inl a, inl a1 => {?}
+    | App P'1 P'2, inl a, inl a1 => {?}
   }
+
+
+\func and-to-or {A B : \Type} (p : Not (\Sigma A B)) (p1 : Or A (Not A)) (p2 : Or B (Not B)) : Or (Not A) (Not B) \elim p1, p2
+  | inl a, inl b => absurd (p (a, b))
+  | inl a, inr nb => inr nb
+  | inr na, inl b => inl na
+  | inr na, inr nb => inl na
 
 \func lam-not-nf-if-not-body-nf (i : Nat) (B : Expr) (b-nf : Not(NormalForm B B)) : Not(NormalForm (Lam i B) (Lam i B)) =>
   \lam n => b-nf (body-nf-if-lam-nf i B n)
@@ -163,12 +185,21 @@
 \func app-with-lam-reducable {e B Q : Expr} {i : Nat} (p : e = App (Lam i B) Q) : Beta-Red e (replace B i Q) =>
   rewriteF (inv p) (beta-repl-right (idp {Expr} {replace B i Q}))
 
--- TODO
 \func no-lam-app-in-nf (e P Q : Expr) (i : Nat) (has-lam : SubTerm e (App (Lam i P) Q)) : Not (NormalForm e e) \elim e, has-lam
   | Lam i1 e, sub-lam has-lam => \lam n => (no-lam-app-in-nf e P Q i has-lam) (body-nf-if-lam-nf i1 e n)
-  | App e e1, sub-app o => \case o \with {
-    | inl a => {?}
-    | inr b => {?}
+  | App P' Q', sub-app o => \case o  \with {
+    | inl a => \lam n => \let
+        | notNF-P => no-lam-app-in-nf P' P Q i a
+        | (P'', red-P'') => unwrap-not-NF P' notNF-P
+                            \in \case n \with {
+      | nf _ n1 => n1 (App P'' Q', beta-app-right red-P'' A-Eq2.ref)
+    }
+    | inr b =>  \lam n => \let
+      | notNF-Q => no-lam-app-in-nf Q' P Q i b
+      | (Q'', red-Q'') => unwrap-not-NF Q' notNF-Q
+                          \in \case n \with {
+        | nf _ n1 => n1 (App P' Q'', beta-app-left A-Eq2.ref red-Q'')
+      }
   }
   | e, sub-same a => \lam n => \case n \with {
     | nf _ n1 => n1 (replace P i Q, app-with-lam-reducable a)
