@@ -2,5 +2,6 @@
 \import calculus.Base
 
 \func idNat (x : Nat) => x
+\func idNat=id {x : Nat} : idNat x = x => idp
 
 \func A-Eq (e1 e2 : Expr) => A-Eq2 e1 e2 idNat idNat

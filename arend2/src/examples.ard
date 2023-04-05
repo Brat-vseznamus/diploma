@@ -1,3 +1,7 @@
+\import Arith.Nat
+\import Logic
+\import Paths
+\import Paths.Meta
 \import calculus.AlphaEq
 \import calculus.AlphaEq2
 \import calculus.Base
@@ -6,6 +10,17 @@
 \import calculus.Types
 
 \func EXAMPLE1 : A-Eq (Lam 0 (Lam 1 (Var 0))) (Lam 1 (Lam 0 (Var 1))) => A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))
+\func EXAMPLE1-1 : A-Eq (Lam 2 (Lam 0 (Var 0))) (Lam 0 (Lam 1 (Var 1))) => A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))
+\func EXAMPLE1-2 : Not (A-Eq (Lam 0 (Var 0)) (Lam 1 (Var 2))) => \lam p =>
+  \case p \with {
+    | a2lam-eq-base i new-i-B1 new-i-B2 a => \case a \with {
+      | a2var-eq p1 =>
+        \let
+          | p2  => inv (A-Eq2.parse idNat 0 i 0) *> p1
+          | i>2 => rewriteF (idNat=id {2}) (NewVar2.neq new-i-B2)
+        \in NatSemiring.<-irreflexive (rewriteF p1 i>2)
+    }
+  }
 
 \func EXAMPLE2 : Beta-Red (App (Lam 0 (Var 0)) (Var 1)) (Var 1) => beta-repl-right idp
 \func EXAMPLE3 : Beta-Red (App (Con 0) (App (Lam 0 (Var 0)) (Var 1))) (App (Con 0) (Var 1)) =>
