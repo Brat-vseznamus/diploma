@@ -9,9 +9,10 @@
 \import calculus.Context
 \import calculus.Types
 
-\func EXAMPLE1 : A-Eq (Lam 0 (Lam 1 (Var 0))) (Lam 1 (Lam 0 (Var 1))) => A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))
-\func EXAMPLE1-1 : A-Eq (Lam 2 (Lam 0 (Var 0))) (Lam 0 (Lam 1 (Var 1))) => A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))
-\func EXAMPLE1-2 : Not (A-Eq (Lam 0 (Var 0)) (Lam 1 (Var 2))) => \lam p =>
+\func EXAMPLE1    : A-Eq (Lam 0 (Lam 1 (Var 0))) (Lam 1 (Lam 0 (Var 1))) => A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))
+\func EXAMPLE1-1  : A-Eq (Lam 2 (Lam 0 (Var 0))) (Lam 0 (Lam 1 (Var 1))) => A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))
+\func EXAMPLE1-1' : A-Eq (Lam 0 (Lam 0 (Var 0))) (Lam 2 (Lam 1 (Var 1))) => A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))
+\func EXAMPLE1-2  : Not (A-Eq (Lam 0 (Var 0)) (Lam 1 (Var 2))) => \lam p =>
   \case p \with {
     | a2lam-eq-base i new-i-B1 new-i-B2 a => \case a \with {
       | a2var-eq p1 =>
