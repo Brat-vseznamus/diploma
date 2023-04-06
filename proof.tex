@@ -5,6 +5,8 @@
 \usepackage{sectsty}
 \usepackage{graphicx}
 \usepackage{mathtools}
+\usepackage{hyperref}% http://ctan.org/pkg/hyperref
+\usepackage{cleveref}% http://ctan.org/pkg/cleveref
 
 % Margins
 \topmargin=-0.45in
@@ -60,7 +62,7 @@ Declare function for our comfort in usage \(T\) which return type of expression 
 
 For this let introduce Lemma which will helps us in it:
 
-\begin{lemma}
+\begin{lemma}\label{l1}
     Consider some expression in normal form \(e\) in context \(\Gamma\) with such requirements:
     \begin{enumerate}
         \item Lets consider \(e\) has type \(\tau\) then \(\tau\) must be in set \(S\)
@@ -76,7 +78,7 @@ For this let introduce Lemma which will helps us in it:
     Consider all possible deconstructions of expression \(e\)
 
     \begin{enumerate}
-        \item \(e = c_i\) where \(c_i \in FV(e)\)
+        \item \(e = v_i\) where \(v_i \in FV(e)\), it is a base case for induction
         \item \(e = \gl x. B\) then \(\tau = t_1 \too t_2\)
         \item \(e = P Q\) then \(\exists \ga. P : \ga \too \tau, Q : \ga\)
     \end{enumerate}
@@ -153,5 +155,167 @@ For this let introduce Lemma which will helps us in it:
     Again induction
 
 \end{proof}
+
+\begin{lemma}\label{l2}
+    Let \(t\) - two-digits closed form function (\(t : \nu \too \nu \too \nu\)), \(N, M\) - church numeral stands for some \(n, m \geq 0\) and some \(f : 0 \too 0\). Consider normal form of \(t' = t N M f\). Then each subterm with type \(\nu\) either be \(N\) or \(M\).
+\end{lemma}
+
+\begin{proof}
+
+    Because \(t' : 0\) and context for it is \(\Gamma_0 = \{N : \nu, M : \nu, f : 0 \too 0\}\) then \cref{l1} applies to it.
+
+    Let's proof that for each sub-term of \(t'\) its context doesn't contain any variables (except for \(N, M\)) with type \(\nu\).
+    
+    For induction base let's take \(\Gamma_0\).
+
+    Context can expand only on proofing type for subterm as \(\gl x. B\). Consider this subterm in some context \(\Gamma_k\): 
+
+    \begin{align}
+        \Gamma_k \vdash \gl x.B : \gt \too \gb
+    \end{align}
+
+    Then consider \(\Gamma_{k + 1} = \Gamma_k \cup \{x : \gt\}\) such that \(\Gamma_{k + 1} \vdash B : \gb\).
+
+    By \cref{l1} \(\gt \too \gb \in S\) (remind that \(S\) stands for \(\{0, 0 \too 0, \nu\}\)). Than we have two cases:
+
+    \begin{align*}
+        \begin{dcases}
+            \gt &= 0 \too 0 \\
+            \gb &= 0 \too 0
+        \end{dcases}
+    \end{align*}
+
+    \begin{align*}
+        \begin{dcases}
+            \gt &= 0 \\
+            \gb &= 0
+        \end{dcases}    
+    \end{align*}
+
+    In both cases expanding of context doesn't add variables with type \(\nu\).
+    By induction statement is proofed.
+
+
+    Lets take a look on where we can find such subterm. 
+    
+    Because \(t'\) is in normal form, it can't be left side of any application.
+    Than only case when it is subterm is when it is one of argument of application as
+    in cases 3 in \cref{l1}. There we showed that only type that it could be is \(0 \too 0\).
+    Hence only variables from context can have type \(nu\). Because for each subterm, as we proofed,
+    only \(N, M\) has that type, only possibility for subterm to have it is to be \(N\) or \(M\).
+
+    \hfill \break
+
+    -- TODO add more accurate proof that any lam has type \(0 \too 0\) and concrete
+
+    -- that only f has type \(0 \too 0\) in any \(\Gamma_k\)
+
+
+\end{proof}
+
+\begin{lemma}
+    Each subterm of \(t'\) from \cref{l2} with type \(0 \too 0\) is polynomial according to \(n, m\) or constant of polynom. This means
+    that for every \(s\) - subterm \(t'\) with type \(0 \too 0\) exists \(P(n, m)\) - polynom such that \(s\) works same as 
+    \(f^{P(n, m)}\) or \(\gl y. f^{P(n, m)} z\) (z \(\neq\) y)
+\end{lemma} 
+
+\begin{proof}
+    Consider possible ways how such subterm \(s\) could appear. 
+
+    \begin{enumerate}
+        \item \(s = v_i\) where \(v_i \in FV(e)\), \(v_i : 0 \too 0\)
+        \item \(s = P Q\) where \(P : \nu, Q : 0 \too 0\)
+        \item \(s = \gl x. B\) where \(x : 0, B : 0\)
+    \end{enumerate}
+
+
+
+Case 1: From \cref*{l2} only such \(v_i\) hence \(s = f^1\)
+
+\hfill \break
+
+Case 2: By induction get that \(Q = f^{P_1(n, m)}\) or \(Q = \gl y. f^{P_1(n, m)} z\).
+
+\(P\) can be either \(N\) or \(M\) by same lemma.
+
+Then consider both case for example for \(P = N\):
+
+Option 1:
+\begin{align*}
+    s = P Q = (\gl g.g^n) f^{P_1(n, m)} = f^{P_1(n, m) \cdot n}
+\end{align*}
+
+Option 2:
+\begin{align*}
+    s = P Q &= (\gl g.g^n) (\gl y. f^{P_1(n, m)} z) = \gl y. f^{P_1(n, m)} z & n \geq 1
+\end{align*}
+
+\begin{align*}
+    s = P Q &= (\gl g.(\gl x.x)) (\gl y. f^{P_1(n, m)} z) = \gl x. x  & n = 0
+\end{align*}
+
+\hfill \break
+
+Case 3:
+
+Because \(B : 0\) it is either variable \(z\) or result of some function \(s_1 : 0 \too 0\)
+on value \(B_1 : 0\)
+
+In first option we get constant polynom lets contimue choosing option two until it ends with variable.
+
+Then:
+
+\begin{align*}
+    s = \gl y. s_1(s_2(\dots s_k(z) \dots))
+\end{align*}
+
+Again by induction each \(s_i\) either \(f^{P_i(n, m)}\) or \(\gl y.f^{P_i(n, m)} z_i\)
+
+Let's proof that chain of \(f_i\) with such condition suits for \(f^{P'(n, m)} z'\) (\(z'\) can be any variable as y too)
+
+Base 0: 
+\[
+    f_0 (z) = 
+\begin{dcases}
+    (\gl x. f^{P_0(n, m)} x) z = f^{P_0(n, m)} z & \text{if is not constant} \\
+    (\gl x. f^{P_0(n, m)} z_0) z = f^{P_0(n, m)} z_0 & \text{otherwise}
+\end{dcases}
+\]
+
+Base 1:
+
+\[
+f_1 (f_0(z)) =
+\begin{dcases}
+    (\gl x. f^{P_1(n, m)} x) ((\gl x. f^{P_0(n, m)} x) z)  = f^{P_0(n, m) + P_1(n, m)} z & \text{if \(f_0\), \(f_1\) are not constants} \\
+    (\gl x. f^{P_1(n, m)} z_1) ((\gl x. f^{P_0(n, m)} x) z) = f^{P_1(n, m)} z_1 & \text{if \(f_0\) is not constant, \(f_1\) is constant} \\
+    (\gl x. f^{P_1(n, m)} x) ((\gl x. f^{P_0(n, m)} z_0) z) = f^{P_0(n, m)} z_0 & \text{if \(f_0\) is constant, \(f_1\) is not constant} \\
+    (\gl x. f^{P_1(n, m)} z_1) ((\gl x. f^{P_0(n, m)} z_0) z) = f^{P_1(n, m)} z_1 & \text{if \(f_0\), \(f_1\) are constants} \\
+\end{dcases}
+\]
+
+Induction:
+\[
+    f_n (f_{n - 1}(\cdots f_0(z))) =
+\begin{dcases}
+    (\gl x. f^{P_n(n, m)} x) (f^{P'(n, m)} z') = f^{P'(n, m) + P_n(n, m)} z' & \text{if \(f_n\) is not constant} \\
+    (\gl x. f^{P_n(n, m)} z_n) (f^{P'(n, m)} z') = f^{P_n(n, m)} z_n & \text{if \(f_n\) is constant} \\
+\end{dcases}
+\]
+
+What means that \(s\) also suits for lemma
+
+\end{proof}
+
+\begin{lemma}
+    \(t'\) - polynomial
+\end{lemma}
+
+\begin{proof}
+    Because \(t'\) is subterm for itself and has type \(0 \too 0\) hence \(t'\) is polynom or constant polynom.
+    But because it doesn't have any free variable with type \(0\) it is polynom.  
+\end{proof}
+
+That means that with closed functions can be constructed only polynomials.
 
 \end{document}
