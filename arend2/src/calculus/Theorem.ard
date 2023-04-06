@@ -19,7 +19,7 @@
 
 \func inS (e : SimpleType) => Set3 {SimpleType} A (A --> A) ((A --> A) --> A --> A) e
 
-\func theorema
+\func theorema1
   (e : Expr)
   (t : SimpleType)
   (c : Context)

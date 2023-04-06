@@ -171,7 +171,7 @@
     | _, inr b, inr b1 => inl (inl b)
     | Con n, inl a, inl a1 => {?}
     | Var n, inl a, inl a1 => {?}
-    | Lam n P', inl a, inl a1 => {?}
+    | Lam n P', inl a, inl a1 => inr (P', n, idp)
     | App P'1 P'2, inl a, inl a1 => {?}
   }
 
@@ -210,17 +210,17 @@
 \func app-with-lam-reducable {e B Q : Expr} {i : Nat} (p : e = App (Lam i B) Q) : Beta-Red e (replace B i Q) =>
   rewriteF (inv p) (beta-repl-right (idp {Expr} {replace B i Q}))
 
-\func no-lam-app-in-nf (e P Q : Expr) (i : Nat) (has-lam : SubTerm e (App (Lam i P) Q)) : Not (NormalForm e e) \elim e, has-lam
-  | Lam i1 e, sub-lam has-lam => \lam n => (no-lam-app-in-nf e P Q i has-lam) (body-nf-if-lam-nf i1 e n)
+\func no-nf-if-lam-app (e P Q : Expr) (i : Nat) (has-lam : SubTerm e (App (Lam i P) Q)) : Not (NormalForm e e) \elim e, has-lam
+  | Lam i1 e, sub-lam has-lam => \lam n => (no-nf-if-lam-app e P Q i has-lam) (body-nf-if-lam-nf i1 e n)
   | App P' Q', sub-app o => \case o  \with {
     | inl a => \lam n => \let
-        | notNF-P => no-lam-app-in-nf P' P Q i a
+        | notNF-P => no-nf-if-lam-app P' P Q i a
         | (P'', red-P'') => unwrap-not-NF P' notNF-P
                             \in \case n \with {
       | nf _ n1 => n1 (App P'' Q', beta-app-right red-P'' A-Eq2.ref)
     }
     | inr b =>  \lam n => \let
-      | notNF-Q => no-lam-app-in-nf Q' P Q i b
+      | notNF-Q => no-nf-if-lam-app Q' P Q i b
       | (Q'', red-Q'') => unwrap-not-NF Q' notNF-Q
                           \in \case n \with {
         | nf _ n1 => n1 (App P' Q'', beta-app-left A-Eq2.ref red-Q'')
@@ -229,3 +229,7 @@
   | e, sub-same a => \lam n => \case n \with {
     | nf _ n1 => n1 (replace P i Q, app-with-lam-reducable a)
   }
+
+\func no-lam-app-in-nf (e : Expr) (nf : NormalForm e e) :
+  Not(\Sigma (P Q : Expr) (i : Nat) (has-lam : SubTerm e (App (Lam i P) Q))) =>
+  \lam p => (no-nf-if-lam-app e p.1 p.2 p.3 p.4) nf
