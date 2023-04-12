@@ -1,4 +1,5 @@
 \import Data.Bool
+\import Logic
 \import calculus.Base
 \import calculus.Context
 \import calculus.SubTerm
@@ -26,7 +27,14 @@
   (nf : NormalForm e e)
   (typed : TypedExpr e t c)
   (t-inS : inS t)
+  (no-con : \Pi (i : Nat) -> Not (SubTerm e (Con i)))
+  (closed : FV e leq CV c = true)
   (each-var-typed : \Pi (i : Nat) (ti : SimpleType) (Context.typed-var-in-context (i, ti) c = true) -> inS ti) :
   \Pi (se : Expr) (sub : SubTerm e se) -> inS (SubTerm.type-subterm {e} {se} {sub} t c typed).1 =>
-  {?}
+  \lam se sub => \case se \as s, sub \as sb : SubTerm e s \return inS (SubTerm.type-subterm {e} {s} {sb} t c typed).1 \with {
+    | Con n, sub => absurd ((no-con n) sub)
+    | Var n, var-sub => {?}
+    | Lam n e1, sb => {?}
+    | App e1 e2, sb => {?}
+  }
   
