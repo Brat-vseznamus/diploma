@@ -1,0 +1,292 @@
+\import Arith.Nat
+\import Data.Bool
+\import Function.Meta ($)
+\import Logic
+\import Paths
+\import Paths.Meta
+\import Set
+
+\data NatSet : \Set
+  | set-con (p : Array Nat) (\Pi (x : Nat) (x in p) -> Unique x p)
+  \where {
+    \func fromArray (l : Array Nat) : NatSet =>
+      set-con (distinct l) (\lam x i => in.distinct-works2 l x (leq.fromSet (in.distinct-works4 l) x i))
+  }
+
+\func addDistinct (l : Array Nat) (x : Nat) : Array Nat \elim l
+  | nil => x :: nil
+  | a :: l => a :: if (a == x) (removeAll l x) (addDistinct l x)
+
+\func removeAll (l : Array Nat) (x : Nat) : Array Nat \elim l
+  | nil => nil
+  | a :: l => if (a == x) (removeAll l x) (a :: removeAll l x)
+
+\func distinct (l : Array Nat) : Array Nat \elim l
+  | nil => nil
+  | a :: l => a :: removeAll (distinct l) a
+
+\func mergeUnique (l1 l2 : Array Nat) : Array Nat \elim l1
+  | nil => distinct l2
+  | a :: l => distinct (a :: mergeUnique l l2)
+
+\func count (x : Nat) (l : Array Nat) : Nat \elim l
+  | nil => 0
+  | a :: l1 => if (a == x) (suc (count x l1)) (count x l1)
+  \where {
+    \func count0->notExist (x : Nat) (l : Array Nat) (p : count x l = 0) : Not (x in l) \elim l
+      | nil => \lam i => (in.emptyNil x) i
+      | a :: l => \lam i => \case decideEq a x \as d, p : if {Nat} (decToBool d) (suc (count x l)) (count x l) = 0 \with {
+          | yes e, p2 => suc/=0 p2
+          | no n, p2 =>
+            \let
+              | rec => count0->notExist x l p2
+            \in \case i \with {
+              | isHead p3 => n p3
+              | inTail i1 => rec i1
+            }
+        }
+  }
+
+\func size (l : Array Nat) => l.len
+
+\func filterByEq (l : Array Nat) (x : Nat) : Array Nat \elim l
+  | nil => nil
+  | a :: l => if (a == x) (a :: filterByEq l x) (filterByEq l x)
+
+\data \infix 6 leq (a b : Array Nat) : \Prop \elim a
+  | nil => leq-empty
+  | a :: b' => leq-cont (a in b) (b' leq b)
+  \where {
+    \func inSet {a b : Array Nat} (p : \Pi (x : Nat) (x in a) -> x in b) : a leq b \elim a
+      | nil => leq-empty
+      | a1 :: l => leq-cont (p a1 (isHead idp)) (inSet (\lam x i => p x (inTail i)))
+
+    \func fromSet {a b : Array Nat} (p : a leq b) : \Pi (x : Nat) (x in a) -> x in b \elim a
+      | nil => \lam x i => absurd (\case i \with {})
+      | a1 :: l => \lam x i => \case p \with {
+        | leq-cont i1 l1 => \case i \with {
+          | isHead p1 => rewriteF p1 i1
+          | inTail i2 => (fromSet l1) x i2
+        }
+      }
+
+    \func ref {a : Array Nat} : a leq a => inSet (\lam x i => i)
+    \func anti-sym {a b : Array Nat} (l1 : a leq b) (l2 : b leq a) : a seq b => seq-con l1 l2
+    \func trans {a b c : Array Nat} (l1 : a leq b) (l2 : b leq c) : a leq c =>
+      \let
+        | p1 => fromSet l1
+        | p2 => fromSet l2
+      \in inSet (\lam x i => p2 x (p1 x i))
+  }
+
+\data \infix 6 seq (a b : Array Nat) : \Prop
+  | seq-con (a leq b) (b leq a)
+
+\data Unique (x : Nat) (l : Array Nat) \elim l
+  | a :: l => uniq-head (a = x) (Not (x in l))
+  | a :: l => uniq-tail (Not (a = x)) (Unique x l)
+  \where {
+    \func unique-from-count {x : Nat} {l : Array Nat} (single : count x l = 1) : Unique x l \elim l, single
+      | a :: l1, single => \case decideEq a x \as d, single \as s : if {Nat} (decToBool d) (suc (count x l1)) (count x l1) = 1 \with {
+        | yes e, s =>
+          \let
+            | pred-s => pmap (\lam (i : Nat) => \case i \with {| 0 => 0 | suc i => i}) s
+            | not-in-l1 => count.count0->notExist x l1 pred-s
+          \in uniq-head e not-in-l1
+        | no n, s => uniq-tail n (unique-from-count {x} {l1} s)
+      }
+    \func unique->exists {x : Nat} {l : Array Nat} (uniq : Unique x l) : x in l \elim l
+      | nil => absurd (\case uniq \with {})
+      | a :: l1 => \case uniq \with {
+        | uniq-head p n => isHead p
+        | uniq-tail n u => inTail (unique->exists {x} {l1} u)
+      }
+  }
+
+\truncated \data \infix 6 in (x : Nat) (l : Array Nat) : \Prop \elim l
+  | a :: l => isHead (a = x)
+  | a :: l => inTail (x in l)
+  \where {
+    \func decideIn (x : Nat) (l : Array Nat) : Dec (x in l) \elim l
+      | nil => no (\lam i => \case i \with {})
+      | a :: l1 => \case decideEq a x \with {
+        | yes e => yes (isHead e)
+        | no n => \case decideIn x l1 \with {
+          | yes e => yes (inTail e)
+          | no n1 => no (\lam i => \case i \with {
+            | isHead p => n p
+            | inTail i1 => n1 i1
+          })
+        }
+      }
+
+    \func size-next (a : Nat) (l : Array Nat) : size (a :: l) = suc (size l) \elim l
+      | nil => idp
+      | a1 :: l1 => idp
+
+    \func emptyNil : \Pi (x : Nat) -> Not (x in nil) => \lam x i => \case i \with {}
+    \func filterAll (x : Nat) (l : Array Nat) (not-in : Not (x in l)) : filterByEq l x = nil \elim l
+      | nil => idp
+      | a :: l1 => \case decideEq a x \as d \return if (decToBool d) (a :: filterByEq l1 x) (filterByEq l1 x) = nil \with {
+        | yes e => absurd (not-in (isHead e))
+        | no n => filterAll x l1 (\lam i => not-in (inTail i))
+      }
+
+    \func neutral-removeAll (l : Array Nat) (a x : Nat) (notEq : Not(a = x)) : filterByEq (removeAll l x) a = filterByEq l a \elim l
+      | nil => idp
+      | a1 :: l1 => \case decideEq a1 a \as d1, decideEq a1 x \as d2 \return filterByEq (if (decToBool d2) (removeAll l1 x) (a1 :: removeAll l1 x)) a = if (decToBool d1) (a1 :: filterByEq l1 a) (filterByEq l1 a) \with {
+        | yes e, yes e1 => absurd (notEq (inv e *> e1))
+        | yes e, no n => \case decideEq a1 a \as d3 \return if {Array Nat} (decToBool d3) (a1 :: filterByEq (removeAll l1 x) a) (filterByEq (removeAll l1 x) a) = a1 :: filterByEq l1 a \with {
+          | yes e => pmap (a1 ::) $ neutral-removeAll l1 a x notEq
+          | no n2 => absurd (n2 e)
+        }
+        | no n, yes e => neutral-removeAll l1 a x notEq
+        | no n, no n1 => \case decideEq a1 a \as d3 \return if {Array Nat} (decToBool d3) (a1 :: filterByEq (removeAll l1 x) a) (filterByEq (removeAll l1 x) a) = filterByEq l1 a\with {
+          | yes e => absurd (n e)
+          | no n2 => neutral-removeAll l1 a x notEq
+        }
+      }
+
+    \func filter-works {x : Nat} {l : Array Nat} : size (filterByEq l x) = count x l \elim l
+      | nil => idp
+      | a :: l1 => \case decideEq a x \as d \return size (if {Array Nat} (decToBool d) (a :: filterByEq l1 x) (filterByEq l1 x)) = if {Nat} (decToBool d) (suc (count x l1)) (count x l1) \with {
+        | yes e =>
+          \let
+            | rec => pmap suc $ filter-works {x} {l1}
+          \in lemma1 {a} {filterByEq l1 x} *> rec
+        | no n => filter-works
+      }
+      \where {
+        \func lemma1 {x : Nat} {l : Array Nat} : size (x :: l) = suc (size l) \elim l
+          | nil => idp
+          | a :: l1 => idp
+      }
+
+    \func distinct-works4 (l : Array Nat) : distinct l leq l \elim l
+      | nil => leq-empty
+      | a :: l1 =>
+        \let
+          | rec => distinct-works4 l1
+        \in
+          leq-cont
+            (isHead idp)
+            (leq.inSet (\lam x i => \case decideEq a x \with {
+              | yes e => isHead e
+              | no n => inTail ((leq.fromSet rec) x (rmv-works3 x i))
+            }))
+
+    \func distinct-works3 (l : Array Nat) : l leq distinct l =>
+      leq.inSet {l} {distinct l} (\lam x i => Unique.unique->exists $ distinct-works2 l x i)
+
+    \func distinct-works2 (l : Array Nat) : \Pi (x : Nat) (x in l) -> Unique x (distinct l) =>
+      \lam x i => Unique.unique-from-count (inv (filter-works {x} {distinct l}) *> distinct-works l x i)
+
+    \func distinct-works (l : Array Nat) : \Pi (x : Nat) (x in l) -> size(filterByEq (distinct l) x) = 1 \elim l
+      | nil => \lam x i => absurd (\case x, i \with {})
+      | a :: l1 => \lam x i => \case
+        (decideEq a x) \as dec
+      \return size (if (decToBool dec) (a :: filterByEq (removeAll (distinct l1) a) x) (filterByEq (removeAll (distinct l1) a) x)) = 1 \with {
+        | yes e =>
+          pmap
+              (\lam p => size(a :: p))
+              (
+                pmap (\lam x_ => filterByEq (removeAll (distinct l1) x_) x) e *>
+                    filterAll x (removeAll (distinct l1) x) (rmv-works {x} {distinct l1})
+              )
+        | no ne => \case i \with {
+          | isHead p => absurd (ne p)
+          | inTail i1 =>
+            \let
+              | not1 => \lam (e : a = x) =>
+                  pmap
+                      (\lam x_ => filterByEq (removeAll (distinct l1) x_) x) e *>
+                      filterAll x (removeAll (distinct l1) x) (rmv-works {x} {distinct l1})
+              | rec => distinct-works l1 x i1
+            \in
+              rewriteF (inv (neutral-removeAll (distinct l1) x a (\lam p => ne (inv p)))) rec
+        }
+      }
+
+    \func add-works {x : Nat} {l : Array Nat} : x in addDistinct l x \elim l
+      | nil => isHead idp
+      | a :: l1 => \case decideEq a x \as d \return x in (a :: if (decToBool d) (removeAll l1 x) (addDistinct l1 x))  \with {
+        | yes e => isHead e
+        | no n => inTail (add-works {x} {l1})
+      }
+
+    \func addDisticnt-add-one {x : Nat} {l : Array Nat} : size(filterByEq (addDistinct l x) x) = 1 \elim l
+      | nil => \case decideEq x x \as d \return size (if (decToBool d) (x :: nil) nil) = 1 \with {
+        | yes e => idp
+        | no n => absurd (n idp)
+      }
+      | a :: l1 => \case decideEq a x \as d \return size(filterByEq (a :: if (decToBool d) (removeAll l1 x) (addDistinct l1 x)) x) = 1  \with {
+        | yes e => \case decideEq a x \as d \return size (if (decToBool d) (a :: filterByEq (removeAll l1 x) x) (filterByEq (removeAll l1 x) x)) = 1 \with {
+          | yes e1 =>
+            \let
+              | innerNil => filterAll x (removeAll l1 x) (rmv-works {x} {l1})
+            \in pmap (\lam l' => size (a :: l')) innerNil
+          | no n => absurd (n e)
+        }
+        | no n => \case decideEq a x \as d \return size (if (decToBool d) (a :: filterByEq (addDistinct l1 x) x) (filterByEq (addDistinct l1 x) x)) = 1 \with {
+          | yes e => absurd (n e)
+          | no n1 => addDisticnt-add-one
+        }
+      }
+
+    \func rmv-works3 {x : Nat} {l : Array Nat} : \Pi (y : Nat) (y in removeAll l x) -> y in l \elim l
+      | nil => \lam y i => i
+      | a :: l1 => \lam y i => \case decideEq a x \as d, i : y in if {Array Nat} (decToBool d) (removeAll l1 x) (a :: removeAll l1 x)\with {
+        | yes e, i1 => inTail (rmv-works3 y i1)
+        | no n, isHead p => isHead p
+        | no n, inTail i1 => inTail (rmv-works3 y i1)
+      }
+
+    \func rmv-works2 {x : Nat} {l : Array Nat} : \Pi (y : Nat) (y in l) (Not(x = y)) -> y in removeAll l x \elim l
+    | nil => \lam y i n => absurd (\case i \with {})
+    | a :: l1 => \lam y i n =>
+      \case decideEq a x \as dec \return y in if {Array Nat} (decToBool dec) (removeAll l1 x) (a :: removeAll l1 x) \with {
+        | yes e => \case i \with {
+          | isHead p => absurd (n (inv e *> p))
+          | inTail i1 => rmv-works2 y i1 n
+        }
+        | no n1 => \case i \with {
+          | isHead p => isHead p
+          | inTail i1 => inTail (rmv-works2 y i1 n)
+        }
+      }
+
+
+    \func rmv-works {x : Nat} {l : Array Nat} : Not (x in removeAll l x) =>
+      \lam i => rmv-work-lemma {x} {l} {i}
+      \where {
+        \func rmv-work-lemma {x : Nat} {l : Array Nat} {i : x in removeAll l x} : Empty \elim l, i
+          | nil, i1 => \case i1 \with {}
+          | a :: l1, i1 => \case decideEq a x \as r, i1 : (x in if (decToBool r) (removeAll l1 x) (a :: removeAll l1 x)) \with {
+            | yes e, i2 => rmv-work-lemma {x} {l1} {i2}
+            | no n, i2 => \case i2 \with {
+              | isHead p => n p
+              | inTail i => rmv-work-lemma {x} {l1} {i}
+            }
+          }
+      }
+
+    \func merge-works {a b : Array Nat} : \Pi (x : Nat) ((x in a) || (x in b)) -> x in mergeUnique a b =>
+      \lam x _x => \case a \as s1, b \as s2, _x : (x in s1) || (x in s2) \return x in mergeUnique s1 s2 \with {
+        | nil, nil, inC => \case inC \with {
+          | byLeft a1 => absurd (\case a1 \with {})
+          | byRight b1 => absurd (\case b1 \with {})
+        }
+        | nil, a1 :: l1, inC => \case inC \with {
+          | byLeft a1 => absurd (\case a1 \with {})
+          | byRight b1 => \case b1 \with {
+            | isHead p => isHead p
+            | inTail i => {?}
+          }
+        }
+        | a1 :: l1, nil, inC => \case inC \with {
+          | byLeft a1 => {?}
+          | byRight b1 => absurd (\case b1 \with {})
+        }
+        | a1 :: l1, a2 :: l2, inC => {?}
+      }
+  }
