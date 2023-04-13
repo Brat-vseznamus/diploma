@@ -87,6 +87,10 @@
   | no n => absurd $ n p
 }
 
+\func and=>bothTrue {a b : Bool} (p : a and b = true) : \Sigma (a = true) (b = true) \elim a, b, p
+  | false, false, ()
+  | true, true, p => (idp, idp)
+
 \func /=->/== {a b : Nat} (p : Not(a = b)) : a == b = false => \case decideEq a b \as p \return decToBool p = false \with {
   | yes e => absurd $ p e
   | no n => idp
