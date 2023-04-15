@@ -1,6 +1,7 @@
 \import Arith.Nat
 \import Data.Bool
 \import Function.Meta ($)
+\import HLevel
 \import Logic
 \import Paths
 \import Paths.Meta
@@ -39,7 +40,7 @@
       | nil => isHead idp
       | a :: l1 => \case decideEq a x \as d \return x in (a :: if (decToBool d) (removeAll l1 x) (addDistinct l1 x))  \with {
         | yes e => isHead e
-        | no n => inTail (add-works {x} {l1})
+        | no n => inTail n (add-works {x} {l1})
       }
 
     \func addDisticnt-add-one {x : Nat} {l : Array Nat} : size(filterByEq (addDistinct l x) x) = 1 \elim l
@@ -85,9 +86,12 @@
     \func rmv-works3 {x : Nat} {l : Array Nat} : \Pi (y : Nat) (y in removeAll l x) -> y in l \elim l
       | nil => \lam y i => i
       | a :: l1 => \lam y i => \case decideEq a x \as d, i : y in if {Array Nat} (decToBool d) (removeAll l1 x) (a :: removeAll l1 x)\with {
-        | yes e, i1 => inTail (rmv-works3 y i1)
+        | yes e, i1 => \case decideEq a y \with {
+          | yes e1 => isHead e1
+          | no n => inTail n (rmv-works3 y i1)
+        }
         | no n, isHead p => isHead p
-        | no n, inTail i1 => inTail (rmv-works3 y i1)
+        | no n, inTail n' i1 => inTail n' (rmv-works3 y i1)
       }
 
     \func rmv-works2 {x : Nat} {l : Array Nat} : \Pi (y : Nat) (y in l) (Not(x = y)) -> y in removeAll l x \elim l
@@ -96,11 +100,11 @@
           \case decideEq a x \as dec \return y in if {Array Nat} (decToBool dec) (removeAll l1 x) (a :: removeAll l1 x) \with {
             | yes e => \case i \with {
               | isHead p => absurd (n (inv e *> p))
-              | inTail i1 => rmv-works2 y i1 n
+              | inTail n' i1 => rmv-works2 y i1 n
             }
             | no n1 => \case i \with {
               | isHead p => isHead p
-              | inTail i1 => inTail (rmv-works2 y i1 n)
+              | inTail n' i1 => inTail n' (rmv-works2 y i1 n)
             }
           }
 
@@ -114,7 +118,7 @@
             | yes e, i2 => rmv-work-lemma {x} {l1} {i2}
             | no n, i2 => \case i2 \with {
               | isHead p => n p
-              | inTail i => rmv-work-lemma {x} {l1} {i}
+              | inTail n i => rmv-work-lemma {x} {l1} {i}
             }
           }
       }
@@ -138,7 +142,7 @@
               (isHead idp)
               (leq.inSet (\lam x i => \case decideEq a x \with {
                 | yes e => isHead e
-                | no n => inTail ((leq.fromSet rec) x (removeAll.rmv-works3 x i))
+                | no n => inTail n ((leq.fromSet rec) x (removeAll.rmv-works3 x i))
               }))
 
     \func distinct-works3 (l : Array Nat) : l leq distinct l =>
@@ -161,7 +165,7 @@
               )
         | no ne => \case i \with {
           | isHead p => absurd (ne p)
-          | inTail i1 =>
+          | inTail n i1 =>
             \let
               | not1 => \lam (e : a = x) =>
                   pmap
@@ -192,7 +196,7 @@
               | rec => count0->notExist x l p2
             \in \case i \with {
               | isHead p3 => n p3
-              | inTail i1 => rec i1
+              | inTail n i1 => rec i1
             }
         }
   }
@@ -222,7 +226,7 @@
         | yes eq, i-f => \let i-f2 => rewriteF eq i-f \in
           \case i-f2 \with {
             | isHead p => rewriteF p eq
-            | inTail i1 => filter-save-property x i1
+            | inTail n i1 => filter-save-property x i1
           }
         | no neq, i-t => filter-save-property x (rewriteF (BoolSet.toFalse neq) i-t)
       }
@@ -247,7 +251,7 @@
               | byLeft a1 => byLeft (uniq-tail n a1)
               | byRight b => byRight (\lam i => \case i \with {
                 | isHead p => n p
-                | inTail i1 => b i1
+                | inTail n i1 => b i1
               })
             }
           }
@@ -264,14 +268,17 @@
   \where {
     \func inSet {a b : Array Nat} (p : \Pi (x : Nat) (x in a) -> x in b) : a leq b \elim a
       | nil => leq-empty
-      | a1 :: l => leq-cont (p a1 (isHead idp)) (inSet (\lam x i => p x (inTail i)))
+      | a1 :: l =>
+        leq-cont
+            (p a1 (isHead idp))
+            (inSet (\lam x i => p x (\case decideEq a1 x \with { yes e => isHead e | no n => inTail n i})))
 
     \func fromSet {a b : Array Nat} (p : a leq b) : \Pi (x : Nat) (x in a) -> x in b \elim a
       | nil => \lam x i => absurd (\case i \with {})
       | a1 :: l => \lam x i => \case p \with {
         | leq-cont i1 l1 => \case i \with {
           | isHead p1 => rewriteF p1 i1
-          | inTail i2 => (fromSet l1) x i2
+          | inTail n i2 => (fromSet l1) x i2
         }
       }
 
@@ -285,13 +292,16 @@
 
     \func add-save {a : Nat} {l : Array Nat} : l leq (a :: l) \elim l
       | nil => leq-empty
-      | a1 :: l => inSet (\lam x i => inTail i)
+      | a1 :: l => inSet (\lam x i => \case decideEq a x \with {
+        | yes e => isHead e
+        | no n => inTail n i
+      })
   }
 
-\data \infix 6 seq (a b : Array Nat) : \Prop
+\data \infix 6 seq (a b : Array Nat) : \Set0
   | seq-con (a leq b) (b leq a)
 
-\truncated \data Unique (x : Nat) (l : Array Nat) : \Prop \elim l
+\data Unique (x : Nat) (l : Array Nat) : \Set0 \elim l
   | a :: l => uniq-head (a = x) (Not (x in l))
   | a :: l => uniq-tail (Not (a = x)) (Unique x l)
   \where {
@@ -308,23 +318,32 @@
       | nil => absurd (\case uniq \with {})
       | a :: l1 => \case uniq \with {
         | uniq-head p n => isHead p
-        | uniq-tail n u => inTail (unique->exists {x} {l1} u)
+        | uniq-tail n u => inTail n (unique->exists {x} {l1} u)
       }
   }
 
-\truncated \data \infix 6 in (x : Nat) (l : Array Nat) : \Prop \elim l
+\data \infix 6 in (x : Nat) (l : Array Nat) : \Set0 \elim l
   | a :: l => isHead (a = x)
-  | a :: l => inTail (x in l)
+  | a :: l => inTail (Not (a = x)) (x in l)
   \where {
+    \use \level levelProp {x : Nat} {l : Array Nat} (a a' : x in l) : a = a' \elim l, a, a'
+      | nil, p, _ => absurd ((emptyNil x) p)
+      | n :: l1, isHead p, isHead p1 =>
+        \let name => Path.inProp {n = x} \in pmap isHead (name p p1)
+      | n :: l1, isHead p, inTail n1 a' => absurd (n1 p)
+      | n :: l1, inTail n1 a1, isHead p => absurd (n1 p)
+      | n :: l1, inTail n1 a1, inTail n2 a2 =>
+        \let name => Path.inProp {Not(n = x)} \in pmap2 inTail (name n1 n2) (levelProp a1 a2)
+
     \func decideIn (x : Nat) (l : Array Nat) : Dec (x in l) \elim l
       | nil => no (\lam i => \case i \with {})
       | a :: l1 => \case decideEq a x \with {
         | yes e => yes (isHead e)
         | no n => \case decideIn x l1 \with {
-          | yes e => yes (inTail e)
+          | yes e => yes (inTail n e)
           | no n1 => no (\lam i => \case i \with {
             | isHead p => n p
-            | inTail i1 => n1 i1
+            | inTail n i1 => n1 i1
           })
         }
       }
@@ -341,7 +360,7 @@
       | nil => idp
       | a :: l1 => \case decideEq a x \as d \return if (decToBool d) (a :: filterByEq l1 x) (filterByEq l1 x) = nil \with {
         | yes e => absurd (not-in (isHead e))
-        | no n => filterAll x l1 (\lam i => not-in (inTail i))
+        | no n => filterAll x l1 (\lam i => not-in (inTail n i))
       }
 
     \func filter-works {x : Nat} {l : Array Nat} : size (filterByEq l x) = count x l \elim l
@@ -370,7 +389,7 @@
           | byLeft a1 => absurd (\case a1 \with {})
           | byRight b1 => \case b1 \with {
             | isHead p => isHead p
-            | inTail i => {?}
+            | inTail n i => {?}
           }
         }
         | a1 :: l1, nil, inC => \case inC \with {

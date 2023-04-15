@@ -1,7 +1,9 @@
 \import Arith.Nat
+\import Data.Bool
 \import Logic
 \import Paths
 \import Paths.Meta
+\import Set
 \import calculus.AlphaEq
 \import calculus.AlphaEq2
 \import calculus.Base
@@ -31,7 +33,37 @@
 \func T1 => Base 1
 
 -- \x.x : a->a
-\func EXAMPLE4 : TypedExpr (Lam 0 (Var 0)) (Func T0 T0) empty => typed-lam (typed-var idp) idp
+\func EXAMPLE4 : TypedExpr (Lam 0 (Var 0)) (Func T0 T0) empty => typed-lam (typed-var idp)
+
+\func Omega => App (Lam 0 (App (Var 0) (Var 0))) (Lam 0 (App (Var 0) (Var 0)))
+\func EXAMPLE5 : Not (\Sigma (t : SimpleType) (TypedExpr Omega t empty)) =>
+  \lam (t, p) => \case p \with {
+    | typed-app Qt p-typed q-typed => \case p-typed \with {
+      | typed-lam b-exists => \case b-exists \with {
+        | typed-app Qt1 p-typed1 q-typed1 => \case p-typed1, q-typed1 \with {
+          | typed-var i-exists, typed-var i-exists1 =>
+            \case
+              decideEq Qt Qt1 \as d1,
+              decideEq Qt (Func Qt1 t) \as d2,
+              i-exists : decToBool d2 = true,
+              i-exists1 : decToBool d1 = true \with {
+              | yes e, yes e1, _, _ => contr (rewriteF e e1)
+              | no n, yes e, p1, ()
+            }
+        }
+      }
+    }
+  }
+  \where {
+    \func contr {t a : SimpleType} (p : t = Func t a) : Empty \elim t
+      | Base n => suc/=0 (pmap (\lam (x : SimpleType) => \case x \with {| Base n1 => 1 | Func s s1 => 0}) p)
+      | Func t1 t2 =>
+        \let
+          | rec1 => pmap (\lam (x : SimpleType) => \case x \with {| Base n1 => Base n1 | Func s s1 => s}) p
+          | rec2 => pmap (\lam (x : SimpleType) => \case x \with {| Base n1 => Base n1 | Func s s1 => s1}) p
+          | rec3 => rewriteF rec2 rec1
+        \in contr rec3
+  }
 
 -- CHUCH
 \func Church => Func (Func T0 T0) (Func T0 T0)
@@ -46,7 +78,7 @@
   | suc n => App succ (numeral n)
 
 \func zeroIsChurch : TypedExpr zero Church empty =>
-  typed-lam (typed-lam (typed-var idp) idp) idp
+  typed-lam (typed-lam (typed-var idp))
 
 \func succIsCh->Ch : TypedExpr succ (Func Church Church) empty =>
   typed-lam
@@ -65,11 +97,8 @@
                       (typed-var idp)
                   )
               )
-              idp
           )
-          idp
       )
-      idp
 
 \func numeralIsChurch (n : Nat) : TypedExpr (numeral n) Church empty \elim n
   | 0 => zeroIsChurch

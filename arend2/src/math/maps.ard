@@ -1,0 +1,28 @@
+\import Data.Bool
+\import Logic
+\import Paths.Meta
+\import math.sets
+
+\func mapArr {A B : \Type} (f : A -> B) (l : Array A) : Array B \elim l
+  | nil => nil
+  | a :: l => f a :: mapArr f l
+
+\data NatMap (V : \Type)
+  | map-con (ks : Array Nat) (ku : \Pi (x : Nat) (x in ks) -> Unique x ks) (f : Nat -> V)
+  \where {
+    \func items {V : \Type} (m : NatMap V) : Array (\Sigma Nat V) => \case m \with {| map-con ks _ f => mapArr (\lam x => (x, f x)) ks}
+    \func keys {V : \Type} (m : NatMap V) : Array Nat => \case m \with {| map-con ks _ f => ks}
+    \func values {V : \Type} (m : NatMap V) : Array V => \case m \with {| map-con ks _ f => mapArr (\lam x => f x) ks}
+    \func get {V : \Type} (m : NatMap V) (k : Nat) (inMap : k in keys m) : V => \scase m \as m', inMap : k in keys m' \with {
+      | map-con ks ku f, inMap => \case ks \as ks', inMap : k in ks', ku : \Pi (x : Nat) (x in ks') -> Unique x ks' \with {
+        | nil, im, _ => absurd (in.emptyNil k im)
+        | a :: l, im, ku => \scase ku k im \with {
+          | uniq-head p n => f k
+          | uniq-tail n u => \scase im \with {
+            | isHead p => absurd (n p)
+            | inTail n i => {?}
+          }
+        }
+      }
+    }
+  }

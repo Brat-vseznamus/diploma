@@ -19,8 +19,7 @@
   | (Con _), t, c => typed-const
   | (Var i), t, c => typed-var (i-exists : Context.typed-var-in-context (i, t) c = true)
   | (Lam i B), (Func a b), c => typed-lam
-    (b-exists      : TypedExpr B b (Context.add-assump (i, a) c))
-    (i-is-not-free : Context.var-in-context i c = false)
+    (b-typed      : TypedExpr B b (Context.update-assump (i, a) c))
   | (App P Q), t, c => typed-app
     (Qt : SimpleType)
     (p-typed : TypedExpr P (Func Qt t) c)
@@ -29,7 +28,7 @@
     \func lam-has-func-type {B : Expr} {i : Nat} {t : SimpleType} {c : Context} (typed : TypedExpr (Lam i B) t c) :
       \Sigma (a b : SimpleType) (t = Func a b)
       \elim t, typed
-        | Func t1 t2, typed-lam typed i-is-not-free => (t1, t2, idp)
+        | Func t1 t2, typed-lam typed => (t1, t2, idp)
 
     \func app-parts-types {P Q : Expr} {t : SimpleType} {c : Context} (typed : TypedExpr (App P Q) t c) :
       \Sigma (a b : SimpleType) (TypedExpr P (Func a b) c) (TypedExpr Q a c)
