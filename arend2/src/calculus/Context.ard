@@ -17,7 +17,7 @@
       | (n,s), with _x _context => with _x (if (_x.1 == n) _context (add-assump (n, s)  _context))
       | (n,s), empty => with (n, s) empty
     \func update-assump (newAssumption : \Sigma Nat SimpleType) (context : Context) : Context \elim newAssumption, context
-      | (n,s), with (n', s') _context => with (n', if (n' == n) s s') (if (n' == n) _context (add-assump (n, s)  _context))
+      | (n,s), with (n', s') _context => with (n', if (n' == n) s s') (if (n' == n) _context (update-assump (n, s)  _context))
       | (n,s), empty => with (n, s) empty
     \func var-in-context (var : Nat) (c : Context) : Bool \elim c
       | empty => false

@@ -87,6 +87,11 @@
   | no n => absurd $ n p
 }
 
+\func ==->= {T : \Set} {d : DecSet T} {a b : T} (p : a == b = true) : a = b => \case d.decideEq a b \as d, p : decToBool d = true \with {
+  | yes e, _ => e
+  | no n, p => absurd (true/=false (inv p))
+}
+
 \func and=>bothTrue {a b : Bool} (p : a and b = true) : \Sigma (a = true) (b = true) \elim a, b, p
   | false, false, ()
   | true, true, p => (idp, idp)

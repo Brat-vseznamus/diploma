@@ -1,6 +1,9 @@
+\import Arith.Nat
 \import Data.Bool
+\import Function.Meta
 \import Logic
 \import Paths.Meta
+\import Set
 \import math.sets
 
 \func mapArr {A B : \Type} (f : A -> B) (l : Array A) : Array B \elim l
@@ -13,16 +16,54 @@
     \func items {V : \Type} (m : NatMap V) : Array (\Sigma Nat V) => \case m \with {| map-con ks _ f => mapArr (\lam x => (x, f x)) ks}
     \func keys {V : \Type} (m : NatMap V) : Array Nat => \case m \with {| map-con ks _ f => ks}
     \func values {V : \Type} (m : NatMap V) : Array V => \case m \with {| map-con ks _ f => mapArr (\lam x => f x) ks}
-    \func get {V : \Type} (m : NatMap V) (k : Nat) (inMap : k in keys m) : V => \scase m \as m', inMap : k in keys m' \with {
-      | map-con ks ku f, inMap => \case ks \as ks', inMap : k in ks', ku : \Pi (x : Nat) (x in ks') -> Unique x ks' \with {
-        | nil, im, _ => absurd (in.emptyNil k im)
-        | a :: l, im, ku => \scase ku k im \with {
-          | uniq-head p n => f k
-          | uniq-tail n u => \scase im \with {
-            | isHead p => absurd (n p)
-            | inTail n i => {?}
-          }
-        }
-      }
+    \func get {V : \Type} (m : NatMap V) (k : Nat) (inMap : k in keys m) : V => \case m \as m', inMap : k in keys m' \with {
+      | map-con ks ku f, inMap => getImpl V {ks} {ku} {f} inMap
     }
+      \where {
+        \func getImpl (V : \Type)
+                      {ks : Array Nat} {ku : \Pi (x : Nat) (x in ks) -> Unique x ks} {f : Nat -> V} {k : Nat}
+                      (inK : k in ks) : V \elim ks, inK
+          | nil, p => absurd $ in.emptyNil k p
+          | a :: l, isHead p => f k
+          | a :: l, inTail n1 inK => getImpl V {l} {\lam x i => \case ku x (\case decideEq a x \with {
+            | yes e => isHead e
+            | no n => inTail n i
+          }) \with {
+            | uniq-head p n => absurd (n i)
+            | uniq-tail n u => u
+          }} {f} {k} inK
+      }
+
+      \func put {V : \Type} (m : NatMap V) (p : \Sigma Nat V) : NatMap V => \case m \as m' \with {
+        | map-con ks ku f => {?}
+      }
+        \where {
+          \func putImpl (V : \Type)
+                        {ks : Array Nat} {ku : \Pi (x : Nat) (x in ks) -> Unique x ks} {f : Nat -> V}
+                        (p : \Sigma Nat V) : \Sigma (ks' : Array Nat) (ku' : \Pi (x : Nat) (x in ks') -> Unique x ks') (f' : Nat -> V) \elim ks
+            | nil => (p.1 :: nil, \lam x i => \case decideEq p.1 x \with {
+              | yes e => uniq-head e (in.emptyNil x)
+              | no n => uniq-tail n (\case i \with {
+                | isHead p1 => absurd (n p1)
+                | inTail n1 i1 => absurd (in.emptyNil x i1)
+              })
+            }, \lam n => p.2)
+            | a :: l => \case decideEq a p.1 \with {
+              | yes e => (a :: l, ku, \lam n1 => if (n1 == a) p.2 (f n1))
+              | no n => \let
+                | (ks1, ku1, f1) =>
+                  putImpl V {l} {\lam x i => \case ku x (\case decideEq a x \with {
+                    | yes e => isHead e
+                    | no n => inTail n i
+                  }) \with {
+                    | uniq-head p n => absurd (n i)
+                    | uniq-tail n u => u
+                  }} {f} p
+                        \in
+                (a :: ks1, \lam x i => \case i \with {
+                  | isHead p1 => {?} -- uniq-head p1 (\lam i1 => \let x => ku1 x i1 \in {?})
+                  | inTail n1 i1 => uniq-tail n1 (ku1 x i1)
+                }, {?})
+            }
+        }
   }

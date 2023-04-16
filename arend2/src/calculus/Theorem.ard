@@ -1,10 +1,18 @@
+\import Arith.Nat
 \import Data.Bool
+\import Data.Or
 \import Logic
+\import Paths
+\import Paths.Meta
+\import Set
+\import calculus.AlphaEq2
 \import calculus.Base
+\import calculus.Beta
 \import calculus.Context
 \import calculus.SubTerm
 \import calculus.Types
 \import math.sets
+\import math.utils
 
 \func A => Base 0
 
@@ -31,11 +39,118 @@
   (no-con : \Pi (i : Nat) -> Not (SubTerm e (Con i)))
   (closed : FV e leq CV c)
   (each-var-typed : \Pi (i : Nat) (ti : SimpleType) (Context.typed-var-in-context (i, ti) c = true) -> inS ti) :
-  \Pi (se : Expr) (sub : SubTerm e se) -> inS (SubTerm.type-subterm {e} {se} {sub} t c typed).1 =>
-  \lam se sub => \case se \as s, sub \as sb : SubTerm e s \return inS (SubTerm.type-subterm {e} {s} {sb} t c typed).1 \with {
-    | Con n, sub => absurd ((no-con n) sub)
-    | Var n, var-sub => {?}
-    | Lam n e1, sb => {?}
-    | App e1 e2, sb => {?}
+  \Pi (se : Expr) (sub : SubTerm e se) -> inS (SubTerm.type-subterm e se sub t c typed).1 \elim e
+  | Con n => \lam se sub => \case sub \with {
+    | sub-same p => absurd (no-con n (sub-same idp))
+  }
+  | Var n => \lam se sub => \case sub \as s \return inS (SubTerm.type-subterm (Var n) se s t c typed).1 \with {
+    | sub-same p => t-inS
+  }
+  | Lam n e => \lam se sub => \case sub \as s, t \as t', typed \as typed' : TypedExpr (Lam n e) t' c, t-inS : inS t' \return inS (SubTerm.type-subterm (Lam n e) se s t' c typed').1 \with {
+    | sub-lam s, Func a b, typed-lam typedl, t-inS' => \let
+      | nfl : NormalForm e e => \case nf \with {
+        | NormalForm.nf b1 n1 => NormalForm.nf (end A-Eq2.ref) (\lam (e', b-e') => n1 (Lam n e', beta-lam idp b-e'))
+      }
+      | no-conl : \Pi (i : Nat) -> Not (SubTerm e (Con i)) => \lam i s => (no-con i) (sub-lam s)
+      | a-inSl : inS a => \case t-inS' \with {
+        | is1 p => absurd (suc/=0 (pmap STDecSet.conNo p))
+        | is2 p => \let (lft, rght) =>  STDecSet.rmFunc p \in is1 lft
+        | is3 p => \let (lft, rght) =>  STDecSet.rmFunc p \in is2 lft
+      }
+      | b-inSl : inS b => \case t-inS' \with {
+        | is1 p => absurd (suc/=0 (pmap STDecSet.conNo p))
+        | is2 p => \let (lft, rght) => STDecSet.rmFunc p \in is1 rght
+        | is3 p => \let (lft, rght) => STDecSet.rmFunc p \in is2 rght
+      }
+      | closedL : FV e leq CV (Context.update-assump (n, a) c) => ext-closed e n a c closed
+      | var-ext : \Pi (i : Nat) (ti : SimpleType) (Context.typed-var-in-context (i, ti) (Context.update-assump (n, a) c) = true) -> inS ti =>
+          var-ext-impl n a b a-inSl b-inSl c each-var-typed
+      | rec => theorema1 e b (Context.update-assump (n, a) c) nfl typedl b-inSl no-conl closedL var-ext se s
+                    \in rec
+    | sub-same p, Func t' t'1, typed-lam typed', t-inS' => t-inS'
+  }
+
+  | App e1 e2 => \lam se sub => \case sub \as s, t \as t', typed \as typed' : TypedExpr (App e1 e2) t' c, t-inS : inS t' \return inS (SubTerm.type-subterm (App e1 e2) se s t' c typed').1 \with {
+    | sub-app (inl a), t', typed-app Qt typed' typed'1, t-inS' => {?}
+    | sub-app (inr b), t', typed-app Qt typed' typed'1, t-inS' => {?}
+    | sub-same p, t', typed-app Qt typed' typed'1, t-inS' => t-inS'
+  }
+
+  \where {
+    \func lam-decon {t a b c d : SimpleType} (p1 : t = a --> b) (p2 : t = c --> d) : \Sigma (a = c) (b = d) =>
+      STDecSet.rmFunc (inv p1 *> p2)
+
+    \func ext-closed
+      (e : Expr)
+      (n : Nat)
+      (a : SimpleType)
+      (c : Context)
+      (l : removeAll (FV e) n leq CV c)
+      : FV e leq CV (Context.update-assump (n, a) c) =>
+      \let
+        | decL => leq.fromSet l
+        | cvU : CV (Context.update-assump (n, a) c) seq (n :: CV c) => {?} -- TODO
+        | inC1->C2 : \Pi (x : Nat) (x in (n :: CV c)) -> x in CV (Context.update-assump (n, a) c) => \case cvU \with {
+          | seq-con l1 l2 => leq.fromSet l2
+        }
+      \in
+        leq.inSet (\lam x i => \case decideEq n x \with {
+          | yes e1 => inC1->C2 x (isHead e1)
+          | no n1 => inC1->C2 x (inTail n1 (decL x (removeAll.rmv-works2 x i n1)))
+        })
+
+    \func var-ext-impl (n : Nat) (a b : SimpleType) (a-inS : inS a) (b-inS : inS b) (c : Context)
+                       (each-var-typed : \Pi (i : Nat) (ti : SimpleType) (Context.typed-var-in-context (i, ti) c = true) -> inS ti) :
+      \Pi (i : Nat) (ti : SimpleType) (Context.typed-var-in-context (i, ti) (Context.update-assump (n, a) c) = true) -> inS ti
+    \elim c
+      | empty => \lam i ti p => \case decideEq n i \as d1, decideEq a ti \as d2, p : if {Bool} (decToBool d1) (decToBool d2) false = true \with {
+        | yes e, yes e1, p1 => rewriteF e1 a-inS
+        | no n1, yes e, ()
+      }
+      | with (m, tm) c1 => \lam i ti p => \case
+        decideEq m i \as d1,
+        decideEq m n \as d2,
+        decideEq tm ti \as d3,
+        p : if {Bool} (decToBool d1) (if {SimpleType} (decToBool d2) a tm == ti) (Context.typed-var-in-context (i, ti) (if {Context} (decToBool d2) c1 (Context.update-assump (n, a) c1))) = true,
+        (each-var-typed i ti) : \Pi (if {Bool} (decToBool d1) (decToBool d3) (Context.typed-var-in-context (i, ti) c1) = true) -> inS ti \with {
+        | yes e, yes e1, yes e2, p1, _x => _x idp
+        | yes e, yes e1, no n1, p1, _x => \let a=ti => ==->= {SimpleType} {STDecSet} p1 \in rewriteF a=ti a-inS
+        | yes e, no n1, yes e1, p1, _x => _x idp
+        | yes e, no n1, no n2, p1, _x => \let ti=tm => ==->= {SimpleType} {STDecSet} p1 \in absurd (n2 ti=tm)
+        | no n1, yes e, yes e1, p1, _x => _x p1
+        | no n1, yes e, no n2, p1, _x => _x p1
+        | no n1, no n2, yes e, p1, _x => \case decideEq n i \with {
+          | yes e1 => \case decideEq m m \as dm, decideEq tm tm \as dtm, (each-var-typed m tm) : (if {Bool} (decToBool dm) (decToBool dtm) (Context.typed-var-in-context (m, tm) c1) = true -> inS tm) \with {
+            | yes e2, yes e3, _x1 => rewriteF e (_x1 idp)
+            | yes e2, no n3, _x1 => absurd (n3 idp)
+            | no n3, yes e2, _x1 => absurd (n3 idp)
+            | no n3, no n4, _x1 => absurd (n3 idp)
+          }
+          | no n3 =>
+            \let
+              | n-check => neutral-check {n} {i} {c1} {a} {ti} n3
+              | p2 => rewriteF n-check p1
+            \in _x p2
+        }
+        | no n1, no n2, no n3, p1, _x => \case decideEq n i \with {
+          | yes e1 => \let exact => get-after-update (rewriteF (inv e1) p1) \in rewriteF (inv exact) a-inS
+
+          | no n3 =>
+            \let
+              | n-check => neutral-check {n} {i} {c1} {a} {ti} n3
+              | p2 => rewriteF n-check p1
+            \in _x p2
+        }
+      }
+
+    \func neutral-check {n i : Nat} {c1 : Context} {tn ti : SimpleType}
+                        (neq : Not (n = i)) :
+      Context.typed-var-in-context (i, ti) (Context.update-assump (n, tn) c1) = Context.typed-var-in-context (i, ti) c1 =>
+      {?}
+
+    \func get-after-update {n : Nat} {ti b : SimpleType} {c1 : Context}
+                           (p : Context.typed-var-in-context (n, ti) (Context.update-assump (n, b) c1) = true) :
+      ti = b => {?}
+
   }
   

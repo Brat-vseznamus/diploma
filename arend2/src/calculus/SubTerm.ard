@@ -17,24 +17,22 @@
   | e       => sub-same (e = se)
   \where {
     \func type-subterm
-      {e se : Expr}
-      {sub : SubTerm e se}
+      (e se : Expr)
+      (sub : SubTerm e se)
       (t : SimpleType) (c : Context) (typed : TypedExpr e t c) :
-    \Sigma (t' : SimpleType) (c' : Context) (TypedExpr se t' c') \elim e, se, sub
-      | Lam i e1, se1, sub-lam sub =>
-        \let
-          | (a, b, t=a->b) => TypedExpr.lam-has-func-type typed
-        \in \case (rewriteF t=a->b typed) \with {
-          | typed-lam b-exists i-is-not-free => type-subterm {e1} {se1} {sub} b (Context.add-assump (i, a) c) b-exists
-        }
-      | App e1 e2, se1, sub-app o =>
-        \let
-          | (Qt, Rt, t1, t2) => TypedExpr.app-parts-types typed
-        \in \case o \with {
-        | inl a => type-subterm {e1} {se1} {a} (Func Qt Rt) c t1
-        | inr b => type-subterm {e2} {se1} {b} Qt c t2
-      }
-      | e1, se1, sub-same p => (t, c, rewriteF p typed)
+    \Sigma (t' : SimpleType) (c' : Context) (TypedExpr se t' c') \elim e, se, sub, t, typed
+      | Lam n e1, se1, sub-lam sub, Func a b, (typed-lam b-exists) => type-subterm e1 se1 sub b (Context.update-assump (n, a) c) b-exists
+      | App e1 e2, se1, sub-app (inl a), t, (typed-app Qt te1 te2) => type-subterm e1 se1 a (Func Qt t) c te1
+      | App e1 e2, se1, sub-app (inr b), t, (typed-app Qt te1 te2) => type-subterm e2 se1 b Qt c te2
+      | e1, se1, sub-same p, t', tp => (t', c, rewriteF p tp)
+
+    \func ref (e : Expr) (t : SimpleType) (c : Context) (typed : TypedExpr e t c) :
+      type-subterm e e (sub-same idp) t c typed = (t, c, typed)
+      | Con n, t, c, typed-const => idp
+      | Var i, t, c, typed-var i-exists => idp
+      | Lam i e1, Func t t1, c, typed-lam typed => idp
+      | App e1 e2, t, c, typed-app Qt typed typed1 => idp
+
   }
 
 

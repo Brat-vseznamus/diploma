@@ -15,21 +15,21 @@
     \use \coerce fromArray (l : Array Nat) : NatSet =>
       set-con (distinct l) (\lam x i => distinct.distinct-works2 l x (leq.fromSet (distinct.distinct-works4 l) x i))
 
-    \func \infix 6 & (a b : NatSet) : NatSet =>
-      \let
-        | (ar, au, aeq) : \Sigma (p : Array Nat) (up : \Pi (x : Nat) (x in p) -> Unique x p) (a = set-con p up) => \case a \as a' \return \Sigma (p : Array Nat) (up : \Pi (x : Nat) (x in p) -> Unique x p) (a' = set-con p up) \with {| set-con p _x => (p, _x, idp)}
-        | (br, bu, beq) : \Sigma (p : Array Nat) (up : \Pi (x : Nat) (x in p) -> Unique x p) (b = set-con p up) => \case b \as b' \return \Sigma (p : Array Nat) (up : \Pi (x : Nat) (x in p) -> Unique x p) (b' = set-con p up) \with {| set-con p _x => (p, _x, idp)}
-        | f => \lam x => decToBool(in.decideIn x br) and decToBool(in.decideIn x ar)
-        | cr => filter {Nat} ar f
-        | t => filter.filter-save-property {ar} {f}
-        | inAB => \lam (x : Nat) (p : x in cr) => \let (inB, inA) => math.utils.and=>bothTrue (t x p) \in (in.decFromBool inA, in.decFromBool inB)
-        | alsoUnique => filter.filter-save-unique {ar} {f}
-        | cu : \Pi (x : Nat) (i : x in cr) -> Unique x cr =>
-          \lam (x : Nat) (i : x in cr) => \case alsoUnique x (au x (inAB x i).1) \with {
-            | byLeft a1 => a1
-            | byRight b1 => absurd (b1 i)
-          }
-      \in set-con cr cu
+--    \func \infix 6 & (a b : NatSet) : NatSet =>
+--      \let
+--        | (ar, au, aeq) : \Sigma (p : Array Nat) (up : \Pi (x : Nat) (x in p) -> Unique x p) (a = set-con p up) => \case a \as a' \return \Sigma (p : Array Nat) (up : \Pi (x : Nat) (x in p) -> Unique x p) (a' = set-con p up) \with {| set-con p _x => (p, _x, idp)}
+--        | (br, bu, beq) : \Sigma (p : Array Nat) (up : \Pi (x : Nat) (x in p) -> Unique x p) (b = set-con p up) => \case b \as b' \return \Sigma (p : Array Nat) (up : \Pi (x : Nat) (x in p) -> Unique x p) (b' = set-con p up) \with {| set-con p _x => (p, _x, idp)}
+--        | f => \lam x => decToBool(in.decideIn x br) and decToBool(in.decideIn x ar)
+--        | cr => filter {Nat} ar f
+--        | t => filter.filter-save-property {ar} {f}
+--        | inAB => \lam (x : Nat) (p : x in cr) => \let (inB, inA) => math.utils.and=>bothTrue (t x p) \in (in.decFromBool inA, in.decFromBool inB)
+--        | alsoUnique => filter.filter-save-unique {ar} {f}
+--        | cu : \Pi (x : Nat) (i : x in cr) -> Unique x cr =>
+--          \lam (x : Nat) (i : x in cr) => \case alsoUnique x (au x (inAB x i).1) \with {
+--            | byLeft a1 => a1
+--            | byRight b1 => absurd (b1 i)
+--          }
+--      \in set-con cr cu
   }
 
 \func addDistinct (l : Array Nat) (x : Nat) : Array Nat \elim l
