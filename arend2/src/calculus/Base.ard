@@ -1,5 +1,7 @@
 \import Arith.Nat
 \import Data.Bool
+\import Data.Or
+\import Logic
 \import Paths
 \import Paths.Meta
 \import Set
@@ -7,6 +9,7 @@
 \import calculus.AlphaEq2
 \import calculus.Beta
 \import calculus.Context
+\import calculus.SubTerm
 \import calculus.Types
 
 \data Expr : \Set
@@ -14,6 +17,13 @@
   | Var Nat
   | Lam Nat Expr
   | App Expr Expr
+  \where {
+    \func app-decon {P1 Q1 P2 Q2 : Expr} (p : App P1 Q1 = App P2 Q2) : \Sigma (P1 = P2) (Q1 = Q2) =>
+      (
+        pmap (\lam x => \case x \with {| Con n => Con 0 | Var n => Con 0 | Lam n e => Con 0| App e e1 => e}) p,
+        pmap (\lam x => \case x \with {| Con n => Con 0 | Var n => Con 0 | Lam n e => Con 0| App e e1 => e1}) p
+      )
+  }
 
 \data TypedExpr (e : Expr) (t : SimpleType) (c : Context) \elim e, t, c
   | (Con _), t, c => typed-const
@@ -34,6 +44,27 @@
       \Sigma (a b : SimpleType) (TypedExpr P (Func a b) c) (TypedExpr Q a c)
       \elim t, typed
         | Rt, typed-app Qt typed typed1 => (Qt, Rt, typed, typed1)
+
+    -- TODO remove no-con
+    -- TODO carry instead of church or mention that we have second
+--    \func type-unique {e : Expr} {a b : SimpleType} {c : Context}
+--                      {no-con : Not (\Sigma (n : Nat) (SubTerm e (Con n)))}
+--                      {no-lam : Not (\Sigma (n : Nat) (B : Expr) (e = Lam n B))}
+--                      (p1 : TypedExpr e a c) (p2 : TypedExpr e b c) : a = b \elim e, a, b, p1, p2
+--      | Con n, a, b, typed-const, typed-const => absurd (no-con (n, sub-same idp))
+--      | Var i, a, b, typed-var i-exists, typed-var i-exists1 => Context.type-unique i-exists i-exists1
+--      | Lam i e1, Func a a1, Func b b1, typed-lam p1, typed-lam p2 => absurd (no-lam (i, e1, idp))
+--      | App e1 e2, a, b, typed-app Qt p1 p2, typed-app Qt1 p3 p4 =>
+--          \let
+--            | ue1 => type-unique {e1} {Func Qt a} {Func Qt1 b} {c}
+--                {\lam _x => no-con (_x.1, sub-app (inl _x.2))}
+--                {{?}}
+--                p1 p3
+--            | ue2 => type-unique {e2} {Qt} {Qt1} {c}
+--                {\lam _x => no-con (_x.1, sub-app (inr _x.2))}
+--                {{?}}
+--                p2 p4
+--          \in (STDecSet.rmFunc ue1).2
   }
 
 \func replace (e : Expr) (var-no : Nat) (to-expr : Expr) : Expr \elim e
