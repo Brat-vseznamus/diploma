@@ -76,14 +76,17 @@
         | no n => absurd $ n idp
       }
 
-    \func right-neutral {l r : Nat} {l/=r : Not (l = r)} (n v : Nat) : replace (repeat n (Var l) (Var r)) r (Var v) = repeat n (Var l) (Var v) \elim n
-      | 0 => \case decideEq r r \as d \return if (decToBool d) (Var v) (Var r) = Var v \with {
+    \func right-neutral {l r : Nat} {l/=r : Not (l = r)} (n v : Nat) : replace (repeat n (Var l) (Var r)) r (Var v) = repeat n (Var l) (Var v)
+      => right-neutral' {l} {r} {l/=r} n (Var v)
+
+    \func right-neutral' {l r : Nat} {l/=r : Not (l = r)} (n : Nat) (e : Expr) : replace (repeat n (Var l) (Var r)) r e = repeat n (Var l) e \elim n
+      | 0 => \case decideEq r r \as d \return if (decToBool d) e (Var r) = e \with {
         | yes e => idp
         | no n => absurd $ n idp
       }
-      | suc n => \case decideEq l r \as d \return App (if {Expr} (decToBool d) (Var v) (Var l)) (replace (repeat n (Var l) (Var r)) r (Var v)) = App (Var l) (repeat n (Var l) (Var v)) \with {
+      | suc n => \case decideEq l r \as d \return App (if {Expr} (decToBool d) e (Var l)) (replace (repeat n (Var l) (Var r)) r e) = App (Var l) (repeat n (Var l) e) \with {
         | yes e => absurd $ l/=r e
-        | no n1 => pmap (App (Var l)) (right-neutral {l} {r} {l/=r} n v)
+        | no n1 => pmap (App (Var l)) (right-neutral' {l} {r} {l/=r} n e)
       }
   }
 
@@ -177,7 +180,24 @@
                 )
             )
         )
-    | suc a, suc b => {?}
+    | suc a, suc b => chain (App (Lam 1 $ Lam 2 $ Lam 3 $ App (App (numeral2 $ suc a) (Var 2)) (App (App (Var 1) (Var 2)) (Var 3))) (numeral2 $ suc b))
+        (one-step-left (beta-app-right (beta-repl-right idp) A-Eq2.ref))
+        (chain (Lam 2 $ Lam 3 $ App (App (numeral2 $ suc a) (Var 2)) (App (App (numeral2 (suc b)) (Var 2)) (Var 3)))
+            (one-step-left (beta-repl-right idp))
+            (chain (Lam 2 $ Lam 3 $ App (Lam 1 $ repeat (suc a) (Var 2) (Var 1)) (App (App (numeral2 (suc b)) (Var 2)) (Var 3)))
+                (one-step-left (beta-lam idp (beta-lam idp (beta-app-right (beta-repl-right (pmap (Lam 1) (inv $ repeat.left-neutral {0} {1} {\lam p => suc/=0 (inv p)} (suc a) 2))) A-Eq2.ref))))
+                (chain (Lam 2 $ Lam 3 $ App (Lam 1 $ repeat (suc a) (Var 2) (Var 1)) (App (Lam 1 $ repeat (suc b) (Var 2) (Var 1)) (Var 3)))
+                    (one-step-left (beta-lam idp (beta-lam idp (beta-app-left A-Eq2.ref (beta-app-right (beta-repl-right (pmap (\lam x => Lam 1 (App (Var 2) x)) (inv $ repeat.left-neutral {0} {1} {\lam p => suc/=0 (inv p)} b 2))) A-Eq2.ref)))))
+                    (chain (Lam 2 $ Lam 3 $ App (Lam 1 $ repeat (suc a) (Var 2) (Var 1)) (repeat (suc b) (Var 2) (Var 3)))
+                        (one-step-left (beta-lam idp (beta-lam idp (beta-app-left A-Eq2.ref (beta-repl-right (pmap (App (Var 2)) (inv $ repeat.right-neutral {2} {1} {\lam p => suc/=0 (pmap pred p)} b 3)))))))
+                        (chain (Lam 2 $ Lam 3 $ repeat (suc a) (Var 2) (repeat (suc b) (Var 2) (Var 3)))
+                            (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right (pmap (App (Var 2)) (inv $ repeat.right-neutral' {2} {1} {\lam p => suc/=0 (pmap pred p)} a (repeat (suc b) (Var 2) (Var 3))))))))
+                            (a-eq (+-def-lemma3 a b)) -- (a-eq (A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (A-Eq2.trans (A-Eq2.eq->a-eq $ repeat.repeat-linear (suc a) (suc b)) (a2app-eq (a2var-eq idp) (a2app-eq (a2var-eq idp) (+-def-lemma2 a b)))))))
+                        )
+                    )
+                )
+            )
+        )
   })
   \where {
     \func +-def-lemma1 (b : Nat) : A-Eq (Lam 2 (Lam 3 (App (Var 2) (repeat b (Var 2) (Var 3))))) (numeral2 (suc b)) \elim b
@@ -202,6 +222,30 @@
           | 0 => a2var-eq idp
           | suc b => a2app-eq (a2var-eq idp) (+-def-lemma1-lemma b)
       }
+
+    \func +-def-lemma2 (a b : Nat) : A-Eq2 (repeat (a Nat.+ b) (Var 2) (Var 3)) (repeat (a Nat.+ b) (Var 0) (Var 1)) (A-Eq2.extMod (A-Eq2.extMod
+        idNat 2 (common-new-var-no (Lam 3 (App (Var 2) (repeat a (Var 2) (App (Var 2) (repeat b (Var 2) (Var 3))))))
+            (Lam 1 (App (Var 0) (App (Var 0) (repeat (a Nat.+ b) (Var 0) (Var 1))))) idNat idNat)) 3
+        (common-new-var-no (App (Var 2) (repeat a (Var 2) (App (Var 2) (repeat b (Var 2) (Var 3)))))
+            (App (Var 0) (App (Var 0) (repeat (a Nat.+ b) (Var 0) (Var 1)))) (A-Eq2.extMod
+                idNat 2 (common-new-var-no (Lam 3 (App (Var 2) (repeat a (Var 2) (App (Var 2) (repeat b (Var 2) (Var 3))))))
+                    (Lam 1 (App (Var 0) (App (Var 0) (repeat (a Nat.+ b) (Var 0) (Var 1))))) idNat idNat))
+            (A-Eq2.extMod
+                idNat 0 (common-new-var-no (Lam 3 (App (Var 2) (repeat a (Var 2) (App (Var 2) (repeat b (Var 2) (Var 3))))))
+                    (Lam 1 (App (Var 0) (App (Var 0) (repeat (a Nat.+ b) (Var 0) (Var 1))))) idNat idNat))))
+        (A-Eq2.extMod (A-Eq2.extMod
+            idNat 0 (common-new-var-no (Lam 3 (App (Var 2) (repeat a (Var 2) (App (Var 2) (repeat b (Var 2) (Var 3))))))
+                (Lam 1 (App (Var 0) (App (Var 0) (repeat (a Nat.+ b) (Var 0) (Var 1))))) idNat idNat)) 1
+            (common-new-var-no (App (Var 2) (repeat a (Var 2) (App (Var 2) (repeat b (Var 2) (Var 3)))))
+                (App (Var 0) (App (Var 0) (repeat (a Nat.+ b) (Var 0) (Var 1)))) (A-Eq2.extMod
+                    idNat 2 (common-new-var-no (Lam 3 (App (Var 2) (repeat a (Var 2) (App (Var 2) (repeat b (Var 2) (Var 3))))))
+                        (Lam 1 (App (Var 0) (App (Var 0) (repeat (a Nat.+ b) (Var 0) (Var 1))))) idNat idNat))
+                (A-Eq2.extMod
+                    idNat 0 (common-new-var-no (Lam 3 (App (Var 2) (repeat a (Var 2) (App (Var 2) (repeat b (Var 2) (Var 3))))))
+                        (Lam 1 (App (Var 0) (App (Var 0) (repeat (a Nat.+ b) (Var 0) (Var 1))))) idNat idNat)))) => {?}
+
+    \func +-def-lemma3 (a b : Nat) : A-Eq (Lam 2 (Lam 3 (App (Var 2) (repeat a (Var 2) (App (Var 2) (repeat b (Var 2) (Var 3)))))))
+        (numeral2 (suc (suc (a Nat.+ b)))) => {?}
   }
 
 \func *-expr => Lam 0 (Lam 1 (Lam 2 (App (Var 0) (App (Var 1) (Var 2)))))
