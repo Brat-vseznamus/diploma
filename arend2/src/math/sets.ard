@@ -68,6 +68,18 @@
   | nil => nil
   | a :: l => if (a == x) (removeAll l x) (a :: removeAll l x)
   \where {
+    \func monotone {a b : Array Nat} (n : Nat) (lq : a leq b) : removeAll a n leq removeAll b n =>
+      leq.inSet (\lam x i =>
+          \let
+            | xinA => rmv-works3 x i
+            | xinB => leq.fromSet lq x xinA
+          \in
+          \case decideEq x n \with {
+            | yes e => absurd (rmv-works {x} {a} (rewriteF (inv e) i))
+            | no n1 => rmv-works2 x xinB (\lam p => n1 (inv p))
+          }
+      )
+
     \func neutral-removeAll (l : Array Nat) (a x : Nat) (notEq : Not(a = x)) : filterByEq (removeAll l x) a = filterByEq l a \elim l
       | nil => idp
       | a1 :: l1 => \case decideEq a1 a \as d1, decideEq a1 x \as d2 \return filterByEq (if (decToBool d2) (removeAll l1 x) (a1 :: removeAll l1 x)) a = if (decToBool d1) (a1 :: filterByEq l1 a) (filterByEq l1 a) \with {
@@ -131,6 +143,9 @@
     \func indepmotent {l : Array Nat} : distinct l = distinct (distinct l)
       | {nil} => idp
       | {a :: l} => pmap (a ::) {?}
+
+    \func monotone {a b : Array Nat} (lq : a leq b) : distinct a leq distinct b =>
+      leq.trans (distinct-works4 a) (leq.trans lq (distinct-works3 b))
 
     \func distinct-works4 (l : Array Nat) : distinct l leq l \elim l
       | nil => leq-empty
@@ -266,6 +281,10 @@
   | nil => leq-empty
   | a :: b' => leq-cont (a in b) (b' leq b)
   \where {
+    \func leqNil {a : Array Nat} (p : a leq nil) : a = nil \elim a
+      | nil => idp
+      | a1 :: l => absurd $ in.emptyNil a1 (fromSet p a1 (isHead idp))
+
     \func inSet {a b : Array Nat} (p : \Pi (x : Nat) (x in a) -> x in b) : a leq b \elim a
       | nil => leq-empty
       | a1 :: l =>
@@ -398,4 +417,6 @@
         }
         | a1 :: l1, a2 :: l2, inC => {?}
       }
+
+    \func merge-works2 {a b : Array Nat} : \Pi (x : Nat) (x in mergeUnique a b) -> (x in a) || (x in b) => {?}
   }

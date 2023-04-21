@@ -1,17 +1,35 @@
 \import calculus.AlphaEq
 \import calculus.Base
+\import calculus.Context
+\import calculus.Types
 
 \data Beta-Red (e1 e2 : Expr) \elim e1, e2
   | (App P1 Q1), (App P2 Q2) => beta-app-left (A-Eq P1 P2) (Beta-Red Q1 Q2)
   | (App P1 Q1), (App P2 Q2) => beta-app-right (Beta-Red P1 P2) (A-Eq Q1 Q2)
   | (App (Lam i P) Q), s => beta-repl-right (s = replace P i Q)
   | (Lam i B1), (Lam j B2) =>  beta-lam (i = j) (Beta-Red B1 B2)
+  \where {
+    \func save-type {e1 e2 : Expr} {t : SimpleType} {c : Context}
+      (red : Beta-Red e1 e2) (typed1 : TypedExpr e1 t c) : TypedExpr e2 t c \elim e1, e2, t, red, typed1
+      | App e3 e4, App e5 e6, t, beta-app-left a red, typed-app Qt typed1 typed2 =>
+        \let rec => save-type red typed2 \in {?}
+      | App e3 e4, App e5 e6, t, beta-app-right red a, typed-app Qt typed1 typed2 => {?}
+      | App (Lam i e3) e4, e5, t, beta-repl-right p, typed-app Qt typed1 typed2 => {?}
+      | Lam i e3, Lam j e4, Func t t1, beta-lam p red, typed-lam typed1 => {?}
+  }
 
 \data Beta-Chain (e1 e2 : Expr)
   | end (A-Eq e1 e2)
   | cont (tmp : Expr) (Beta-Red e1 tmp) (Beta-Chain tmp e2)
 
+\data Beta-Eq2 (e1 e2 : Expr)
+  | forward-eq (Beta-Chain e1 e2)
+  | backword-eq (Beta-Chain e2 e1)
+  | transtive-eq (common : Expr) (Beta-Eq2 e1 common) (Beta-Eq2 e2 common)
+
 \data Beta-Eq (e1 e2 : Expr)
+  | a-eq (A-Eq e1 e2)
   | one-step-left (Beta-Red e1 e2)
   | one-step-right (Beta-Red e2 e1)
-  | chain (tmp : Expr) (Beta-Red e1 tmp) (Beta-Eq tmp e2)
+  | chain (tmp : Expr) (Beta-Eq e1 tmp) (Beta-Eq tmp e2)
+  | r-chain (tmp : Expr) (Beta-Eq tmp e1) (Beta-Eq tmp e2)

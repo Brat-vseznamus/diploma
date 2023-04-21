@@ -11,6 +11,7 @@
 \import calculus.Context
 \import calculus.SubTerm
 \import calculus.Types
+\import math.sets
 
 \data Expr : \Set
   | Con Nat
@@ -81,4 +82,30 @@
 
       \func same-con-app-lam {e P Q : Expr} {i : Nat} (p : A-Eq e (App (Lam i P) Q)) : \Sigma (P' Q' : Expr) (j : Nat) (e = App (Lam j P') Q') \elim e, p
         | App e e1, a2app-eq a a1 => \let (P', j, e=lam) => same-con-lam a \in (P', e1, j, pmap (\lam x => App x e1) e=lam)
+
+      \func same-var-replace (e : Expr) (n : Nat) : replace e n (Var n) = e \elim e
+        | Con n1 => idp
+        | Var n1 => \case decideEq n1 n \as d \return if (decToBool d) (Var n) (Var n1) = Var n1 \with {
+          | yes e => pmap Var (inv e)
+          | no n2 => idp
+        }
+        | Lam n1 e => \case decideEq n1 n \as d \return if (decToBool d) (Lam n1 e) (Lam n1 (replace e n (Var n))) = Lam n1 e \with {
+          | yes e' => idp
+          | no n2 => pmap (Lam n1) (same-var-replace e n)
+        }
+        | App e1 e2 => pmap2 App (same-var-replace e1 n) (same-var-replace e2 n)
+
+      \func neutral-replace (e x : Expr) (var-no : Nat) (p : Not (var-no in FV e)) : replace e var-no x = e \elim e, var-no, p
+        | Con n, v, p => idp
+        | Var n, v, p => \case decideEq n v \as d \return if {Expr} (decToBool d) x (Var n) = Var n \with {
+          | yes e => absurd (p (isHead e))
+          | no n1 => idp
+        }
+        | Lam n e, v, p => \case decideEq n v \as d \return if {Expr} (decToBool d) (Lam n e) (Lam n (replace e v x)) = Lam n e \with {
+          | yes e => idp
+          | no n1 => pmap (Lam n) (neutral-replace e x v (\lam i => p (removeAll.rmv-works2 v i n1)))
+        }
+        | App e1 e2, v, p => pmap2 App
+            (neutral-replace e1 x v (\lam i => p (in.merge-works v (byLeft i))))
+            (neutral-replace e2 x v (\lam i => p (in.merge-works v (byRight i))))
     }

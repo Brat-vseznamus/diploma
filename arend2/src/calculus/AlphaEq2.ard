@@ -8,6 +8,7 @@
 \import Paths
 \import Paths.Meta
 \import Set
+\import calculus.AlphaEq
 \import calculus.Base
 \import math.utils
 
@@ -64,6 +65,44 @@
     (new-i-B2 : NewVar2 i B2 f2)
     (A-Eq2 B1 B2 (extMod f1 i1 i) (extMod f2 i2 i))
   \where {
+    \func eq->a-eq {e1 e2 : Expr} {f : Nat -> Nat} (p : e1 = e2) : A-Eq2 e1 e2 f f \elim e1, e2, p
+      | Con n, Con n1, p => a2con-eq (pmap (\lam y => \case y \with {
+        | Con n2 => n2
+        | _ => 1
+      }) p)
+      | Var n, Var n1, p => a2var-eq (pmap (\lam y => \case y \with {
+        | Var n2 => f n2
+        | _ => 1
+      }) p)
+      | Lam n e3, Lam n1 e4, p =>
+        \let
+          | n=n1 => pmap (\lam y => \case y \with {
+              | Lam n_ e_ => n_
+              | _ => 1
+            }) p
+          | e3=e4 => pmap (\lam y => \case y \with {
+            | Lam n_ e_ => e_
+            | _ => Con 0
+          }) p
+        \in rewrite e3=e4 (rewrite n=n1 A-Eq2.ref)
+      | App e3 e4, App e5 e6, p => \let
+        | e3=e5 => pmap (\lam y => \case y \with {
+          | App e_1 e_2 => e_1
+          | _ => Con 0
+        }) p
+        | e4=e6 => pmap (\lam y => \case y \with {
+          | App e_1 e_2 => e_2
+          | _ => Con 0
+        }) p
+                                   \in a2app-eq (eq->a-eq e3=e5) (eq->a-eq e4=e6)
+
+    \func a2neutral-to-mod {e1 e2 : Expr} {f : Nat -> Nat}
+      (eq : A-Eq2 e1 e2 idNat idNat) : A-Eq2 e1 e2 f f \elim e1, e2, eq
+      | Con i, Con j, a2con-eq p => a2con-eq p
+      | Var i, Var j, a2var-eq p => a2var-eq (pmap f p)
+      | App e3 e4, App e5 e6, a2app-eq eq1 eq2 => a2app-eq (a2neutral-to-mod eq1) (a2neutral-to-mod eq2)
+      | Lam i1 e3, Lam i2 e4, a2lam-eq-base i new-i-B1 new-i-B2 eq => a2lam-eq-base {?} {?} {?} {?}
+
     \func a2lam-eq {f1 f2 : Nat -> Nat} {i1 i2 : Nat} {B1 B2 : Expr}
          (p : A-Eq2 B1 B2
             (extMod f1 i1 $ common-new-var-no B1 B2 f1 f2)

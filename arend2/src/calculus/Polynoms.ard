@@ -1,0 +1,332 @@
+\import Arith.Nat
+\import Data.Bool
+\import Data.Maybe
+\import Function.Meta ($)
+\import Logic
+\import Order.LinearOrder
+\import Paths
+\import Paths.Meta
+\import Set
+\import calculus.AlphaEq
+\import calculus.AlphaEq2
+\import calculus.Base
+\import calculus.Beta
+\import calculus.Context
+\import calculus.Polynoms
+\import math.sets
+
+\type Repr (T : \Type) => \Pi (e : T) -> Expr
+
+\func K-Args-Fun (A : \Type) (k : Nat) : \Type \elim k
+  | 0 => A
+  | suc k => A -> (K-Args-Fun A k)
+
+\data K-Args (A : \Type) (k : Nat) \elim k
+  | 0 => arg-empty
+  | suc k => arg-con (a : A) (K-Args A k)
+
+\func map {A B : \Type} {k : Nat} (f : A -> B) (as : K-Args A k) : K-Args B k \elim k, as
+  | 0, arg-empty => arg-empty
+  | suc k, arg-con a as => arg-con (f a) (map f as)
+
+\func \infix 6 <- {A : \Type} {k : Nat} (f : K-Args-Fun A k) (args : K-Args A k) : A \elim k, f, args
+  | 0, f, arg-empty => f
+  | suc k, f, arg-con a args => f a <- args
+
+
+\func K-App {k : Nat} (E : Expr) : K-Args-Fun Expr k \elim k
+  | 0 => E
+  | suc k => \lam (a : Expr) => K-App (App E a)
+
+
+\func repeat (n : Nat) (f : Expr) (x : Expr) : Expr \elim n
+  | 0 => x
+  | suc n => App f (repeat n f x)
+  \where {
+    \func repeat-linear {f x : Expr} (n m : Nat) : repeat n f (repeat m f x) = repeat (n Nat.+ m) f x \elim n, m
+      | 0, 0 => idp
+      | 0, suc m => idp
+      | suc n, 0 => idp
+      | suc n, suc m =>
+        \let
+          | m+1rec : App f (repeat m f x) = repeat (m Nat.+ 1) f x => repeat-linear 1 m
+          | n+m+1rec :  repeat n f (App f (repeat m f x)) = repeat (n Nat.+ suc m) f x => repeat-linear n (suc m)
+        \in
+        pmap (App f) n+m+1rec
+
+    \func fx-onlyFreeVars {f x : Expr} (n : Nat) : FV (repeat n f x) leq mergeUnique (FV f) (FV x) \elim n
+      | 0 => leq.inSet (\lam x1 i => in.merge-works {FV f} {FV x} x1 (byRight i))
+      | suc n => leq.inSet (\lam x1 i =>
+          \let
+            | orIn => in.merge-works2 x1 i
+            | rec => fx-onlyFreeVars {f} {x} n
+          \in
+            \case orIn \with {
+              | byLeft a => in.merge-works {FV f} {FV x} x1 (byLeft a)
+              | byRight b => leq.fromSet rec x1 b
+            }
+          )
+    \func left-neutral {l r : Nat} {l/=r : Not (l = r)} (n v : Nat) : replace (repeat n (Var l) (Var r)) l (Var v) = repeat n (Var v) (Var r) \elim n
+      | 0 => \case decideEq r l \as d \return if (decToBool d) (Var v) (Var r) = Var r \with {
+        | yes e => absurd $ l/=r (inv e)
+        | no n => idp
+      }
+      | suc n => \case decideEq l l \as d \return App (if {Expr} (decToBool d) (Var v) (Var l)) (replace (repeat n (Var l) (Var r)) l (Var v)) = App (Var v) (repeat n (Var v) (Var r)) \with {
+        | yes e => pmap (App (Var v)) (left-neutral {l} {r} {l/=r} n v)
+        | no n => absurd $ n idp
+      }
+
+    \func right-neutral {l r : Nat} {l/=r : Not (l = r)} (n v : Nat) : replace (repeat n (Var l) (Var r)) r (Var v) = repeat n (Var l) (Var v) \elim n
+      | 0 => \case decideEq r r \as d \return if (decToBool d) (Var v) (Var r) = Var v \with {
+        | yes e => idp
+        | no n => absurd $ n idp
+      }
+      | suc n => \case decideEq l r \as d \return App (if {Expr} (decToBool d) (Var v) (Var l)) (replace (repeat n (Var l) (Var r)) r (Var v)) = App (Var l) (repeat n (Var l) (Var v)) \with {
+        | yes e => absurd $ l/=r e
+        | no n1 => pmap (App (Var l)) (right-neutral {l} {r} {l/=r} n v)
+      }
+  }
+
+\func numeral2 (n : Nat) : Expr => Lam 0 (Lam 1 (repeat n (Var 0) (Var 1)))
+  \where {
+    \func closed (n : Nat) : FV (numeral2 n) = nil \elim n
+      | 0 => idp
+      | suc n1 =>
+        \let
+          | r-fv => repeat.fx-onlyFreeVars {Var 0} {Var 1} n1
+          | r-fv' => removeAll.monotone 0 (removeAll.monotone 1 (removeAll.monotone 0 (distinct.monotone (distinct.monotone r-fv))))
+        \in
+          leq.leqNil r-fv'
+  }
+
+
+\data Definable {T : \Type} {r : Repr T} {k : Nat} (f : K-Args-Fun T k) : \Set
+  | def-exists (E : Expr) (\Pi (a : K-Args T k) -> Beta-Eq (K-App E <- map r a) (r (f <- a)))
+
+\type NatDef {k : Nat} (f : K-Args-Fun Nat k) => Definable {Nat} {numeral2} {k} f
+
+\func numbers-def (n : Nat) : NatDef {0} n
+  | 0 => def-exists (numeral2 0) (\lam a => \case a \as a' \return Beta-Eq (Lam 0 (Lam 1 (Var 1)) <- map {Nat} {Expr} {0} numeral2 a') (numeral2 (0 <- a')) \with {
+    | arg-empty => a-eq A-Eq2.ref
+  })
+  | suc n => def-exists (numeral2 (suc n)) (\lam a => \case a \as a' \return  Beta-Eq (Lam 0 (Lam 1 (App (Var 0) (repeat n (Var 0) (Var 1)))) <- map {Nat} {Expr} {0} numeral2 a') (numeral2 (suc n <- a')) \with {
+    | arg-empty => a-eq A-Eq2.ref
+  })
+
+\func +-expr => Lam 0 $ Lam 1 $ Lam 2 $ Lam 3 $ App (App (Var 0) (Var 2)) (App (App (Var 1) (Var 2)) (Var 3))
+\func +-def : NatDef {2} (Nat.+) =>
+  def-exists +-expr (\lam (arg-con a1 (arg-con a2 arg-empty) : K-Args Nat 2) => \case a1 \as a, a2 \as b \return Beta-Eq (App (App +-expr (numeral2 a)) (numeral2 b))
+                      (numeral2 (a Nat.+ b)) \with {
+    | 0, 0 => chain (App (Lam 1 $ Lam 2 $ Lam 3 $ App (App (numeral2 0) (Var 2)) (App (App (Var 1) (Var 2)) (Var 3))) (numeral2 0))
+        (one-step-left (beta-app-right (beta-repl-right idp) A-Eq2.ref))
+        (chain (Lam 2 $ Lam 3 $ App (App (numeral2 0) (Var 2)) (App (App (numeral2 0) (Var 2)) (Var 3)))
+            (one-step-left (beta-repl-right idp))
+            (chain (Lam 2 $ Lam 3 $ App (Lam 1 (Var 1)) (App (App (numeral2 0) (Var 2)) (Var 3)))
+                (one-step-left (beta-lam idp (beta-lam idp (beta-app-right (beta-repl-right idp) A-Eq2.ref))))
+                (chain (Lam 2 $ Lam 3 (App (App (numeral2 0) (Var 2)) (Var 3)))
+                    (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right idp))))
+                    (chain (Lam 2 $ Lam 3 (App (Lam 1 (Var 1)) (Var 3)))
+                        (one-step-left (beta-lam idp (beta-lam idp (beta-app-right (beta-repl-right idp) A-Eq2.ref))))
+                        (chain (Lam 2 $ Lam 3 (Var 3))
+                            (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right idp))))
+                            (a-eq (A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))))
+                        )
+                    )
+                )
+            )
+        )
+    | 0, suc b => chain (App (Lam 1 $ Lam 2 $ Lam 3 $ App (App (numeral2 0) (Var 2)) (App (App (Var 1) (Var 2)) (Var 3))) (numeral2 $ suc b))
+        (one-step-left (beta-app-right (beta-repl-right idp) A-Eq2.ref))
+        (chain (Lam 2 $ Lam 3 $ App (App (numeral2 0) (Var 2)) (App (App (numeral2 (suc b)) (Var 2)) (Var 3)))
+            (one-step-left (beta-repl-right idp))
+            (chain (Lam 2 $ Lam 3 $ App (Lam 1 (Var 1)) (App (App (numeral2 (suc b)) (Var 2)) (Var 3)))
+                (one-step-left (beta-lam idp (beta-lam idp (beta-app-right (beta-repl-right idp) A-Eq2.ref))))
+                (chain (Lam 2 $ Lam 3 (App (App (numeral2 (suc b)) (Var 2)) (Var 3)))
+                    (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right idp))))
+                    (chain (Lam 2 $ Lam 3 (App (Lam 1 (repeat (suc b) (Var 2) (Var 1))) (Var 3)))
+                        (one-step-left (beta-lam idp (beta-lam idp (beta-app-right (beta-repl-right (pmap (\lam x => Lam 1 (App (Var 2) x)) (inv (repeat.left-neutral {0} {1} {\lam p => suc/=0 (inv p)} b 2)))) A-Eq2.ref))))
+                        (chain (Lam 2 $ Lam 3 (repeat (suc b) (Var 2) (Var 3)))
+                            (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right (pmap (\lam x => App (Var 2) x) (inv $ repeat.right-neutral {2} {1} {\lam p => suc/=0 (pmap pred p)} b 3))))))
+                            (a-eq $ +-def-lemma1 b)
+                        )
+                    )
+                )
+            )
+        )
+    | suc a, 0 => chain (App (Lam 1 $ Lam 2 $ Lam 3 $ App (App (numeral2 $ suc a) (Var 2)) (App (App (Var 1) (Var 2)) (Var 3))) (numeral2 $ 0))
+        (one-step-left (beta-app-right (beta-repl-right idp) A-Eq2.ref))
+        (chain (Lam 2 $ Lam 3 $ App (App (numeral2 $ suc a) (Var 2)) (App (App (numeral2 0) (Var 2)) (Var 3)))
+            (one-step-left (beta-repl-right idp))
+            (chain (Lam 2 $ Lam 3 $ App (App (numeral2 $ suc a) (Var 2)) (Var 3))
+                (chain (Lam 2 $ Lam 3 $ App (App (numeral2 $ suc a) (Var 2)) (App (Lam 1 (Var 1)) (Var 3)))
+                    (one-step-left (beta-lam idp (beta-lam idp (beta-app-left A-Eq2.ref (beta-app-right (beta-repl-right idp) A-Eq2.ref)))))
+                    (chain (Lam 2 $ Lam 3 $ App (App (numeral2 $ suc a) (Var 2)) (Var 3))
+                        (one-step-left (beta-lam idp (beta-lam idp (beta-app-left A-Eq2.ref (beta-repl-right idp)))))
+                        (a-eq A-Eq2.ref)
+                    )
+                )
+                (chain (Lam 2 $ Lam 3 (App (App (numeral2 (suc a)) (Var 2)) (Var 3)))
+                    (a-eq A-Eq2.ref)
+                    (chain (Lam 2 $ Lam 3 (App (Lam 1 (repeat (suc a) (Var 2) (Var 1))) (Var 3)))
+                        (one-step-left (beta-lam idp (beta-lam idp (beta-app-right (beta-repl-right (pmap (\lam x => Lam 1 (App (Var 2) x)) (inv (repeat.left-neutral {0} {1} {\lam p => suc/=0 (inv p)} a 2)))) A-Eq2.ref))))
+                        (chain (Lam 2 $ Lam 3 (repeat (suc a) (Var 2) (Var 3)))
+                            (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right (pmap (\lam x => App (Var 2) x) (inv $ repeat.right-neutral {2} {1} {\lam p => suc/=0 (pmap pred p)} a 3))))))
+                            (a-eq $ +-def-lemma1 a)
+                        )
+                    )
+                )
+            )
+        )
+    | suc a, suc b => {?}
+  })
+  \where {
+    \func +-def-lemma1 (b : Nat) : A-Eq (Lam 2 (Lam 3 (App (Var 2) (repeat b (Var 2) (Var 3))))) (numeral2 (suc b)) \elim b
+      | 0 => A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2app-eq (a2var-eq idp) (a2var-eq idp)))
+      | suc b => (A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2app-eq (a2var-eq idp) (a2app-eq (a2var-eq idp) (+-def-lemma1-lemma b)))) : A-Eq (Lam 2 (Lam 3 (App (Var 2) (repeat (suc b) (Var 2) (Var 3))))) (Lam 0 (Lam 1 (App (Var 0) (repeat (suc b) (Var 0) (Var 1))))))
+      \where {
+        \func +-def-lemma1-lemma {n : Nat} (b : Nat) : A-Eq2 (repeat b (Var 2) (Var 3)) (repeat b (Var 0) (Var 1))
+            (A-Eq2.extMod (A-Eq2.extMod idNat 2 (common-new-var-no (Lam 3 (App (Var 2) (App (Var 2) (repeat n (Var 2) (Var 3)))))
+                (Lam 1 (App (Var 0) (App (Var 0) (repeat n (Var 0) (Var 1))))) idNat idNat)) 3 (common-new-var-no
+                (App (Var 2) (App (Var 2) (repeat n (Var 2) (Var 3)))) (App (Var 0) (App (Var 0) (repeat n (Var 0) (Var 1))))
+                (A-Eq2.extMod idNat 2 (common-new-var-no (Lam 3 (App (Var 2) (App (Var 2) (repeat n (Var 2) (Var 3)))))
+                    (Lam 1 (App (Var 0) (App (Var 0) (repeat n (Var 0) (Var 1))))) idNat idNat))
+                (A-Eq2.extMod idNat 0 (common-new-var-no (Lam 3 (App (Var 2) (App (Var 2) (repeat n (Var 2) (Var 3)))))
+                    (Lam 1 (App (Var 0) (App (Var 0) (repeat n (Var 0) (Var 1))))) idNat idNat))))
+            (A-Eq2.extMod (A-Eq2.extMod idNat 0 (common-new-var-no (Lam 3 (App (Var 2) (App (Var 2) (repeat n (Var 2) (Var 3)))))
+                (Lam 1 (App (Var 0) (App (Var 0) (repeat n (Var 0) (Var 1))))) idNat idNat)) 1 (common-new-var-no
+                (App (Var 2) (App (Var 2) (repeat n (Var 2) (Var 3)))) (App (Var 0) (App (Var 0) (repeat n (Var 0) (Var 1))))
+                (A-Eq2.extMod idNat 2 (common-new-var-no (Lam 3 (App (Var 2) (App (Var 2) (repeat n (Var 2) (Var 3)))))
+                    (Lam 1 (App (Var 0) (App (Var 0) (repeat n (Var 0) (Var 1))))) idNat idNat))
+                (A-Eq2.extMod idNat 0 (common-new-var-no (Lam 3 (App (Var 2) (App (Var 2) (repeat n (Var 2) (Var 3)))))
+                    (Lam 1 (App (Var 0) (App (Var 0) (repeat n (Var 0) (Var 1))))) idNat idNat)))) \elim b
+          | 0 => a2var-eq idp
+          | suc b => a2app-eq (a2var-eq idp) (+-def-lemma1-lemma b)
+      }
+  }
+
+\func *-expr => Lam 0 (Lam 1 (Lam 2 (App (Var 0) (App (Var 1) (Var 2)))))
+\func *-def : NatDef {2} (Nat.*) =>
+  def-exists *-expr
+      (\lam (arg-con a1 (arg-con a2 arg-empty) : K-Args Nat 2) => \case a1 \as a, a2 \as b \return Beta-Eq (App (App (Lam 0 (Lam 1 (Lam 2 (App (Var 0) (App (Var 1) (Var 2)))))) (numeral2 a)) (numeral2 b))
+          (numeral2 (a Nat.* b)) \with {
+        | 0, 0 => chain
+                    (App (Lam 1 (Lam 2 (App (numeral2 0) (App (Var 1) (Var 2))))) (numeral2 0))
+                    (one-step-left (beta-app-right (beta-repl-right idp) A-Eq2.ref))
+                    (chain
+                        (Lam 2 (App (numeral2 0) (App (numeral2 0) (Var 2))))
+                        (one-step-left (beta-repl-right idp))
+                        (chain
+                            (Lam 2 (Lam 1 (Var 1)))
+                            (one-step-left (beta-lam idp (beta-repl-right idp)))
+                            (a-eq (A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))))
+                        )
+                    )
+        | 0, suc n => chain
+                        (App (Lam 1 (Lam 2 (App (numeral2 0) (App (Var 1) (Var 2))))) (numeral2 (suc n)))
+                        (one-step-left (beta-app-right (beta-repl-right idp) A-Eq2.ref))
+                        (chain
+                            (Lam 2 (App (numeral2 0) (App (numeral2 (suc n)) (Var 2))))
+                            (one-step-left (beta-repl-right idp))
+                            (chain
+                                (Lam 2 (Lam 1 (Var 1)))
+                                (one-step-left (beta-lam idp (beta-repl-right idp)))
+                                (a-eq (A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (rewrite (NatSemiring.zro_*-left {n}) (a2var-eq idp)))))
+                            )
+                        )
+        | suc n, 0 => chain
+                        (App (Lam 1 (Lam 2 (App (numeral2 (suc n)) (App (Var 1) (Var 2))))) (numeral2 0))
+                        (one-step-left (beta-app-right (beta-repl-right idp) A-Eq2.ref))
+                        (chain
+                            (Lam 2 (App (numeral2 (suc n)) (App (numeral2 0) (Var 2))))
+                            (one-step-left (beta-repl-right idp))
+                            (chain
+                                (Lam 2 (App (numeral2 (suc n)) (Lam 1 (Var 1))))
+                                (one-step-left (beta-lam idp (beta-app-left A-Eq2.ref (beta-repl-right idp))))
+                                (chain
+                                    (Lam 2 (Lam 1 (Var 1)))
+                                    (neutral-numeral2 {suc n})
+                                    (a-eq (A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))))
+                                )
+                            )
+        )
+        | suc n, suc n1 => {?}
+      })
+      \where {
+        \func neutral-numeral2 {n : Nat} : Beta-Eq (Lam 2 (App (numeral2 n) (Lam 1 (Var 1)))) (Lam 2 (Lam 1 (Var 1)))
+          | {0} => chain (Lam 2 (Lam 1 (Var 1))) (one-step-left (beta-lam idp (beta-repl-right idp))) (a-eq (A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))))
+          | {suc n} =>
+            \let
+              | rec => neutral-numeral2 {n}
+              | repl => replace-repeat {suc n} {Lam 1 (Var 1)}
+            \in chain
+                (Lam 2 $ Lam 1 $ repeat (suc n) (Lam 1 (Var 1)) (Var 1))
+                (one-step-left (beta-lam idp (beta-repl-right (pmap (Lam 1) repl))))
+                (chain
+                    (Lam 2 $ Lam 1 (repeat n (Lam 1 (Var 1)) (Var 1)))
+                    (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right idp))))
+                    (r-chain
+                        (Lam 2 $ App (Lam 0 (Lam 1 (repeat n (Var 0) (Var 1)))) (Lam 1 (Var 1)))
+                        (one-step-left (beta-lam idp (beta-repl-right (pmap (Lam 1) (replace-repeat {n} {Lam 1 (Var 1)})))))
+                        rec
+                    )
+                )
+
+        \func replace-repeat {n : Nat} {x : Expr} : repeat n x (Var 1) = replace (repeat n (Var 0) (Var 1)) 0 x \elim n
+          | 0 => idp
+          | suc n => \let rec => replace-repeat {n} {x} \in pmap (App x) rec
+
+        \func lam-eq {n : Nat} {B1 B2 : Expr} (b-eq : Beta-Eq B1 B2) : Beta-Eq (Lam n B1) (Lam n B2) \elim b-eq
+          | a-eq a => a-eq (A-Eq2.a2lam-eq (lam-eq-lemma B1 B2 n a))
+          | one-step-left b => one-step-left (beta-lam idp b)
+          | one-step-right b => one-step-right (beta-lam idp b)
+          | chain tmp b-eq1 b-eq2 => chain (Lam n tmp) (lam-eq b-eq1) (lam-eq b-eq2)
+          | r-chain tmp b-eq1 b-eq2 => r-chain (Lam n tmp) (lam-eq b-eq1) (lam-eq b-eq2)
+          \where {
+
+            \func lam-eq-lemma (B1 B2 : Expr) (n : Nat) (a : A-Eq B1 B2) :
+              A-Eq2 B1 B2 (A-Eq2.extMod idNat n (common-new-var-no B1 B2 idNat idNat)) (A-Eq2.extMod idNat n (common-new-var-no B1 B2 idNat idNat)) =>
+              \let
+                | idNat=extNN : A-Eq2.extMod idNat n n = idNat => feq {A-Eq2.extMod idNat n n} {idNat}
+                    (\lam e => \case decideEq e n \as d \return if (decToBool d) n (idNat e) = idNat e \with {
+                      | yes e1 => inv e1
+                      | no n1 => idp
+                    })
+                | a' => rewriteF (inv idNat=extNN) (a : A-Eq2 B1 B2 idNat idNat)
+              \in \case NatSemiring.trichotomy n (common-new-var-no B1 B2 idNat idNat) \with {
+                | less _x => \let <=x => <_suc_<= (NatSemiring.<-transitive _x id<suc) \in {?} -- A-Eq2.trans.upper {B1} {B2} {n} {n} {idNat} {idNat} {n} {common-new-var-no B1 B2 idNat idNat} {{?}} {{?}} a' <=x
+                | equals p => rewriteF (pmap (\lam x => A-Eq2.extMod idNat n x) p) a'
+                | greater _x => {?}
+              }
+--              | Con i, Con j, a2con-eq p => a2con-eq p
+--              | Var i, Var j, a2var-eq p => a2var-eq (\case decideEq i n \as di, decideEq j n \as dj \return if (decToBool di) (common-new-var-no (Var i) (Var j) idNat idNat) i = if (decToBool dj) (common-new-var-no (Var i) (Var j) idNat idNat) j \with {
+--                | yes e, yes e1 => idp
+--                | yes e, no n1 => absurd (n1 (rewriteF p e))
+--                | no n1, yes e => absurd (n1 (rewriteF (inv p) e))
+--                | no n1, no n2 => p
+--              })
+--              | App B3 B4, App B5 B6, a2app-eq a a1 => a2app-eq (lam-eq-lemma B3 B5 n a) (lam-eq-lemma B4 B6 n a1)
+--              | Lam i1 B3, Lam i2 B4, a2lam-eq-base i new-i-B1 new-i-B2 a => {?}
+          }
+      }
+
+-- App (numeral2 n) (Lam 1 (Var 1))
+-- = App (Lam 0 (Lam 1 (repeat n (Var 0) (Var 1)))) (Lam 1 (Var 1))
+-- = (Lam 1 (repeat n (Lam 1 (Var 1)) (Var 1))
+
+\func apply-first-lambda (e : Expr) : Maybe Expr \elim e
+  | Con n => nothing
+  | Var n => nothing
+  | Lam n e => mapMaybe (Lam n) (apply-first-lambda e)
+  | App e1 e2 => \case e1 \with {
+    | Lam n e => just (replace e n e2)
+    | _ => \case apply-first-lambda e1 \with {
+      | nothing => mapMaybe (App e1) (apply-first-lambda e2)
+      | just a => just (App a e2)
+    }
+  }
+
+\func mapMaybe {A B : \Type} (f : A -> B) (ma : Maybe A) : Maybe B \elim ma
+  | nothing => nothing
+  | just a => just (f a)
+
+\func feq {f g : Nat -> Nat} (p : \Pi (e : Nat) -> f e = g e) : f = g => path (\lam i n => p n @ i)

@@ -1,7 +1,26 @@
+\import Function.Meta
+\import Paths.Meta
 \import calculus.AlphaEq2
 \import calculus.Base
+\import calculus.Context
+\import calculus.Types
 
 \func idNat (x : Nat) => x
 \func idNat=id {x : Nat} : idNat x = x => idp
 
 \func A-Eq (e1 e2 : Expr) => A-Eq2 e1 e2 idNat idNat
+  \where {
+    -- TODO add closed req
+--    \func save-type {e1 e2 : Expr} {t : SimpleType} {c : Context}
+--      (alpha : A-Eq e1 e2) (typed : TypedExpr e1 t c) : TypedExpr e2 t c \elim e1, e2, t, alpha, typed
+--      | Con n, Con j, t, a2con-eq p, typed-const => typed-const
+--      | Var i, Var j, t, a2var-eq p, typed-var i-exists =>
+--        \let i=j => rewriteF (idNat=id {j}) $ rewriteF (idNat=id {i}) p \in typed-var (rewriteF i=j i-exists)
+--      | App e3 e4, App e5 e6, t, a2app-eq a a1, typed-app Qt typed typed1 =>
+--        \let
+--          | s-left => save-type a typed
+--          | s-right => save-type a1 typed1
+--        \in typed-app Qt s-left s-right
+--      | Lam i e3, Lam i2 e4, Func t t1, a2lam-eq-base i1 new-i-B1 new-i-B2 a, typed-lam typed =>
+--        \let rec => save-type a typed \in {?}
+  }
