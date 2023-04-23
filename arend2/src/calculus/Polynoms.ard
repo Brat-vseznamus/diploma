@@ -192,7 +192,7 @@
                         (one-step-left (beta-lam idp (beta-lam idp (beta-app-left A-Eq2.ref (beta-repl-right (pmap (App (Var 2)) (inv $ repeat.right-neutral {2} {1} {\lam p => suc/=0 (pmap pred p)} b 3)))))))
                         (chain (Lam 2 $ Lam 3 $ repeat (suc a) (Var 2) (repeat (suc b) (Var 2) (Var 3)))
                             (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right (pmap (App (Var 2)) (inv $ repeat.right-neutral' {2} {1} {\lam p => suc/=0 (pmap pred p)} a (repeat (suc b) (Var 2) (Var 3))))))))
-                            (a-eq (+-def-lemma3 a b)) -- (a-eq (A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (A-Eq2.trans (A-Eq2.eq->a-eq $ repeat.repeat-linear (suc a) (suc b)) (a2app-eq (a2var-eq idp) (a2app-eq (a2var-eq idp) (+-def-lemma2 a b)))))))
+                            (a-eq (+-def-lemma3 a b))
                         )
                     )
                 )
@@ -223,29 +223,28 @@
           | suc b => a2app-eq (a2var-eq idp) (+-def-lemma1-lemma b)
       }
 
-    \func +-def-lemma2 (a b : Nat) : A-Eq2 (repeat (a Nat.+ b) (Var 2) (Var 3)) (repeat (a Nat.+ b) (Var 0) (Var 1)) (A-Eq2.extMod (A-Eq2.extMod
-        idNat 2 (common-new-var-no (Lam 3 (App (Var 2) (repeat a (Var 2) (App (Var 2) (repeat b (Var 2) (Var 3))))))
-            (Lam 1 (App (Var 0) (App (Var 0) (repeat (a Nat.+ b) (Var 0) (Var 1))))) idNat idNat)) 3
-        (common-new-var-no (App (Var 2) (repeat a (Var 2) (App (Var 2) (repeat b (Var 2) (Var 3)))))
-            (App (Var 0) (App (Var 0) (repeat (a Nat.+ b) (Var 0) (Var 1)))) (A-Eq2.extMod
-                idNat 2 (common-new-var-no (Lam 3 (App (Var 2) (repeat a (Var 2) (App (Var 2) (repeat b (Var 2) (Var 3))))))
-                    (Lam 1 (App (Var 0) (App (Var 0) (repeat (a Nat.+ b) (Var 0) (Var 1))))) idNat idNat))
-            (A-Eq2.extMod
-                idNat 0 (common-new-var-no (Lam 3 (App (Var 2) (repeat a (Var 2) (App (Var 2) (repeat b (Var 2) (Var 3))))))
-                    (Lam 1 (App (Var 0) (App (Var 0) (repeat (a Nat.+ b) (Var 0) (Var 1))))) idNat idNat))))
-        (A-Eq2.extMod (A-Eq2.extMod
-            idNat 0 (common-new-var-no (Lam 3 (App (Var 2) (repeat a (Var 2) (App (Var 2) (repeat b (Var 2) (Var 3))))))
-                (Lam 1 (App (Var 0) (App (Var 0) (repeat (a Nat.+ b) (Var 0) (Var 1))))) idNat idNat)) 1
-            (common-new-var-no (App (Var 2) (repeat a (Var 2) (App (Var 2) (repeat b (Var 2) (Var 3)))))
-                (App (Var 0) (App (Var 0) (repeat (a Nat.+ b) (Var 0) (Var 1)))) (A-Eq2.extMod
-                    idNat 2 (common-new-var-no (Lam 3 (App (Var 2) (repeat a (Var 2) (App (Var 2) (repeat b (Var 2) (Var 3))))))
-                        (Lam 1 (App (Var 0) (App (Var 0) (repeat (a Nat.+ b) (Var 0) (Var 1))))) idNat idNat))
-                (A-Eq2.extMod
-                    idNat 0 (common-new-var-no (Lam 3 (App (Var 2) (repeat a (Var 2) (App (Var 2) (repeat b (Var 2) (Var 3))))))
-                        (Lam 1 (App (Var 0) (App (Var 0) (repeat (a Nat.+ b) (Var 0) (Var 1))))) idNat idNat)))) => {?}
-
     \func +-def-lemma3 (a b : Nat) : A-Eq (Lam 2 (Lam 3 (App (Var 2) (repeat a (Var 2) (App (Var 2) (repeat b (Var 2) (Var 3)))))))
-        (numeral2 (suc (suc (a Nat.+ b)))) => {?}
+        (numeral2 (suc (suc (a Nat.+ b)))) =>
+          rewrite (repeat.repeat-linear {Var 2} {Var 3} (a Nat.+ 1) (b Nat.+ 1)) (A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (+-def-lemma4 {2} {3} {0} {1} {\lam p => suc/=0 (pmap (\lam x => pred (pred x)) (inv p))} {\lam p => suc/=0 (inv p)} (suc (suc (a Nat.+ b))))))
+
+    \func +-def-lemma4 {x0 y0 x1 y1 : Nat} {p0 : Not (x0 = y0)} {p1 : Not (x1 = y1)} {t0 t1 : Nat} (n : Nat) : A-Eq2 (repeat n (Var x0) (Var y0)) (repeat n (Var x1) (Var y1)) (A-Eq2.extMod (A-Eq2.extMod idNat x0 t0) y0 t1) (A-Eq2.extMod (A-Eq2.extMod idNat x1 t0) y1 t1) \elim n
+      | 0 => a2var-eq (\case decideEq y0 y0 \as d0, decideEq y1 y1 \as d1 \return if (decToBool d0) t1 (A-Eq2.extMod idNat x0 t0 y0) = if (decToBool d1) t1 (A-Eq2.extMod idNat x1 t0 y1) \with {
+        | yes e, yes e1 => idp
+        | yes e, no n => absurd (n idp)
+        | no n, yes e => absurd (n idp)
+        | no n, no n1 => absurd (n idp)
+      })
+      | suc n => a2app-eq (a2var-eq (\case decideEq x0 y0 \as d0, decideEq x1 y1 \as d1 \return if (decToBool d0) t1 (A-Eq2.extMod idNat x0 t0 x0) = if (decToBool d1) t1 (A-Eq2.extMod idNat x1 t0 x1) \with {
+        | yes e, yes e1 => idp
+        | yes e, no n => absurd (p0 e)
+        | no n, yes e => absurd (p1 e)
+        | no n, no n1 => \case decideEq x0 x0 \as d0, decideEq x1 x1 \as d1 \return if (decToBool d0) t0 x0 = if (decToBool d1) t0 x1 \with {
+          | yes e, yes e1 => idp
+          | yes e, no n2 => absurd (n2 idp)
+          | no n2, yes e => absurd (n2 idp)
+          | no n2, no n3 => absurd (n2 idp)
+        }
+      })) (+-def-lemma4 {x0} {y0} {x1} {y1} {p0} {p1} {t0} {t1}  n)
   }
 
 \func *-expr => Lam 0 (Lam 1 (Lam 2 (App (Var 0) (App (Var 1) (Var 2)))))
