@@ -1,6 +1,5 @@
 \import Arith.Nat
 \import Data.Bool
-\import Data.Maybe
 \import Function.Meta ($)
 \import Logic
 \import Order.PartialOrder
@@ -8,23 +7,47 @@
 \import Paths
 \import Paths.Meta
 \import Set
-\import calculus.AlphaEq
 \import calculus.Base
 \import math.utils
+
+\import Paths.Meta
+\import calculus.Base
+
+\func idNat (x : Nat) => x
+\func idNat=id {x : Nat} : idNat x = x => idp
+
+\func A-Eq (e1 e2 : Expr) => A-Eq2 e1 e2 idNat idNat
 
 \func maxVar2 (e : Expr) (f : Nat -> Nat) : Nat \elim e
   | Con n => 0
   | Var n => f n
-  | Lam n e1 => max n (maxVar2 e1 f)
+  | Lam n e1 => max n (maxVar2 e1 (A-Eq2.extMod f n n))
   | App e1 e2 => max (maxVar2 e1 f) (maxVar2 e2 f)
+  \where {
+    \func mod->apply {e : Expr} {f : Nat -> Nat} : maxVar2 e f = maxVar2 (A-Eq2.apply f e) idNat \elim e
+      | Con n => idp
+      | Var n => idp
+      | Lam n e => \let funRed : idNat = A-Eq2.extMod idNat n n => f=g (\lam x => \case decideEq x n \as d \return x = if (decToBool d) n x \with {
+        | yes e1 => e1
+        | no n1 => idp
+      }) \in pmap2 max idp (rewriteF funRed (mod->apply {e} {A-Eq2.extMod f n n}))
+      | App e1 e2 =>
+        \let
+          | r1 => mod->apply {e1} {f}
+          | r2 => mod->apply {e2} {f}
+        \in pmap2 max r1 r2
+
+
+    \func f=g {f g : Nat -> Nat} (p : \Pi (x : Nat) -> f x = g x) : f = g => path (\lam i n => p n @ i)
+  }
 
 
 \data NewVar2 (i : Nat) (e : Expr) (f : Nat -> Nat)
   | nv (maxVar2 e f < i)
   \where {
     \func neq {i : Nat} {e : Expr} {f : Nat -> Nat} (nv : NewVar2 i e f) : maxVar2 e f < i \elim nv | nv _x => _x
-    \func ext-newVar (i j : Nat) (B : Expr) (f : Nat -> Nat) (nj : NewVar2 j B f) : NewVar2 (max (suc i) j) (Lam i B) f \elim nj
-      | nv maxB<j => nv (max.max-monotone id<suc maxB<j)
+--    \func ext-newVar (i j : Nat) (B : Expr) (f : Nat -> Nat) (nj : NewVar2 j B f) : NewVar2 (max (suc i) j) (Lam i B) f \elim nj
+--      | nv maxB<j => nv (max.max-monotone id<suc maxB<j)
   }
 
 \func create-newvar (e : Expr) (f : Nat -> Nat) : NewVar2 (suc (maxVar2 e f)) e f =>
@@ -65,6 +88,23 @@
     (new-i-B2 : NewVar2 i B2 f2)
     (A-Eq2 B1 B2 (extMod f1 i1 i) (extMod f2 i2 i))
   \where {
+    \func apply (f : Nat -> Nat) (e : Expr) : Expr \elim e
+      | Con n => Con n
+      | Var n => Var (f n)
+      | Lam n e => Lam n (apply (extMod f n n) e)
+      | App e3 e4 => App (apply f e3) (apply f e4)
+
+    \func mod->apply {f g : Nat -> Nat} {e1 e2 : Expr} (p : A-Eq2 e1 e2 f g) : A-Eq (apply f e1) (apply g e2) \elim e1, e2, p
+      | Con i, Con j, a2con-eq p => a2con-eq p
+      | Var i, Var j, a2var-eq p => a2var-eq p
+      | App e3 e4, App e5 e6, a2app-eq p1 p2 =>  a2app-eq (mod->apply p1) (mod->apply p2)
+      | Lam i1 e3, Lam i2 e4, a2lam-eq-base i new-i-B1 new-i-B2 p =>
+        \let
+          | rec => mod->apply p
+          | b1' => nv (rewriteF maxVar2.mod->apply (NewVar2.neq new-i-B1))
+        \in
+          a2lam-eq-base i {?} {?} {?}
+
     \func eq->a-eq {e1 e2 : Expr} {f : Nat -> Nat} (p : e1 = e2) : A-Eq2 e1 e2 f f \elim e1, e2, p
       | Con n, Con n1, p => a2con-eq (pmap (\lam y => \case y \with {
         | Con n2 => n2

@@ -341,7 +341,7 @@
       }
   }
 
-\data \infix 6 in (x : Nat) (l : Array Nat) : \Set0 \elim l
+\data \infix 6 in (x : Nat) (l : Array Nat) \elim l
   | a :: l => isHead (a = x)
   | a :: l => inTail (Not (a = x)) (x in l)
   \where {

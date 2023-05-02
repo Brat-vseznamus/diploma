@@ -12,8 +12,9 @@
 \import calculus.Base
 \import calculus.Beta
 \import calculus.Context
-\import calculus.Polynoms
 \import math.sets
+
+\open Nat
 
 \type Repr (T : \Type) => \Pi (e : T) -> Expr
 
@@ -43,16 +44,132 @@
   | 0 => x
   | suc n => App f (repeat n f x)
   \where {
-    \func repeat-linear {f x : Expr} (n m : Nat) : repeat n f (repeat m f x) = repeat (n Nat.+ m) f x \elim n, m
+    \func repeat-linear-+ {f x : Expr} (n m : Nat) : repeat n f (repeat m f x) = repeat (n Nat.+ m) f x \elim n, m
       | 0, 0 => idp
       | 0, suc m => idp
       | suc n, 0 => idp
       | suc n, suc m =>
         \let
-          | m+1rec : App f (repeat m f x) = repeat (m Nat.+ 1) f x => repeat-linear 1 m
-          | n+m+1rec :  repeat n f (App f (repeat m f x)) = repeat (n Nat.+ suc m) f x => repeat-linear n (suc m)
+          | m+1rec : App f (repeat m f x) = repeat (m Nat.+ 1) f x => repeat-linear-+ 1 m
+          | n+m+1rec :  repeat n f (App f (repeat m f x)) = repeat (n Nat.+ suc m) f x => repeat-linear-+ n (suc m)
         \in
-        pmap (App f) n+m+1rec
+          pmap (App f) n+m+1rec
+
+    \func repeat-linear-* {n m : Nat} : Beta-Eq (repeat n (Lam 2 (repeat m (Var 0) (Var 2))) (Var 1)) (repeat (n Nat.* m) (Var 0) (Var 1)) \elim n, m
+      | 0, 0 => a-eq A-Eq2.ref
+      | 0, suc m => a-eq (A-Eq2.eq->a-eq (inv (pmap (\lam x => repeat x (Var 0) (Var 1)) (NatSemiring.zro_*-left {m})))) -- (rewrite NatSemiring.zro_*-left idp)
+      | suc n, 0 => chain (repeat n (Lam 2 (Var 2)) (Var 1)) (one-step-left (beta-repl-right idp)) (repeat-linear-*-lemma n)
+      | suc n, suc m => chain (App (Var 0) (repeat m (Var 0) (repeat n (Lam 2 (repeat (suc m) (Var 0) (Var 2))) (Var 1))))
+          (one-step-left (beta-repl-right (pmap (App (Var 0)) (inv $ repeat.right-neutral' {0} {2} {\lam p => suc/=0 (pmap pred (inv p))} m (repeat n (Lam 2 (App (Var 0) (repeat m (Var 0) (Var 2)))) (Var 1))))))
+          (Beta-Eq.app-save-beta-eq-right
+              (\let x => repeat-save-beta-eq {Var 0} m (repeat-linear-* {n} {suc m}) \in
+                chain (repeat m (Var 0) (repeat (n Nat.* m Nat.+ n) (Var 0) (Var 1)))
+                    x
+                    (a-eq (A-Eq2.eq->a-eq (rewriteF (repeat-linear-*-math-lemma m n : m Nat.+ (n Nat.* m Nat.+ n) = suc n Nat.* m Nat.+ n) (repeat-linear-+ m (n Nat.* m Nat.+ n)))))
+              )
+          )
+      \where {
+        \func repeat-linear-*-lemma (n : Nat) : Beta-Eq (repeat n (Lam 2 (Var 2)) (Var 1)) (Var 1) \elim n
+          | 0 => a-eq A-Eq2.ref
+          | suc n => chain (repeat n (Lam 2 (Var 2)) (Var 1)) (one-step-left (beta-repl-right idp)) (repeat-linear-*-lemma n)
+
+        \func repeat-linear-*-math-lemma (m n : Nat) : m Nat.+ (n Nat.* m Nat.+ n) = suc n Nat.* m Nat.+ n =>
+          rewrite (inv NatSemiring.+-assoc)
+              (rewrite (NatSemiring.+-comm {m} {n * m})
+                  (rewrite
+                      (rewrite (NatSemiring.*-comm {suc n} {m})
+                          (rewrite (NatSemiring.*-comm {n} {m}) idp) : suc n * m = n * m + m)
+                      idp
+                  )
+              )
+      }
+
+    \func repeat-linear-*' {x y z : Nat} {x/=z : Not (x = z)} {n m : Nat} : Beta-Eq (repeat n (Lam z (repeat m (Var x) (Var z))) (Var y)) (repeat (n Nat.* m) (Var x) (Var y)) \elim n, m
+      | 0, 0 => a-eq A-Eq2.ref
+      | 0, suc m => a-eq (A-Eq2.eq->a-eq (rewrite NatSemiring.zro_*-left idp))
+      | suc n, 0 => chain (repeat n (Lam z (Var z)) (Var y))
+          (one-step-left (beta-repl-right (\case decideEq z z \as d \return repeat n (Lam z (Var z)) (Var y) = if {Expr} (decToBool d) (repeat n (Lam z (Var z)) (Var y)) (Var z) \with {
+            | yes e => idp
+            | no n1 => absurd (n1 idp)
+          })))
+          (repeat-linear-*-lemma {x} {y} {z} n)
+      | suc n, suc m =>
+        chain (App (Var x) (repeat m (Var x) (repeat n (Lam z (repeat (suc m) (Var x) (Var z))) (Var y))))
+            (one-step-left (beta-repl-right (\case decideEq x z \as d \return   App (Var x) (repeat m (Var x) (repeat n (Lam z (App (Var x) (repeat m (Var x) (Var z)))) (Var y))) = App (if {Expr} (decToBool d) (repeat n (Lam z (App (Var x) (repeat m (Var x) (Var z)))) (Var y)) (Var x))
+                                                                                                                                                                                         (replace (repeat m (Var x) (Var z)) z (repeat n (Lam z (App (Var x) (repeat m (Var x) (Var z)))) (Var y))) \with {
+              | yes e => absurd (x/=z e)
+              | no n1 => pmap (App (Var x)) (inv $ repeat.right-neutral' {x} {z} {x/=z} m (repeat n (Lam z (App (Var x) (repeat m (Var x) (Var z)))) (Var y)))
+            })))
+            (Beta-Eq.app-save-beta-eq-right
+                (\let r => repeat-save-beta-eq {Var x} m (repeat-linear-*' {x} {y} {z} {x/=z} {n} {suc m}) \in
+                  chain (repeat m (Var x) (repeat (n Nat.* m Nat.+ n) (Var x) (Var y)))
+                      r
+                      (a-eq (A-Eq2.eq->a-eq (rewriteF (repeat-linear-*-math-lemma m n : m Nat.+ (n Nat.* m Nat.+ n) = suc n Nat.* m Nat.+ n) (repeat-linear-+ m (n Nat.* m Nat.+ n)))))
+                )
+            )
+      \where {
+        \func repeat-linear-*-lemma {x y z : Nat} (n : Nat) : Beta-Eq (repeat n (Lam z (Var z)) (Var y)) (Var y) \elim n
+          | 0 => a-eq A-Eq2.ref
+          | suc n => chain (repeat n (Lam z (Var z)) (Var y)) (one-step-left (beta-repl-right (\case decideEq z z \as d \return repeat n (Lam z (Var z)) (Var y) = if {Expr} (decToBool d) (repeat n (Lam z (Var z)) (Var y)) (Var z) \with {
+            | yes e => idp
+            | no n1 => absurd (n1 idp)
+          }))) (repeat-linear-*-lemma {x} {y} {z} n)
+
+        \func repeat-linear-*-math-lemma (m n : Nat) : m Nat.+ (n Nat.* m Nat.+ n) = suc n Nat.* m Nat.+ n =>
+          rewrite (inv NatSemiring.+-assoc)
+              (rewrite (NatSemiring.+-comm {m} {n * m})
+                  (rewrite
+                      (rewrite (NatSemiring.*-comm {suc n} {m})
+                          (rewrite (NatSemiring.*-comm {n} {m}) idp) : suc n * m = n * m + m)
+                      idp
+                  )
+              )
+      }
+
+    \func repeat-linear-*2 {x y z : Nat} {x/=z : Not (x = z)} {n m : Nat} : Beta-Eq (Lam x $ Lam y $ repeat n (Lam z (repeat m (Var x) (Var z))) (Var y)) (Lam x $ Lam y $ repeat (n Nat.* m) (Var x) (Var y)) \elim n, m
+      | 0, 0 => a-eq A-Eq2.ref
+      | 0, suc m => a-eq (A-Eq2.eq->a-eq (rewrite NatSemiring.zro_*-left idp))
+      | suc n, 0 => chain (Lam x $ Lam y $ repeat n (Lam z (Var z)) (Var y))
+          (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right (\case decideEq z z \as d \return repeat n (Lam z (Var z)) (Var y) = if {Expr} (decToBool d) (repeat n (Lam z (Var z)) (Var y)) (Var z) \with {
+                  | yes e => idp
+                  | no n1 => absurd (n1 idp)
+          })))))
+          (repeat-linear-*-lemma2 {x} {y} {z} n)
+      | suc n, suc m =>
+        chain (Lam x $ Lam y $ App (Var x) (repeat m (Var x) (repeat n (Lam z (repeat (suc m) (Var x) (Var z))) (Var y))))
+            (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right (\case decideEq x z \as d \return   App (Var x) (repeat m (Var x) (repeat n (Lam z (App (Var x) (repeat m (Var x) (Var z)))) (Var y))) = App (if {Expr} (decToBool d) (repeat n (Lam z (App (Var x) (repeat m (Var x) (Var z)))) (Var y)) (Var x))
+                                                                                                                                                                                         (replace (repeat m (Var x) (Var z)) z (repeat n (Lam z (App (Var x) (repeat m (Var x) (Var z)))) (Var y))) \with {
+              | yes e => absurd (x/=z e)
+              | no n1 => pmap (App (Var x)) (inv $ repeat.right-neutral' {x} {z} {x/=z} m (repeat n (Lam z (App (Var x) (repeat m (Var x) (Var z)))) (Var y)))
+            })))))
+            (\let r => repeat-save-beta-eq {Var x} m (repeat-linear-*' {x} {y} {z} {x/=z} {n} {suc m}) \in
+              chain (Lam x $ Lam y $ repeat m (Var x) (repeat (n Nat.* m Nat.+ n) (Var x) (Var y)))
+                  {?} -- r
+                  {?} -- (a-eq (A-Eq2.eq->a-eq (rewriteF (repeat-linear-*-math-lemma m n : m Nat.+ (n Nat.* m Nat.+ n) = suc n Nat.* m Nat.+ n) (repeat-linear-+ m (n Nat.* m Nat.+ n)))))
+            )
+
+      \where {
+        \func repeat-linear-*-lemma2 {x y z : Nat} (n : Nat) : Beta-Eq (Lam x $ Lam y $ repeat n (Lam z (Var z)) (Var y)) (Lam x $ Lam y $ Var y) \elim n
+          | 0 => a-eq A-Eq2.ref
+          | suc n => chain (Lam x $ Lam y $ repeat n (Lam z (Var z)) (Var y)) (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right (\case decideEq z z \as d \return repeat n (Lam z (Var z)) (Var y) = if {Expr} (decToBool d) (repeat n (Lam z (Var z)) (Var y)) (Var z) \with {
+            | yes e => idp
+            | no n1 => absurd (n1 idp)
+          }))))) (repeat-linear-*-lemma2 {x} {y} {z} n)
+
+        \func repeat-linear-*-math-lemma (m n : Nat) : m Nat.+ (n Nat.* m Nat.+ n) = suc n Nat.* m Nat.+ n =>
+          rewrite (inv NatSemiring.+-assoc)
+              (rewrite (NatSemiring.+-comm {m} {n * m})
+                  (rewrite
+                      (rewrite (NatSemiring.*-comm {suc n} {m})
+                          (rewrite (NatSemiring.*-comm {n} {m}) idp) : suc n * m = n * m + m)
+                      idp
+                  )
+              )
+      }
+
+    \func repeat-save-beta-eq {f : Expr} {x1 x2 : Expr} (n : Nat) (bx1-x2 : Beta-Eq x1 x2) : Beta-Eq (repeat n f x1) (repeat n f x2) \elim n
+      | 0 => bx1-x2
+      | suc n => Beta-Eq.app-save-beta-eq-right (repeat-save-beta-eq n bx1-x2)
 
     \func fx-onlyFreeVars {f x : Expr} (n : Nat) : FV (repeat n f x) leq mergeUnique (FV f) (FV x) \elim n
       | 0 => leq.inSet (\lam x1 i => in.merge-works {FV f} {FV x} x1 (byRight i))
@@ -73,6 +190,16 @@
       }
       | suc n => \case decideEq l l \as d \return App (if {Expr} (decToBool d) (Var v) (Var l)) (replace (repeat n (Var l) (Var r)) l (Var v)) = App (Var v) (repeat n (Var v) (Var r)) \with {
         | yes e => pmap (App (Var v)) (left-neutral {l} {r} {l/=r} n v)
+        | no n => absurd $ n idp
+      }
+
+    \func left-neutral' {l r : Nat} {l/=r : Not (l = r)} (n : Nat) (e : Expr) : replace (repeat n (Var l) (Var r)) l e = repeat n e (Var r) \elim n
+      | 0 => \case decideEq r l \as d \return if (decToBool d) e (Var r) = Var r \with {
+        | yes e => absurd $ l/=r (inv e)
+        | no n => idp
+      }
+      | suc n => \case decideEq l l \as d \return App (if {Expr} (decToBool d) e (Var l)) (replace (repeat n (Var l) (Var r)) l e) = App e (repeat n e (Var r)) \with {
+        | yes e_ => pmap (App e) (left-neutral' {l} {r} {l/=r} n e)
         | no n => absurd $ n idp
       }
 
@@ -225,7 +352,7 @@
 
     \func +-def-lemma3 (a b : Nat) : A-Eq (Lam 2 (Lam 3 (App (Var 2) (repeat a (Var 2) (App (Var 2) (repeat b (Var 2) (Var 3)))))))
         (numeral2 (suc (suc (a Nat.+ b)))) =>
-          rewrite (repeat.repeat-linear {Var 2} {Var 3} (a Nat.+ 1) (b Nat.+ 1)) (A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (+-def-lemma4 {2} {3} {0} {1} {\lam p => suc/=0 (pmap (\lam x => pred (pred x)) (inv p))} {\lam p => suc/=0 (inv p)} (suc (suc (a Nat.+ b))))))
+          rewrite (repeat.repeat-linear-+ {Var 2} {Var 3} (a Nat.+ 1) (b Nat.+ 1)) (A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (+-def-lemma4 {2} {3} {0} {1} {\lam p => suc/=0 (pmap (\lam x => pred (pred x)) (inv p))} {\lam p => suc/=0 (inv p)} (suc (suc (a Nat.+ b))))))
 
     \func +-def-lemma4 {x0 y0 x1 y1 : Nat} {p0 : Not (x0 = y0)} {p1 : Not (x1 = y1)} {t0 t1 : Nat} (n : Nat) : A-Eq2 (repeat n (Var x0) (Var y0)) (repeat n (Var x1) (Var y1)) (A-Eq2.extMod (A-Eq2.extMod idNat x0 t0) y0 t1) (A-Eq2.extMod (A-Eq2.extMod idNat x1 t0) y1 t1) \elim n
       | 0 => a2var-eq (\case decideEq y0 y0 \as d0, decideEq y1 y1 \as d1 \return if (decToBool d0) t1 (A-Eq2.extMod idNat x0 t0 y0) = if (decToBool d1) t1 (A-Eq2.extMod idNat x1 t0 y1) \with {
@@ -292,69 +419,83 @@
                                 )
                             )
         )
-        | suc n, suc n1 => {?}
+        | suc n, suc m => chain
+                            (App (Lam 1 (Lam 2 (App (numeral2 (suc n)) (App (Var 1) (Var 2))))) (numeral2 (suc m)))
+                            (one-step-left (beta-app-right (beta-repl-right idp) A-Eq2.ref))
+                            (chain
+                                (Lam 2 (App (numeral2 (suc n)) (App (numeral2 (suc m)) (Var 2))))
+                                (one-step-left (beta-repl-right idp))
+                                (chain
+                                    (Lam 2 (App (numeral2 (suc n)) (Lam 1 $ repeat (suc m) (Var 2) (Var 1))))
+                                    (one-step-left (beta-lam idp (beta-app-left A-Eq2.ref (beta-repl-right (pmap (\lam x => Lam 1 (App (Var 2) x)) (inv (repeat.left-neutral {0} {1} {\lam p => suc/=0 (inv p)} m 2)))))))
+                                    (chain
+                                        (Lam 2 (Lam 1 $ repeat (suc n) (Lam 1 $ repeat (suc m) (Var 2) (Var 1)) (Var 1)))
+                                        (one-step-left (beta-lam idp (beta-repl-right (pmap (\lam x => Lam 1 (App (Lam 1 (App (Var 2) (repeat m (Var 2) (Var 1)))) x)) (inv (repeat.left-neutral' {0} {1} {\lam p => suc/=0 (inv p)} n (Lam 1 (App (Var 2) (repeat m (Var 2) (Var 1))))))))))
+                                        (chain
+                                            (Lam 2 (Lam 1 $ repeat (suc n * suc m) (Var 2) (Var 1)))
+                                            (*-def-lemma m n)
+                                            {?}
+                                        )
+                                    )
+                                )
+                            )
       })
-      \where {
-        \func neutral-numeral2 {n : Nat} : Beta-Eq (Lam 2 (App (numeral2 n) (Lam 1 (Var 1)))) (Lam 2 (Lam 1 (Var 1)))
-          | {0} => chain (Lam 2 (Lam 1 (Var 1))) (one-step-left (beta-lam idp (beta-repl-right idp))) (a-eq (A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))))
-          | {suc n} =>
-            \let
-              | rec => neutral-numeral2 {n}
-              | repl => replace-repeat {suc n} {Lam 1 (Var 1)}
-            \in chain
-                (Lam 2 $ Lam 1 $ repeat (suc n) (Lam 1 (Var 1)) (Var 1))
-                (one-step-left (beta-lam idp (beta-repl-right (pmap (Lam 1) repl))))
-                (chain
-                    (Lam 2 $ Lam 1 (repeat n (Lam 1 (Var 1)) (Var 1)))
-                    (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right idp))))
-                    (r-chain
-                        (Lam 2 $ App (Lam 0 (Lam 1 (repeat n (Var 0) (Var 1)))) (Lam 1 (Var 1)))
-                        (one-step-left (beta-lam idp (beta-repl-right (pmap (Lam 1) (replace-repeat {n} {Lam 1 (Var 1)})))))
-                        rec
-                    )
+  \where {
+    \func neutral-numeral2 {n : Nat} : Beta-Eq (Lam 2 (App (numeral2 n) (Lam 1 (Var 1)))) (Lam 2 (Lam 1 (Var 1)))
+      | {0} => chain (Lam 2 (Lam 1 (Var 1))) (one-step-left (beta-lam idp (beta-repl-right idp))) (a-eq (A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))))
+      | {suc n} =>
+        \let
+          | rec => neutral-numeral2 {n}
+          | repl => replace-repeat {suc n} {Lam 1 (Var 1)}
+        \in chain
+            (Lam 2 $ Lam 1 $ repeat (suc n) (Lam 1 (Var 1)) (Var 1))
+            (one-step-left (beta-lam idp (beta-repl-right (pmap (Lam 1) repl))))
+            (chain
+                (Lam 2 $ Lam 1 (repeat n (Lam 1 (Var 1)) (Var 1)))
+                (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right idp))))
+                (r-chain
+                    (Lam 2 $ App (Lam 0 (Lam 1 (repeat n (Var 0) (Var 1)))) (Lam 1 (Var 1)))
+                    (one-step-left (beta-lam idp (beta-repl-right (pmap (Lam 1) (replace-repeat {n} {Lam 1 (Var 1)})))))
+                    rec
                 )
+            )
 
-        \func replace-repeat {n : Nat} {x : Expr} : repeat n x (Var 1) = replace (repeat n (Var 0) (Var 1)) 0 x \elim n
-          | 0 => idp
-          | suc n => \let rec => replace-repeat {n} {x} \in pmap (App x) rec
+    \func replace-repeat {n : Nat} {x : Expr} : repeat n x (Var 1) = replace (repeat n (Var 0) (Var 1)) 0 x \elim n
+      | 0 => idp
+      | suc n => \let rec => replace-repeat {n} {x} \in pmap (App x) rec
 
-        \func lam-eq {n : Nat} {B1 B2 : Expr} (b-eq : Beta-Eq B1 B2) : Beta-Eq (Lam n B1) (Lam n B2) \elim b-eq
-          | a-eq a => a-eq (A-Eq2.a2lam-eq (lam-eq-lemma B1 B2 n a))
-          | one-step-left b => one-step-left (beta-lam idp b)
-          | one-step-right b => one-step-right (beta-lam idp b)
-          | chain tmp b-eq1 b-eq2 => chain (Lam n tmp) (lam-eq b-eq1) (lam-eq b-eq2)
-          | r-chain tmp b-eq1 b-eq2 => r-chain (Lam n tmp) (lam-eq b-eq1) (lam-eq b-eq2)
-          \where {
-
-            \func lam-eq-lemma (B1 B2 : Expr) (n : Nat) (a : A-Eq B1 B2) :
-              A-Eq2 B1 B2 (A-Eq2.extMod idNat n (common-new-var-no B1 B2 idNat idNat)) (A-Eq2.extMod idNat n (common-new-var-no B1 B2 idNat idNat)) =>
-              \let
-                | idNat=extNN : A-Eq2.extMod idNat n n = idNat => feq {A-Eq2.extMod idNat n n} {idNat}
-                    (\lam e => \case decideEq e n \as d \return if (decToBool d) n (idNat e) = idNat e \with {
-                      | yes e1 => inv e1
-                      | no n1 => idp
-                    })
-                | a' => rewriteF (inv idNat=extNN) (a : A-Eq2 B1 B2 idNat idNat)
-              \in \case NatSemiring.trichotomy n (common-new-var-no B1 B2 idNat idNat) \with {
-                | less _x => \let <=x => <_suc_<= (NatSemiring.<-transitive _x id<suc) \in {?} -- A-Eq2.trans.upper {B1} {B2} {n} {n} {idNat} {idNat} {n} {common-new-var-no B1 B2 idNat idNat} {{?}} {{?}} a' <=x
-                | equals p => rewriteF (pmap (\lam x => A-Eq2.extMod idNat n x) p) a'
-                | greater _x => {?}
-              }
---              | Con i, Con j, a2con-eq p => a2con-eq p
---              | Var i, Var j, a2var-eq p => a2var-eq (\case decideEq i n \as di, decideEq j n \as dj \return if (decToBool di) (common-new-var-no (Var i) (Var j) idNat idNat) i = if (decToBool dj) (common-new-var-no (Var i) (Var j) idNat idNat) j \with {
---                | yes e, yes e1 => idp
---                | yes e, no n1 => absurd (n1 (rewriteF p e))
---                | no n1, yes e => absurd (n1 (rewriteF (inv p) e))
---                | no n1, no n2 => p
---              })
---              | App B3 B4, App B5 B6, a2app-eq a a1 => a2app-eq (lam-eq-lemma B3 B5 n a) (lam-eq-lemma B4 B6 n a1)
---              | Lam i1 B3, Lam i2 B4, a2lam-eq-base i new-i-B1 new-i-B2 a => {?}
+    \func lam-eq {n : Nat} {B1 B2 : Expr} (b-eq : Beta-Eq B1 B2) : Beta-Eq (Lam n B1) (Lam n B2) \elim b-eq
+      | a-eq a => a-eq (A-Eq2.a2lam-eq (lam-eq-lemma B1 B2 n a))
+      | one-step-left b => one-step-left (beta-lam idp b)
+      | one-step-right b => one-step-right (beta-lam idp b)
+      | chain tmp b-eq1 b-eq2 => chain (Lam n tmp) (lam-eq b-eq1) (lam-eq b-eq2)
+      | r-chain tmp b-eq1 b-eq2 => r-chain (Lam n tmp) (lam-eq b-eq1) (lam-eq b-eq2)
+      \where {
+        \func lam-eq-lemma (B1 B2 : Expr) (n : Nat) (a : A-Eq B1 B2) :
+          A-Eq2 B1 B2 (A-Eq2.extMod idNat n (common-new-var-no B1 B2 idNat idNat)) (A-Eq2.extMod idNat n (common-new-var-no B1 B2 idNat idNat)) =>
+          \let
+            | idNat=extNN : A-Eq2.extMod idNat n n = idNat => feq {A-Eq2.extMod idNat n n} {idNat}
+                (\lam e => \case decideEq e n \as d \return if (decToBool d) n (idNat e) = idNat e \with {
+                  | yes e1 => inv e1
+                  | no n1 => idp
+                })
+            | a' => rewriteF (inv idNat=extNN) (a : A-Eq2 B1 B2 idNat idNat)
+          \in \case NatSemiring.trichotomy n (common-new-var-no B1 B2 idNat idNat) \with {
+            | less _x => \let <=x => <_suc_<= (NatSemiring.<-transitive _x id<suc) \in {?} -- A-Eq2.trans.upper {B1} {B2} {n} {n} {idNat} {idNat} {n} {common-new-var-no B1 B2 idNat idNat} {{?}} {{?}} a' <=x
+            | equals p => rewriteF (pmap (\lam x => A-Eq2.extMod idNat n x) p) a'
+            | greater _x => {?}
           }
       }
 
--- App (numeral2 n) (Lam 1 (Var 1))
--- = App (Lam 0 (Lam 1 (repeat n (Var 0) (Var 1)))) (Lam 1 (Var 1))
--- = (Lam 1 (repeat n (Lam 1 (Var 1)) (Var 1))
+    \func *-def-lemma (m n : Nat) :
+      Beta-Eq
+          (Lam 2 (Lam 1 (repeat (suc n) (Lam 1 (repeat (suc m) (Var 2) (Var 1))) (Var 1))))
+          (Lam 2 (Lam 1 (repeat (suc n * suc m) (Var 2) (Var 1)))) \elim m, n
+      | 0, 0 => one-step-left (beta-lam idp (beta-lam idp (beta-repl-right idp)))
+      | 0, suc n => {?}
+      | suc m, 0 => {?}
+      | suc m, suc n => {?}
+  }
 
 \func apply-first-lambda (e : Expr) : Maybe Expr \elim e
   | Con n => nothing

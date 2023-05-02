@@ -1,0 +1,23 @@
+\import Data.Or
+
+\type Relation (A : \Type) => A -> A -> \Type
+
+\data Closure {A : \Type} (R : Relation A) (E : (Relation A) -> (Relation A)) (a a' : A)
+  | orig-rel (R a a')
+  | ext-rel (E R a a')
+
+\data Chain {A : \Type} (R : Relation A) (ts : Array A) (x y : A) \elim ts
+  | nil       => simple-chain (R x y)
+  | t :: tail => cont-chain (R x t) (Chain R tail t y)
+
+\func ref   {A : \Type} (R : Relation A) : Relation A => \lam (x y : A) => x = y
+\func sym   {A : \Type} (R : Relation A) : Relation A => \lam (x y : A) => R y x
+\func trans {A : \Type} (R : Relation A) : Relation A => \lam (x y : A) => \Sigma (ts : Array A) (Chain R ts x y)
+
+\type Ref-closure {A : \Type} (R : A -> A -> \Type) (a a' : A) => Closure {A} R ref a a'
+\type Sym-closure {A : \Type} (R : A -> A -> \Type) (a a' : A) => Closure {A} R sym a a'
+\type Trans-closure {A : \Type} (R : A -> A -> \Type) (a a' : A) => Closure {A} R trans a a'
+
+\type Eq-closure {A : \Type} (R : A -> A -> \Type) (a a' : A) =>
+  Closure {A} R (\lam (R : Relation A) => trans (sym (ref R))) a a'
+

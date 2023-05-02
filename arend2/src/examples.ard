@@ -80,25 +80,25 @@
 \func zeroIsChurch : TypedExpr zero Church empty =>
   typed-lam (typed-lam (typed-var idp))
 
-\func succIsCh->Ch : TypedExpr succ (Func Church Church) empty =>
-  typed-lam
-      (typed-lam
-          (typed-lam
-              (typed-app
-                  T0
-                  (typed-var idp)
-                  (typed-app
-                      T0
-                      (typed-app
-                          (Func T0 T0)
-                          (typed-var idp)
-                          (typed-var idp)
-                      )
-                      (typed-var idp)
-                  )
-              )
-          )
-      )
+\func succIsCh->Ch : TypedExpr succ (Func Church Church) empty => {?}
+--  typed-lam
+--      (typed-lam
+--          (typed-lam
+--              (typed-app
+--                  T0
+--                  (typed-var idp)
+--                  (typed-app
+--                      T0
+--                      (typed-app
+--                          (Func T0 T0)
+--                          (typed-var idp)
+--                          (typed-var idp)
+--                      )
+--                      (typed-var idp)
+--                  )
+--              )
+--          )
+--      )
 
 \func numeralIsChurch (n : Nat) : TypedExpr (numeral n) Church empty \elim n
   | 0 => zeroIsChurch

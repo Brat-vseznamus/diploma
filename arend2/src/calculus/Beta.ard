@@ -1,22 +1,27 @@
+\import Function.Meta
+\import Relation.Equivalence
 \import calculus.AlphaEq
+\import calculus.AlphaEq2
 \import calculus.Base
 \import calculus.Context
 \import calculus.Types
+\import math.relations (Chain, Eq-closure, cont-chain, ext-rel, orig-rel, ref, simple-chain, sym)
+\import math.sets
 
 \data Beta-Red (e1 e2 : Expr) \elim e1, e2
   | (App P1 Q1), (App P2 Q2) => beta-app-left (A-Eq P1 P2) (Beta-Red Q1 Q2)
   | (App P1 Q1), (App P2 Q2) => beta-app-right (Beta-Red P1 P2) (A-Eq Q1 Q2)
   | (App (Lam i P) Q), s => beta-repl-right (s = replace P i Q)
   | (Lam i B1), (Lam j B2) =>  beta-lam (i = j) (Beta-Red B1 B2)
-  \where {
-    \func save-type {e1 e2 : Expr} {t : SimpleType} {c : Context}
-      (red : Beta-Red e1 e2) (typed1 : TypedExpr e1 t c) : TypedExpr e2 t c \elim e1, e2, t, red, typed1
-      | App e3 e4, App e5 e6, t, beta-app-left a red, typed-app Qt typed1 typed2 =>
-        \let rec => save-type red typed2 \in {?}
-      | App e3 e4, App e5 e6, t, beta-app-right red a, typed-app Qt typed1 typed2 => {?}
-      | App (Lam i e3) e4, e5, t, beta-repl-right p, typed-app Qt typed1 typed2 => {?}
-      | Lam i e3, Lam j e4, Func t t1, beta-lam p red, typed-lam typed1 => {?}
-  }
+
+\type Beta-Red* (e1 e2 : Expr) => Eq-closure Beta-Red e1 e2
+
+\data Beta-PRed (e1 e2 : Expr) \elim e1, e2
+  | (App P1 Q1), (App P2 Q2) => beta-p-app (Beta-PRed P1 P2) (Beta-PRed Q1 Q2)
+  | (App (Lam i P1) Q1), s => beta-p-repl (P2 : Expr) (Q2 : Expr) (s = replace P2 i Q2) (Beta-PRed P1 P2) (Beta-PRed Q1 Q2)
+  | (Lam i B1), (Lam j B2) => beta-p-lam (i = j) (Beta-PRed B1 B2)
+  | e1, e2 => beta-p-same (A-Eq e1 e2)
+
 
 \data Beta-Chain (e1 e2 : Expr)
   | end (A-Eq e1 e2)
@@ -33,3 +38,18 @@
   | one-step-right (Beta-Red e2 e1)
   | chain (tmp : Expr) (Beta-Eq e1 tmp) (Beta-Eq tmp e2)
   | r-chain (tmp : Expr) (Beta-Eq tmp e1) (Beta-Eq tmp e2)
+  \where {
+    \func app-save-beta-eq-left {P1 P2 Q : Expr} (p : Beta-Eq P1 P2) : Beta-Eq (App P1 Q) (App P2 Q) \elim P1, P2, p
+      | P1, P2, a-eq a => a-eq (a2app-eq a A-Eq2.ref)
+      | P1, P2, one-step-left b => one-step-left (beta-app-right b A-Eq2.ref)
+      | P1, P2, one-step-right b => one-step-right (beta-app-right b A-Eq2.ref)
+      | P1, P2, chain tmp p1 p2 => chain (App tmp Q) (app-save-beta-eq-left p1) (app-save-beta-eq-left p2)
+      | P1, P2, r-chain tmp p1 p2 => r-chain (App tmp Q) (app-save-beta-eq-left p1) (app-save-beta-eq-left p2)
+
+    \func app-save-beta-eq-right {P Q1 Q2 : Expr} (q : Beta-Eq Q1 Q2) : Beta-Eq (App P Q1) (App P Q2) \elim q
+      | a-eq a => a-eq (a2app-eq A-Eq2.ref a)
+      | one-step-left b => one-step-left (beta-app-left A-Eq2.ref b)
+      | one-step-right b => one-step-right (beta-app-left A-Eq2.ref b)
+      | chain tmp q1 q2 => chain (App P tmp) (app-save-beta-eq-right q1) (app-save-beta-eq-right q2)
+      | r-chain tmp q1 q2 => r-chain (App P tmp) (app-save-beta-eq-right q1) (app-save-beta-eq-right q2)
+  }
