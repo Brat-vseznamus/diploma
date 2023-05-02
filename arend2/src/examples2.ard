@@ -1,3 +1,4 @@
+\import Arith.Int
 \import Arith.Nat
 \import Data.Bool
 \import Function.Meta ($)
@@ -5,8 +6,12 @@
 \import Paths
 \import Paths.Meta
 \import Set
-
 \open Nat
+
+
+\data Type_ : \Set
+  | Base Nat
+  | \infixr 6 ~> Type_ Type_
 
 \data Expr_
   | c Nat
@@ -14,11 +19,116 @@
   | \fixr 2 l Expr_
   | \infixl 6 @ Expr_ Expr_
 
+\instance TDecSet : DecSet Type_
+  | decideEq => decideEqImpl
+  \where {
+    \func decideEqImpl (x y : Type_) : Dec (x = y) \elim x, y
+      | Base n, Base n1 => \case NatSemiring.decideEq n n1 \with {
+        | yes n=n1 => yes (pmap Base n=n1)
+        | no n/=n1 => no (\lam p => n/=n1 (rmBase {n} {n1} p))
+      }
+      | Base n, s ~> s1 => no (\lam p => suc/=0 {0} (inv (pmap conNo p)))
+      | s ~> s1, Base n => no (\lam p => suc/=0 {0} (pmap conNo p))
+      | a1 ~> b1, a2 ~> b2 =>
+        \let
+          | a1?=a2 => decideEqImpl a1 a2
+          | b1?=b2 => decideEqImpl b1 b2
+        \in \case a1?=a2, b1?=b2 \with {
+          | yes a1=a2, yes b1=b2 => yes (pmap2 (~>) a1=a2 b1=b2)
+          | yes a1=a2, no b1/=b2 => no (\lam p => b1/=b2 (rmFunc p).2)
+          | no a1/=a2, _ => no (\lam p => a1/=a2 (rmFunc p).1)
+        }
+
+    \func rmBase {n n1 : Nat} (p : Base n = Base n1) : n = n1 =>
+      \let
+        | df => \lam (x : Type_) => \case x \return Nat \with {
+          | Base i => i
+          | s ~> s1 => 0
+        } \in pmap df p
+
+    \func rmFunc {a1 a2 b1 b2 : Type_} (p : a1 ~> b1 = a2 ~> b2) : \Sigma (a1 = a2) (b1 = b2) =>
+      \let
+        | df => \lam (x : Type_) => \case x \return \Sigma Type_ Type_ \with {
+          | Base n => (Base 0, Base 0)
+          | s ~> s1 => (s, s1)
+        } \in (pmap (\lam t => (df t).1) p, pmap (\lam t => (df t).2) p)
+
+    \func conNo (x : Type_) : Nat \elim x
+      | Base n => 0
+      | x1 ~> x2 => 1
+  }
+
+\data Context_
+  | empty
+  | with (\Sigma Int Type_) Context_
+  \where {
+    \func rm-assump (assumption : \Sigma Int Type_) (context : Context_) : Context_ \elim assumption, context
+      | (n,s), with _x _context => if (_x.1 == n) _context (with _x (rm-assump (n, s) _context))
+      | (n,s), empty => empty
+
+    \func update-assump (newAssumption : \Sigma Int Type_) (context : Context_) : Context_ \elim newAssumption, context
+      | (n,s), with (n', s') _context => with (n', if (n' == n) s s') (if (n' == n) _context (update-assump (n, s)  _context))
+      | (n,s), empty => with (n, s) empty
+
+    \func add-assump (newAssumption : \Sigma Int Type_) (context : Context_) : Context_ \elim newAssumption, context
+      | (n,s), with _x _context => with _x (if (_x.1 == n) _context (add-assump (n, s)  _context))
+      | (n,s), empty => with (n, s) empty
+
+    \func var-in-context (var : Int) (c : Context_) : Bool \elim c
+      | empty => false
+      | with (i, _) c' => if (i == var) true (var-in-context var c')
+
+    \func typed-var-in-context (var-with-type : \Sigma Int Type_) (c : Context_) : Bool \elim c
+      | empty => false
+      | with (i, t) c' =>
+        if (i == var-with-type.1)
+            (t TDecSet.== var-with-type.2)
+            (typed-var-in-context var-with-type c')
+  }
+
+\data TypedExpr_ (e : Expr_) (t : Type_) (h : Nat) (c : Context_) \elim e, t
+  | (c _), t => t-con
+  | (v i), t => t-var (i-exist : Context_.typed-var-in-context (h - suc i, t) c = true)
+  | (l B), tx ~> tB => t-lam (B-typed : TypedExpr_ B tB (suc h) (Context_.update-assump (h, tx) c))
+  | P @ Q, tr => t-app (tq : Type_) (P-typed : TypedExpr_ P (tq ~> tr) h c) (Q-typed : TypedExpr_ Q tq h c)
+
+
 \data AlphaEq (e1 e2 : Expr_) \elim e1, e2
   | c i, c j => same-con (i = j)
   | v i, v j => save-var (i = j)
   | P1 @ Q1, P2 @ Q2 => same-app (AlphaEq P1 Q1) (AlphaEq P2 Q2)
   | l B1, l B2 => same-lam (AlphaEq B1 B2)
+
+\data BetaRed (e1 e2 : Expr_) \elim e1, e2
+  | P1 @ Q1, P2 @ Q2 => bred-app-right (P1 = P2) (BetaRed Q1 Q2)
+  | P1 @ Q1, P2 @ Q2 => bred-app-left (BetaRed P1 P2) (Q1 = Q2)
+  | (l P) @ Q, s => bred-repl (s = apply_ P Q)
+  | l B1, l B2 => beta-lam (BetaRed B1 B2)
+
+\data BetaEq (e1 e2 : Expr_)
+  | b-eq-eq (e1 = e2)
+  | b-eq-red (BetaRed e1 e2)
+  | b-eq-inv-red (BetaRed e2 e1)
+  | b-eq-chain (tmp : Expr_) (BetaEq e1 tmp) (BetaEq tmp e2)
+  \where {
+    \func sym {e1 e2 : Expr_} (p : BetaEq e1 e2) : BetaEq e2 e1 \elim p
+      | b-eq-eq p => b-eq-eq (inv p)
+      | b-eq-red b => b-eq-inv-red b
+      | b-eq-inv-red b => b-eq-red b
+      | b-eq-chain tmp p1 p2 => b-eq-chain tmp (sym p2) (sym p1)
+
+    \func app-save-eq-left {P1 P2 Q : Expr_} (b-p : BetaEq P1 P2) : BetaEq (P1 @ Q) (P2 @ Q) \elim b-p
+      | b-eq-eq p => b-eq-eq (pmap2 (@) p idp)
+      | b-eq-red b => b-eq-red (bred-app-left b idp)
+      | b-eq-inv-red b => b-eq-inv-red (bred-app-left b idp)
+      | b-eq-chain tmp b-p1 b-p2 => b-eq-chain (tmp @ Q) (app-save-eq-left b-p1) (app-save-eq-left b-p2)
+
+    \func app-save-eq-right {P Q1 Q2 : Expr_} (b-q : BetaEq Q1 Q2) : BetaEq (P @ Q1) (P @ Q2) \elim b-q
+      | b-eq-eq p => b-eq-eq (pmap2 (@) idp p)
+      | b-eq-red b => b-eq-red (bred-app-right idp b)
+      | b-eq-inv-red b => b-eq-inv-red (bred-app-right idp b)
+      | b-eq-chain tmp b-p1 b-p2 => b-eq-chain (P @ tmp) (app-save-eq-right b-p1) (app-save-eq-right b-p2)
+  }
 
 
 \func isFree (n cur_h : Nat) => nat_<=-dec.nat_<=_Bool cur_h n
@@ -74,42 +184,10 @@
       | 0 => idp
       | suc n => pmap2 (@) idp replace-args-left
 
-    \func save-beta-eq {f : Expr_} {x1 x2 : Expr_} (n : Nat) (bx1-x2 : b-eq x1 x2) : b-eq (rep2 n f x1) (rep2 n f x2) \elim n
+    \func save-beta-eq {f : Expr_} {x1 x2 : Expr_} (n : Nat) (bx1-x2 : BetaEq x1 x2) : BetaEq (rep2 n f x1) (rep2 n f x2) \elim n
       | 0 => bx1-x2
-      | suc n => {?}
+      | suc n => BetaEq.app-save-eq-right (save-beta-eq n bx1-x2)
   }
-
-\data b-red (e1 e2 : Expr_) \elim e1, e2
-  | P1 @ Q1, P2 @ Q2 => bred-app-right (P1 = P2) (b-red Q1 Q2)
-  | P1 @ Q1, P2 @ Q2 => bred-app-left (b-red P1 P2) (Q1 = Q2)
-  | (l P) @ Q, s => bred-repl (s = apply_ P Q)
-  | l B1, l B2 => beta-lam (b-red B1 B2)
-
-\data b-eq (e1 e2 : Expr_)
-  | b-eq-eq (e1 = e2)
-  | b-eq-red (b-red e1 e2)
-  | b-eq-inv-red (b-red e2 e1)
-  | b-eq-chain (tmp : Expr_) (b-eq e1 tmp) (b-eq tmp e2)
-  \where {
-    \func sym {e1 e2 : Expr_} (p : b-eq e1 e2) : b-eq e2 e1 \elim p
-      | b-eq-eq p => b-eq-eq (inv p)
-      | b-eq-red b => b-eq-inv-red b
-      | b-eq-inv-red b => b-eq-red b
-      | b-eq-chain tmp p1 p2 => b-eq-chain tmp (sym p2) (sym p1)
-
-    \func app-save-eq-left {P1 P2 Q : Expr_} (b-p : b-eq P1 P2) : b-eq (P1 @ Q) (P2 @ Q) \elim b-p
-      | b-eq-eq p => b-eq-eq (pmap2 (@) p idp)
-      | b-eq-red b => b-eq-red (bred-app-left b idp)
-      | b-eq-inv-red b => b-eq-inv-red (bred-app-left b idp)
-      | b-eq-chain tmp b-p1 b-p2 => b-eq-chain (tmp @ Q) (app-save-eq-left b-p1) (app-save-eq-left b-p2)
-
-    \func app-save-eq-right {P Q1 Q2 : Expr_} (b-q : b-eq Q1 Q2) : b-eq (P @ Q1) (P @ Q2) \elim b-q
-      | b-eq-eq p => b-eq-eq (pmap2 (@) idp p)
-      | b-eq-red b => b-eq-red (bred-app-right idp b)
-      | b-eq-inv-red b => b-eq-inv-red (bred-app-right idp b)
-      | b-eq-chain tmp b-p1 b-p2 => b-eq-chain (P @ tmp) (app-save-eq-right b-p1) (app-save-eq-right b-p2)
-  }
-
 
 \func test3 (n m : Nat) : rep2 n (v 1) (rep2 m (v 1) (v 0)) = rep2 (n + m) (v 1) (v 0) \elim n, m
   | 0, 0 => idp
@@ -117,7 +195,7 @@
   | suc n, 0 => idp
   | suc n, suc m => pmap (v 1 @) (test3 n (suc m))
 
-\func test4 (n m : Nat) : b-eq (rep2 n (l $ rep2 m (v 2) (v 0)) (v 0)) (rep2 (n * m) (v 1) (v 0))
+\func test4 (n m : Nat) : BetaEq (rep2 n (l $ rep2 m (v 2) (v 0)) (v 0)) (rep2 (n * m) (v 1) (v 0))
   | 0, 0 => b-eq-eq idp
   | 0, suc m => rewrite NatSemiring.zro_*-left (b-eq-eq idp)
   | suc n, 0 => b-eq-chain (rep2 n (l (v 0)) (v 0)) (b-eq-red (bred-repl apply_.trivial-apply)) (test4-lemma n)
@@ -129,11 +207,11 @@
     b-eq-chain (v 1 @ rep2 m (v 1) (rep2 n (l (v 2 @ rep2 m (v 2) (v 0))) (v 0)))
         (b-eq-red (bred-repl (pmap (v 1 @) (pmap2 (rep2 m) idp apply_.trivial-apply *> r))))
         (b-eq-chain (rep2 (suc m) (v 1) (rep2 (n * suc m) (v 1) (v 0)))
-            (b-eq.app-save-eq-right (rep2.save-beta-eq m (test4 n (suc m))))
+            (BetaEq.app-save-eq-right (rep2.save-beta-eq m (test4 n (suc m))))
             (b-eq-eq (pmap (v 1 @) (r2 *> pmap (\lam x => rep2 x (v 1) (v 0)) (repeat-linear-*-math-lemma m n))))
         )
   \where {
-    \func test4-lemma (n : Nat) : b-eq (rep2 n (l (v 0)) (v 0)) (v 0) \elim n
+    \func test4-lemma (n : Nat) : BetaEq (rep2 n (l (v 0)) (v 0)) (v 0) \elim n
       | 0 => b-eq-eq idp
       | suc n => b-eq-chain (rep2 n (l (v 0)) (v 0)) (b-eq-red (bred-repl apply_.trivial-apply)) (test4-lemma n)
 
@@ -147,3 +225,10 @@
               )
           )
   }
+
+\func a => Type_.Base 0
+\func b => Type_.Base 1
+\func d => Type_.Base 2
+
+\func test5 : TypedExpr_ (l $ l $ v 1 @ v 0) ((a ~> a) ~> a ~> a) 0 Context_.empty => t-lam (t-lam (t-app a (t-var idp) (t-var idp)))
+\func test6 : TypedExpr_ (l $ l $ v 2 @ v 0) ((d ~> d) ~> b ~> a) 0 (with (-1, b ~> a) Context_.empty) => t-lam (t-lam (t-app b (t-var idp) (t-var idp)))

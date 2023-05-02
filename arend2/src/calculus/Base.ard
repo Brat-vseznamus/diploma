@@ -23,14 +23,6 @@
       )
   }
 
-\data SubTermPath (root vertex : Expr) \elim root
-  | Lam i e => stepDown (SubTermPath e vertex)
-  | App P Q => stepLeft (SubTermPath P vertex)
-  | App P Q => stepRight (SubTermPath Q vertex)
-  | r => path-end (r = vertex)
-
-
-
 \data TypedExpr (e : Expr) (t : SimpleType) (c : Context) \elim e, t, c
   | (Con _), t, c => typed-const
   | (Var i), t, c => typed-var (i-exists : Context.typed-var-in-context (i, t) c = true)
