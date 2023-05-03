@@ -130,14 +130,14 @@
       | 0, 0 => a-eq A-Eq2.ref
       | 0, suc m => a-eq (A-Eq2.eq->a-eq (rewrite NatSemiring.zro_*-left idp))
       | suc n, 0 => chain (Lam x $ Lam y $ repeat n (Lam z (Var z)) (Var y))
-          (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right (\case decideEq z z \as d \return repeat n (Lam z (Var z)) (Var y) = if {Expr} (decToBool d) (repeat n (Lam z (Var z)) (Var y)) (Var z) \with {
+          (one-step-left (bred-lam idp (bred-lam idp (beta-repl-right (\case decideEq z z \as d \return repeat n (Lam z (Var z)) (Var y) = if {Expr} (decToBool d) (repeat n (Lam z (Var z)) (Var y)) (Var z) \with {
                   | yes e => idp
                   | no n1 => absurd (n1 idp)
           })))))
           (repeat-linear-*-lemma2 {x} {y} {z} n)
       | suc n, suc m =>
         chain (Lam x $ Lam y $ App (Var x) (repeat m (Var x) (repeat n (Lam z (repeat (suc m) (Var x) (Var z))) (Var y))))
-            (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right (\case decideEq x z \as d \return   App (Var x) (repeat m (Var x) (repeat n (Lam z (App (Var x) (repeat m (Var x) (Var z)))) (Var y))) = App (if {Expr} (decToBool d) (repeat n (Lam z (App (Var x) (repeat m (Var x) (Var z)))) (Var y)) (Var x))
+            (one-step-left (bred-lam idp (bred-lam idp (beta-repl-right (\case decideEq x z \as d \return   App (Var x) (repeat m (Var x) (repeat n (Lam z (App (Var x) (repeat m (Var x) (Var z)))) (Var y))) = App (if {Expr} (decToBool d) (repeat n (Lam z (App (Var x) (repeat m (Var x) (Var z)))) (Var y)) (Var x))
                                                                                                                                                                                          (replace (repeat m (Var x) (Var z)) z (repeat n (Lam z (App (Var x) (repeat m (Var x) (Var z)))) (Var y))) \with {
               | yes e => absurd (x/=z e)
               | no n1 => pmap (App (Var x)) (inv $ repeat.right-neutral' {x} {z} {x/=z} m (repeat n (Lam z (App (Var x) (repeat m (Var x) (Var z)))) (Var y)))
@@ -151,7 +151,7 @@
       \where {
         \func repeat-linear-*-lemma2 {x y z : Nat} (n : Nat) : Beta-Eq (Lam x $ Lam y $ repeat n (Lam z (Var z)) (Var y)) (Lam x $ Lam y $ Var y) \elim n
           | 0 => a-eq A-Eq2.ref
-          | suc n => chain (Lam x $ Lam y $ repeat n (Lam z (Var z)) (Var y)) (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right (\case decideEq z z \as d \return repeat n (Lam z (Var z)) (Var y) = if {Expr} (decToBool d) (repeat n (Lam z (Var z)) (Var y)) (Var z) \with {
+          | suc n => chain (Lam x $ Lam y $ repeat n (Lam z (Var z)) (Var y)) (one-step-left (bred-lam idp (bred-lam idp (beta-repl-right (\case decideEq z z \as d \return repeat n (Lam z (Var z)) (Var y) = if {Expr} (decToBool d) (repeat n (Lam z (Var z)) (Var y)) (Var z) \with {
             | yes e => idp
             | no n1 => absurd (n1 idp)
           }))))) (repeat-linear-*-lemma2 {x} {y} {z} n)
@@ -252,13 +252,13 @@
         (chain (Lam 2 $ Lam 3 $ App (App (numeral2 0) (Var 2)) (App (App (numeral2 0) (Var 2)) (Var 3)))
             (one-step-left (beta-repl-right idp))
             (chain (Lam 2 $ Lam 3 $ App (Lam 1 (Var 1)) (App (App (numeral2 0) (Var 2)) (Var 3)))
-                (one-step-left (beta-lam idp (beta-lam idp (beta-app-right (beta-repl-right idp) A-Eq2.ref))))
+                (one-step-left (bred-lam idp (bred-lam idp (beta-app-right (beta-repl-right idp) A-Eq2.ref))))
                 (chain (Lam 2 $ Lam 3 (App (App (numeral2 0) (Var 2)) (Var 3)))
-                    (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right idp))))
+                    (one-step-left (bred-lam idp (bred-lam idp (beta-repl-right idp))))
                     (chain (Lam 2 $ Lam 3 (App (Lam 1 (Var 1)) (Var 3)))
-                        (one-step-left (beta-lam idp (beta-lam idp (beta-app-right (beta-repl-right idp) A-Eq2.ref))))
+                        (one-step-left (bred-lam idp (bred-lam idp (beta-app-right (beta-repl-right idp) A-Eq2.ref))))
                         (chain (Lam 2 $ Lam 3 (Var 3))
-                            (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right idp))))
+                            (one-step-left (bred-lam idp (bred-lam idp (beta-repl-right idp))))
                             (a-eq (A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))))
                         )
                     )
@@ -270,13 +270,13 @@
         (chain (Lam 2 $ Lam 3 $ App (App (numeral2 0) (Var 2)) (App (App (numeral2 (suc b)) (Var 2)) (Var 3)))
             (one-step-left (beta-repl-right idp))
             (chain (Lam 2 $ Lam 3 $ App (Lam 1 (Var 1)) (App (App (numeral2 (suc b)) (Var 2)) (Var 3)))
-                (one-step-left (beta-lam idp (beta-lam idp (beta-app-right (beta-repl-right idp) A-Eq2.ref))))
+                (one-step-left (bred-lam idp (bred-lam idp (beta-app-right (beta-repl-right idp) A-Eq2.ref))))
                 (chain (Lam 2 $ Lam 3 (App (App (numeral2 (suc b)) (Var 2)) (Var 3)))
-                    (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right idp))))
+                    (one-step-left (bred-lam idp (bred-lam idp (beta-repl-right idp))))
                     (chain (Lam 2 $ Lam 3 (App (Lam 1 (repeat (suc b) (Var 2) (Var 1))) (Var 3)))
-                        (one-step-left (beta-lam idp (beta-lam idp (beta-app-right (beta-repl-right (pmap (\lam x => Lam 1 (App (Var 2) x)) (inv (repeat.left-neutral {0} {1} {\lam p => suc/=0 (inv p)} b 2)))) A-Eq2.ref))))
+                        (one-step-left (bred-lam idp (bred-lam idp (beta-app-right (beta-repl-right (pmap (\lam x => Lam 1 (App (Var 2) x)) (inv (repeat.left-neutral {0} {1} {\lam p => suc/=0 (inv p)} b 2)))) A-Eq2.ref))))
                         (chain (Lam 2 $ Lam 3 (repeat (suc b) (Var 2) (Var 3)))
-                            (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right (pmap (\lam x => App (Var 2) x) (inv $ repeat.right-neutral {2} {1} {\lam p => suc/=0 (pmap pred p)} b 3))))))
+                            (one-step-left (bred-lam idp (bred-lam idp (beta-repl-right (pmap (\lam x => App (Var 2) x) (inv $ repeat.right-neutral {2} {1} {\lam p => suc/=0 (pmap pred p)} b 3))))))
                             (a-eq $ +-def-lemma1 b)
                         )
                     )
@@ -289,18 +289,18 @@
             (one-step-left (beta-repl-right idp))
             (chain (Lam 2 $ Lam 3 $ App (App (numeral2 $ suc a) (Var 2)) (Var 3))
                 (chain (Lam 2 $ Lam 3 $ App (App (numeral2 $ suc a) (Var 2)) (App (Lam 1 (Var 1)) (Var 3)))
-                    (one-step-left (beta-lam idp (beta-lam idp (beta-app-left A-Eq2.ref (beta-app-right (beta-repl-right idp) A-Eq2.ref)))))
+                    (one-step-left (bred-lam idp (bred-lam idp (beta-app-left A-Eq2.ref (beta-app-right (beta-repl-right idp) A-Eq2.ref)))))
                     (chain (Lam 2 $ Lam 3 $ App (App (numeral2 $ suc a) (Var 2)) (Var 3))
-                        (one-step-left (beta-lam idp (beta-lam idp (beta-app-left A-Eq2.ref (beta-repl-right idp)))))
+                        (one-step-left (bred-lam idp (bred-lam idp (beta-app-left A-Eq2.ref (beta-repl-right idp)))))
                         (a-eq A-Eq2.ref)
                     )
                 )
                 (chain (Lam 2 $ Lam 3 (App (App (numeral2 (suc a)) (Var 2)) (Var 3)))
                     (a-eq A-Eq2.ref)
                     (chain (Lam 2 $ Lam 3 (App (Lam 1 (repeat (suc a) (Var 2) (Var 1))) (Var 3)))
-                        (one-step-left (beta-lam idp (beta-lam idp (beta-app-right (beta-repl-right (pmap (\lam x => Lam 1 (App (Var 2) x)) (inv (repeat.left-neutral {0} {1} {\lam p => suc/=0 (inv p)} a 2)))) A-Eq2.ref))))
+                        (one-step-left (bred-lam idp (bred-lam idp (beta-app-right (beta-repl-right (pmap (\lam x => Lam 1 (App (Var 2) x)) (inv (repeat.left-neutral {0} {1} {\lam p => suc/=0 (inv p)} a 2)))) A-Eq2.ref))))
                         (chain (Lam 2 $ Lam 3 (repeat (suc a) (Var 2) (Var 3)))
-                            (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right (pmap (\lam x => App (Var 2) x) (inv $ repeat.right-neutral {2} {1} {\lam p => suc/=0 (pmap pred p)} a 3))))))
+                            (one-step-left (bred-lam idp (bred-lam idp (beta-repl-right (pmap (\lam x => App (Var 2) x) (inv $ repeat.right-neutral {2} {1} {\lam p => suc/=0 (pmap pred p)} a 3))))))
                             (a-eq $ +-def-lemma1 a)
                         )
                     )
@@ -312,13 +312,13 @@
         (chain (Lam 2 $ Lam 3 $ App (App (numeral2 $ suc a) (Var 2)) (App (App (numeral2 (suc b)) (Var 2)) (Var 3)))
             (one-step-left (beta-repl-right idp))
             (chain (Lam 2 $ Lam 3 $ App (Lam 1 $ repeat (suc a) (Var 2) (Var 1)) (App (App (numeral2 (suc b)) (Var 2)) (Var 3)))
-                (one-step-left (beta-lam idp (beta-lam idp (beta-app-right (beta-repl-right (pmap (Lam 1) (inv $ repeat.left-neutral {0} {1} {\lam p => suc/=0 (inv p)} (suc a) 2))) A-Eq2.ref))))
+                (one-step-left (bred-lam idp (bred-lam idp (beta-app-right (beta-repl-right (pmap (Lam 1) (inv $ repeat.left-neutral {0} {1} {\lam p => suc/=0 (inv p)} (suc a) 2))) A-Eq2.ref))))
                 (chain (Lam 2 $ Lam 3 $ App (Lam 1 $ repeat (suc a) (Var 2) (Var 1)) (App (Lam 1 $ repeat (suc b) (Var 2) (Var 1)) (Var 3)))
-                    (one-step-left (beta-lam idp (beta-lam idp (beta-app-left A-Eq2.ref (beta-app-right (beta-repl-right (pmap (\lam x => Lam 1 (App (Var 2) x)) (inv $ repeat.left-neutral {0} {1} {\lam p => suc/=0 (inv p)} b 2))) A-Eq2.ref)))))
+                    (one-step-left (bred-lam idp (bred-lam idp (beta-app-left A-Eq2.ref (beta-app-right (beta-repl-right (pmap (\lam x => Lam 1 (App (Var 2) x)) (inv $ repeat.left-neutral {0} {1} {\lam p => suc/=0 (inv p)} b 2))) A-Eq2.ref)))))
                     (chain (Lam 2 $ Lam 3 $ App (Lam 1 $ repeat (suc a) (Var 2) (Var 1)) (repeat (suc b) (Var 2) (Var 3)))
-                        (one-step-left (beta-lam idp (beta-lam idp (beta-app-left A-Eq2.ref (beta-repl-right (pmap (App (Var 2)) (inv $ repeat.right-neutral {2} {1} {\lam p => suc/=0 (pmap pred p)} b 3)))))))
+                        (one-step-left (bred-lam idp (bred-lam idp (beta-app-left A-Eq2.ref (beta-repl-right (pmap (App (Var 2)) (inv $ repeat.right-neutral {2} {1} {\lam p => suc/=0 (pmap pred p)} b 3)))))))
                         (chain (Lam 2 $ Lam 3 $ repeat (suc a) (Var 2) (repeat (suc b) (Var 2) (Var 3)))
-                            (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right (pmap (App (Var 2)) (inv $ repeat.right-neutral' {2} {1} {\lam p => suc/=0 (pmap pred p)} a (repeat (suc b) (Var 2) (Var 3))))))))
+                            (one-step-left (bred-lam idp (bred-lam idp (beta-repl-right (pmap (App (Var 2)) (inv $ repeat.right-neutral' {2} {1} {\lam p => suc/=0 (pmap pred p)} a (repeat (suc b) (Var 2) (Var 3))))))))
                             (a-eq (+-def-lemma3 a b))
                         )
                     )
@@ -387,7 +387,7 @@
                         (one-step-left (beta-repl-right idp))
                         (chain
                             (Lam 2 (Lam 1 (Var 1)))
-                            (one-step-left (beta-lam idp (beta-repl-right idp)))
+                            (one-step-left (bred-lam idp (beta-repl-right idp)))
                             (a-eq (A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))))
                         )
                     )
@@ -399,7 +399,7 @@
                             (one-step-left (beta-repl-right idp))
                             (chain
                                 (Lam 2 (Lam 1 (Var 1)))
-                                (one-step-left (beta-lam idp (beta-repl-right idp)))
+                                (one-step-left (bred-lam idp (beta-repl-right idp)))
                                 (a-eq (A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (rewrite (NatSemiring.zro_*-left {n}) (a2var-eq idp)))))
                             )
                         )
@@ -411,7 +411,7 @@
                             (one-step-left (beta-repl-right idp))
                             (chain
                                 (Lam 2 (App (numeral2 (suc n)) (Lam 1 (Var 1))))
-                                (one-step-left (beta-lam idp (beta-app-left A-Eq2.ref (beta-repl-right idp))))
+                                (one-step-left (bred-lam idp (beta-app-left A-Eq2.ref (beta-repl-right idp))))
                                 (chain
                                     (Lam 2 (Lam 1 (Var 1)))
                                     (neutral-numeral2 {suc n})
@@ -427,10 +427,10 @@
                                 (one-step-left (beta-repl-right idp))
                                 (chain
                                     (Lam 2 (App (numeral2 (suc n)) (Lam 1 $ repeat (suc m) (Var 2) (Var 1))))
-                                    (one-step-left (beta-lam idp (beta-app-left A-Eq2.ref (beta-repl-right (pmap (\lam x => Lam 1 (App (Var 2) x)) (inv (repeat.left-neutral {0} {1} {\lam p => suc/=0 (inv p)} m 2)))))))
+                                    (one-step-left (bred-lam idp (beta-app-left A-Eq2.ref (beta-repl-right (pmap (\lam x => Lam 1 (App (Var 2) x)) (inv (repeat.left-neutral {0} {1} {\lam p => suc/=0 (inv p)} m 2)))))))
                                     (chain
                                         (Lam 2 (Lam 1 $ repeat (suc n) (Lam 1 $ repeat (suc m) (Var 2) (Var 1)) (Var 1)))
-                                        (one-step-left (beta-lam idp (beta-repl-right (pmap (\lam x => Lam 1 (App (Lam 1 (App (Var 2) (repeat m (Var 2) (Var 1)))) x)) (inv (repeat.left-neutral' {0} {1} {\lam p => suc/=0 (inv p)} n (Lam 1 (App (Var 2) (repeat m (Var 2) (Var 1))))))))))
+                                        (one-step-left (bred-lam idp (beta-repl-right (pmap (\lam x => Lam 1 (App (Lam 1 (App (Var 2) (repeat m (Var 2) (Var 1)))) x)) (inv (repeat.left-neutral' {0} {1} {\lam p => suc/=0 (inv p)} n (Lam 1 (App (Var 2) (repeat m (Var 2) (Var 1))))))))))
                                         (chain
                                             (Lam 2 (Lam 1 $ repeat (suc n * suc m) (Var 2) (Var 1)))
                                             (*-def-lemma m n)
@@ -442,20 +442,20 @@
       })
   \where {
     \func neutral-numeral2 {n : Nat} : Beta-Eq (Lam 2 (App (numeral2 n) (Lam 1 (Var 1)))) (Lam 2 (Lam 1 (Var 1)))
-      | {0} => chain (Lam 2 (Lam 1 (Var 1))) (one-step-left (beta-lam idp (beta-repl-right idp))) (a-eq (A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))))
+      | {0} => chain (Lam 2 (Lam 1 (Var 1))) (one-step-left (bred-lam idp (beta-repl-right idp))) (a-eq (A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))))
       | {suc n} =>
         \let
           | rec => neutral-numeral2 {n}
           | repl => replace-repeat {suc n} {Lam 1 (Var 1)}
         \in chain
             (Lam 2 $ Lam 1 $ repeat (suc n) (Lam 1 (Var 1)) (Var 1))
-            (one-step-left (beta-lam idp (beta-repl-right (pmap (Lam 1) repl))))
+            (one-step-left (bred-lam idp (beta-repl-right (pmap (Lam 1) repl))))
             (chain
                 (Lam 2 $ Lam 1 (repeat n (Lam 1 (Var 1)) (Var 1)))
-                (one-step-left (beta-lam idp (beta-lam idp (beta-repl-right idp))))
+                (one-step-left (bred-lam idp (bred-lam idp (beta-repl-right idp))))
                 (r-chain
                     (Lam 2 $ App (Lam 0 (Lam 1 (repeat n (Var 0) (Var 1)))) (Lam 1 (Var 1)))
-                    (one-step-left (beta-lam idp (beta-repl-right (pmap (Lam 1) (replace-repeat {n} {Lam 1 (Var 1)})))))
+                    (one-step-left (bred-lam idp (beta-repl-right (pmap (Lam 1) (replace-repeat {n} {Lam 1 (Var 1)})))))
                     rec
                 )
             )
@@ -466,8 +466,8 @@
 
     \func lam-eq {n : Nat} {B1 B2 : Expr} (b-eq : Beta-Eq B1 B2) : Beta-Eq (Lam n B1) (Lam n B2) \elim b-eq
       | a-eq a => a-eq (A-Eq2.a2lam-eq (lam-eq-lemma B1 B2 n a))
-      | one-step-left b => one-step-left (beta-lam idp b)
-      | one-step-right b => one-step-right (beta-lam idp b)
+      | one-step-left b => one-step-left (bred-lam idp b)
+      | one-step-right b => one-step-right (bred-lam idp b)
       | chain tmp b-eq1 b-eq2 => chain (Lam n tmp) (lam-eq b-eq1) (lam-eq b-eq2)
       | r-chain tmp b-eq1 b-eq2 => r-chain (Lam n tmp) (lam-eq b-eq1) (lam-eq b-eq2)
       \where {
@@ -491,7 +491,7 @@
       Beta-Eq
           (Lam 2 (Lam 1 (repeat (suc n) (Lam 1 (repeat (suc m) (Var 2) (Var 1))) (Var 1))))
           (Lam 2 (Lam 1 (repeat (suc n * suc m) (Var 2) (Var 1)))) \elim m, n
-      | 0, 0 => one-step-left (beta-lam idp (beta-lam idp (beta-repl-right idp)))
+      | 0, 0 => one-step-left (bred-lam idp (bred-lam idp (beta-repl-right idp)))
       | 0, suc n => {?}
       | suc m, 0 => {?}
       | suc m, suc n => {?}

@@ -1,87 +1,82 @@
 \import Arith.Nat
 \import Data.Bool
-\import Data.Or
-\import Logic
 \import Paths
 \import Paths.Meta
 \import Set
-\import calculus.AlphaEq2
 \import calculus.Context
 \import calculus.Types
-\import math.sets
+\import math.utils
 
-\data Expr : \Set
-  | Con Nat
-  | Var Nat
-  | Lam Nat Expr
-  | App Expr Expr
+\data Expr_
+  | c Nat
+  | v Nat -- layer diff
+  | \fixr 2 l Expr_
+  | \infixl 6 @ Expr_ Expr_
+
   \where {
-    \func app-decon {P1 Q1 P2 Q2 : Expr} (p : App P1 Q1 = App P2 Q2) : \Sigma (P1 = P2) (Q1 = Q2) =>
+    \func app-decon {P1 Q1 P2 Q2 : Expr_} (p : P1 @ Q1 = P2 @ Q2) : \Sigma (P1 = P2) (Q1 = Q2) =>
       (
-        pmap (\lam x => \case x \with {| Con n => Con 0 | Var n => Con 0 | Lam n e => Con 0| App e e1 => e}) p,
-        pmap (\lam x => \case x \with {| Con n => Con 0 | Var n => Con 0 | Lam n e => Con 0| App e e1 => e1}) p
+        pmap (\lam x => \case x \with {| c n => c 0 | v n => c 0 | l e => c 0| e @ e1 => e}) p,
+        pmap (\lam x => \case x \with {| c n => c 0 | v n => c 0 | l e => c 0| e @ e1 => e1}) p
       )
   }
 
-\data TypedExpr (e : Expr) (t : SimpleType) (c : Context) \elim e, t, c
-  | (Con _), t, c => typed-const
-  | (Var i), t, c => typed-var (i-exists : Context.typed-var-in-context (i, t) c = true)
-  | (Lam i B), (Func a b), c => typed-lam
-    (b-typed      : TypedExpr B b (Context.update-assump (i, a) c))
-  | (App P Q), t, c => typed-app
-    (Qt : SimpleType)
-    (p-typed : TypedExpr P (Func Qt t) c)
-    (q-typed : TypedExpr Q Qt c)
-  \where {
-    \func lam-has-func-type {B : Expr} {i : Nat} {t : SimpleType} {c : Context} (typed : TypedExpr (Lam i B) t c) :
-      \Sigma (a b : SimpleType) (t = Func a b)
-      \elim t, typed
-        | Func t1 t2, typed-lam typed => (t1, t2, idp)
+\data TypedExpr_ (e : Expr_) (t : Type_) (h : Nat) (c : Context_) \elim e, t
+  | (c _), t => t-con
+  | (v i), t => t-var (i-exist : Context_.typed-var-in-context (h_c h i, t) c = true)
+  | (l B), tx ~> tB => t-lam (B-typed : TypedExpr_ B tB (suc h) (Context_.update-assump (h, tx) c))
+  | P @ Q, tr => t-app (tq : Type_) (P-typed : TypedExpr_ P (tq ~> tr) h c) (Q-typed : TypedExpr_ Q tq h c)
 
-    \func app-parts-types {P Q : Expr} {t : SimpleType} {c : Context} (typed : TypedExpr (App P Q) t c) :
-      \Sigma (a b : SimpleType) (TypedExpr P (Func a b) c) (TypedExpr Q a c)
+  \where {
+    \func lam-has-func-type {B : Expr_} {i : Nat} {t : Type_} {h : Nat} {c : Context_} (typed : TypedExpr_ (l B) t h c) :
+      \Sigma (a b : Type_) (t = a ~> b)
       \elim t, typed
-        | Rt, typed-app Qt typed typed1 => (Qt, Rt, typed, typed1)
+        | t1 ~> t2, t-lam _ => (t1, t2, idp)
+
+    \func app-parts-types {P Q : Expr_} {t : Type_} {h : Nat} {c : Context_} (typed : TypedExpr_ (P @ Q) t h c) :
+      \Sigma (a b : Type_) (TypedExpr_ P (a ~> b) h c) (TypedExpr_ Q a h c)
+      \elim t, typed
+        | Rt, t-app Qt typed typed1 => (Qt, Rt, typed, typed1)
   }
 
-\func replace (e : Expr) (var-no : Nat) (to-expr : Expr) : Expr \elim e
-  | Con n => Con n
-  | Var n => if (n == var-no) to-expr (Var n)
-  | Lam n e => if (n == var-no) (Lam n e) (Lam n (replace e var-no to-expr))
-  | App e1 e2 => App (replace e1 var-no to-expr) (replace e2 var-no to-expr)
-    \where {
-      \func same-con-lam {e B : Expr} {i : Nat} (p : A-Eq e (Lam i B)) : \Sigma (B' : Expr) (j : Nat) (e = Lam j B') \elim e, p
-        | Lam i1 e, a2lam-eq-base i2 new-i-B1 new-i-B2 a => (e, i1, idp)
 
-      \func same-con-app {e P Q : Expr} (p : A-Eq e (App P Q)) : \Sigma (P' Q' : Expr) (e = App P' Q') \elim e, p
-        | App e e1, a2app-eq a a1 => (e, e1, idp)
+\func isFree (n cur_h : Nat) => nat_<=-dec.nat_<=_Bool cur_h n
 
-      \func same-con-app-lam {e P Q : Expr} {i : Nat} (p : A-Eq e (App (Lam i P) Q)) : \Sigma (P' Q' : Expr) (j : Nat) (e = App (Lam j P') Q') \elim e, p
-        | App e e1, a2app-eq a a1 => \let (P', j, e=lam) => same-con-lam a \in (P', e1, j, pmap (\lam x => App x e1) e=lam)
+-- (l B) A = B[0=A]
+\func apply_ (B A : Expr_) : Expr_ => apply''_ B A 0
+  \where {
+    \func apply''_ (B A : Expr_) (cur_h : Nat) : Expr_ \elim B
+      | c n => c n
+      | v 0 => if (0 == cur_h) (shift+dh A cur_h 0) (v 0)
+      | v (suc n) => if (suc n == cur_h) (shift+dh A cur_h 0) (if (isFree (suc n) cur_h) (v n) (v (suc n)))
+      | l B => l (apply''_ B A (suc cur_h))
+      | B1 @ B2 => apply''_ B1 A cur_h @ apply''_ B2 A cur_h
 
-      \func same-var-replace (e : Expr) (n : Nat) : replace e n (Var n) = e \elim e
-        | Con n1 => idp
-        | Var n1 => \case decideEq n1 n \as d \return if (decToBool d) (Var n) (Var n1) = Var n1 \with {
-          | yes e => pmap Var (inv e)
-          | no n2 => idp
-        }
-        | Lam n1 e => \case decideEq n1 n \as d \return if (decToBool d) (Lam n1 e) (Lam n1 (replace e n (Var n))) = Lam n1 e \with {
-          | yes e' => idp
-          | no n2 => pmap (Lam n1) (same-var-replace e n)
-        }
-        | App e1 e2 => pmap2 App (same-var-replace e1 n) (same-var-replace e2 n)
+    \func shift+dh (e : Expr_) (dh : Nat) (cur_h : Nat) : Expr_ \elim e
+      | c n => c n
+      | v n => if (isFree n cur_h) (v (n Nat.+ dh)) (v n)
+      | l e => l (shift+dh e dh (suc cur_h))
+      | e1 @ e2 => shift+dh e1 dh cur_h @ shift+dh e2 dh cur_h
 
-      \func neutral-replace (e x : Expr) (var-no : Nat) (p : Not (var-no in FV e)) : replace e var-no x = e \elim e, var-no, p
-        | Con n, v, p => idp
-        | Var n, v, p => \case decideEq n v \as d \return if {Expr} (decToBool d) x (Var n) = Var n \with {
-          | yes e => absurd (p (isHead e))
-          | no n1 => idp
-        }
-        | Lam n e, v, p => \case decideEq n v \as d \return if {Expr} (decToBool d) (Lam n e) (Lam n (replace e v x)) = Lam n e \with {
-          | yes e => idp
-          | no n1 => pmap (Lam n) (neutral-replace e x v (\lam i => p (removeAll.rmv-works2 v i n1)))
-        }
-        | App e1 e2, v, p => pmap2 App
-            (neutral-replace e1 x v (\lam i => p (in.merge-works v (byLeft i))))
-            (neutral-replace e2 x v (\lam i => p (in.merge-works v (byRight i))))
-    }
+    \func shift-0=id {e : Expr_} {cur-h : Nat} : shift+dh e 0 cur-h = e \elim e
+      | c n => idp
+      | v n => \case isFree n cur-h \as d \return if d (v n) (v n) = v n \with {
+        | false => idp
+        | true => idp
+      }
+      | l e => pmap l shift-0=id
+      | e1 @ e2 => pmap2 (@) shift-0=id shift-0=id
+
+    \func trivial-apply {x : Expr_} : x = apply_ (v 0) x =>
+      (
+        rewrite apply_.shift-0=id idp
+        : x = if (0 NatSemiring.== 0) (apply_.shift+dh x 0 0) (v 0)
+      )
+
+    \func trivial/=0-apply {x : Expr_} {n : Nat} : v n = apply_ (v (suc n)) x =>
+      (
+        idp
+        : v n = if (suc n == 0) (apply_.shift+dh x 0 0) (if (isFree (suc n) 0) (v n) (v (suc n)))
+      )
+  }
+

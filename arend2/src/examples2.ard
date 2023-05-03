@@ -92,13 +92,6 @@
   | (l B), tx ~> tB => t-lam (B-typed : TypedExpr_ B tB (suc h) (Context_.update-assump (h, tx) c))
   | P @ Q, tr => t-app (tq : Type_) (P-typed : TypedExpr_ P (tq ~> tr) h c) (Q-typed : TypedExpr_ Q tq h c)
 
-
-\data AlphaEq (e1 e2 : Expr_) \elim e1, e2
-  | c i, c j => same-con (i = j)
-  | v i, v j => save-var (i = j)
-  | P1 @ Q1, P2 @ Q2 => same-app (AlphaEq P1 Q1) (AlphaEq P2 Q2)
-  | l B1, l B2 => same-lam (AlphaEq B1 B2)
-
 \data BetaRed (e1 e2 : Expr_) \elim e1, e2
   | P1 @ Q1, P2 @ Q2 => bred-app-right (P1 = P2) (BetaRed Q1 Q2)
   | P1 @ Q1, P2 @ Q2 => bred-app-left (BetaRed P1 P2) (Q1 = Q2)
@@ -216,14 +209,13 @@
       | suc n => b-eq-chain (rep2 n (l (v 0)) (v 0)) (b-eq-red (bred-repl apply_.trivial-apply)) (test4-lemma n)
 
     \func repeat-linear-*-math-lemma (m n : Nat) : m Nat.+ (n Nat.* m Nat.+ n) = suc n Nat.* m Nat.+ n =>
-      rewrite (inv NatSemiring.+-assoc)
-          (rewrite (NatSemiring.+-comm {m} {n * m})
-              (rewrite
-                  (rewrite (NatSemiring.*-comm {suc n} {m})
-                      (rewrite (NatSemiring.*-comm {n} {m}) idp) : suc n * m = n * m + m)
-                  idp
-              )
+      rewrite
+          (
+            inv NatSemiring.+-assoc,
+            NatSemiring.+-comm {m} {n * m},
+            (rewrite (NatSemiring.*-comm {suc n} {m}) (rewrite (NatSemiring.*-comm {n} {m}) idp) : suc n * m = n * m + m)
           )
+          idp
   }
 
 \func a => Type_.Base 0
@@ -231,4 +223,4 @@
 \func d => Type_.Base 2
 
 \func test5 : TypedExpr_ (l $ l $ v 1 @ v 0) ((a ~> a) ~> a ~> a) 0 Context_.empty => t-lam (t-lam (t-app a (t-var idp) (t-var idp)))
-\func test6 : TypedExpr_ (l $ l $ v 2 @ v 0) ((d ~> d) ~> b ~> a) 0 (with (-1, b ~> a) Context_.empty) => t-lam (t-lam (t-app b (t-var idp) (t-var idp)))
+\func test6 : \Pi (t : Type_) -> TypedExpr_ (l $ l $ v 2 @ v 0) (t ~> b ~> a) 0 (with (-1, b ~> a) Context_.empty) => \lam _ => t-lam (t-lam (t-app b (t-var idp) (t-var idp)))

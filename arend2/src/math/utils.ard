@@ -1,3 +1,4 @@
+\import Arith.Int
 \import Arith.Nat
 \import Data.Bool
 \import Data.Or
@@ -9,6 +10,34 @@
 \import Paths
 \import Paths.Meta
 \import Set
+
+\open IntRing
+
+\func h_c (h : Nat) (i : Nat) => h Nat.- suc i
+\func i_  (h : Nat) (hc : Int) => h IntRing.+ IntRing.negative (isuc hc)
+
+\func hc<->i (h i : Nat) : pos i = i_ h (h_c h i)
+  | 0, 0 => idp
+  | 0, suc i => idp
+  | suc h, 0 => rewrite
+      (pmap (pos (suc h) IntRing.+) (idp : IntRing.negative (isuc 0) = -1))
+      (hc<->i-lemma h : pos 0 = suc h Nat.- suc h)
+  -- TODO
+  | suc h, suc i =>
+    (
+      rewrite isuc=+1 {?}
+      : pos (suc i) = suc h IntRing.+ IntRing.negative (isuc (h_c (suc h) (suc i)))
+    )
+  \where {
+    \func isuc=+1{a : Int} : isuc a = 1 IntRing.+ a \elim a
+      | pos n => idp
+      | neg 0 => idp
+      | neg (suc h) => idp
+
+    \func hc<->i-lemma (h : Nat) : pos 0 = h Nat.- h \elim h
+      | 0 => idp
+      | suc h => hc<->i-lemma h
+  }
 
 \func max (a b : Nat) : Nat \elim a, b
   | 0, 0 => 0

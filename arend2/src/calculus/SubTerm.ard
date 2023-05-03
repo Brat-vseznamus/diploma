@@ -4,157 +4,158 @@
 \import Logic
 \import Paths
 \import Paths.Meta
-\import calculus.AlphaEq
-\import calculus.AlphaEq2
 \import calculus.Base
 \import calculus.Beta
 \import calculus.Context
 \import calculus.Types
 
-\data SubTerm (e se : Expr) \elim e
-  | Lam i B => sub-lam  (SubTerm B se)
-  | App P Q => sub-app  (Or (SubTerm P se) (SubTerm Q se))
+\data SubTerm (e se : Expr_) \elim e
+  | l B     => sub-lam  (SubTerm B se)
+  | P @ Q   => sub-app  (Or (SubTerm P se) (SubTerm Q se))
   | e       => sub-same (e = se)
   \where {
     \func type-subterm
-      (e se : Expr)
+      (e se : Expr_)
       (sub : SubTerm e se)
-      (t : SimpleType) (c : Context) (typed : TypedExpr e t c) :
-    \Sigma (t' : SimpleType) (c' : Context) (TypedExpr se t' c') \elim e, se, sub, t, typed
-      | Lam n e1, se1, sub-lam sub, Func a b, (typed-lam b-exists) => type-subterm e1 se1 sub b (Context.update-assump (n, a) c) b-exists
-      | App e1 e2, se1, sub-app (inl a), t, (typed-app Qt te1 te2) => type-subterm e1 se1 a (Func Qt t) c te1
-      | App e1 e2, se1, sub-app (inr b), t, (typed-app Qt te1 te2) => type-subterm e2 se1 b Qt c te2
-      | e1, se1, sub-same p, t', tp => (t', c, rewriteF p tp)
+      (t : Type_) (h : Nat) (c : Context_) (typed : TypedExpr_ e t h c) :
+    \Sigma (t' : Type_) (h' : Nat) (c' : Context_) (TypedExpr_ se t' h' c') \elim e, se, sub, t, typed
+      | l e1, se1, sub-lam sub, a ~> b, (t-lam b-exists) => type-subterm e1 se1 sub b (suc h) (Context_.update-assump (h, a) c) b-exists
+      | e1 @ e2, se1, sub-app (inl a), t, (t-app Qt te1 te2) => type-subterm e1 se1 a (Qt ~> t) h c te1
+      | e1 @ e2, se1, sub-app (inr b), t, (t-app Qt te1 te2) => type-subterm e2 se1 b Qt h c te2
+      | e1, se1, sub-same p, t', tp => (t', h, c, rewriteF p tp)
 
-    \func ref (e : Expr) (t : SimpleType) (c : Context) (typed : TypedExpr e t c) :
-      type-subterm e e (sub-same idp) t c typed = (t, c, typed)
-      | Con n, t, c, typed-const => idp
-      | Var i, t, c, typed-var i-exists => idp
-      | Lam i e1, Func t t1, c, typed-lam typed => idp
-      | App e1 e2, t, c, typed-app Qt typed typed1 => idp
-
+    \func ref (e : Expr_) (t : Type_) (h : Nat) (c : Context_) (typed : TypedExpr_ e t h c) :
+      type-subterm e e (sub-same idp) t h c typed = (t, h, c, typed)
+      | c n, t, c', h, t-con => idp
+      | v i, t, c', h, t-var i-exists => idp
+      | l e1, t ~> t1, c', h, t-lam typed => idp
+      | e1 @ e2, t, c', h, t-app Qt typed typed1 => idp
   }
 
-
-\data NormalForm (e e' : Expr)
-  | nf (Beta-Chain e e') (Not (\Sigma (e'' : Expr) (Beta-Red e' e'')))
+\data NormalForm (e e' : Expr_)
+  | nf (BetaChain e e') (Not (\Sigma (e'' : Expr_) (BetaRed e' e'')))
 
 -- TODO
-\func unwrap-not-NF (e : Expr) (nf : Not (NormalForm e e)) : \Sigma (e' : Expr) (Beta-Red e e') \elim e
-  | Con n => absurd (nf $ con-is-nf n)
-  | Var n => absurd (nf $ var-is-nf n)
-  | Lam n e => \let (B', red-B') => unwrap-not-NF e (body-not-nf-if-not-lam-nf n e nf) \in (Lam n B', beta-lam idp red-B')
-  | App e1 e2 => {?}
-
-\func var-is-nf (i : Nat) : NormalForm (Var i) (Var i) =>
-  nf (Beta-Chain.end (a2var-eq idp)) (\lam _x => \case _x \with {| (e'',b) => lemma1 i e'' b })
-  \where {
-    \func lemma1 (i : Nat) (e : Expr) (red : Beta-Red (Var i) e) : Empty
+\func unwrap-not-NF (e : Expr_) (nf : Not (NormalForm e e)) : \Sigma (e' : Expr_) (BetaRed e e') \elim e
+  | c n => absurd (nf $ con-is-nf n)
+  | v n => absurd (nf $ var-is-nf n)
+  | l e => \let (B', red-B') => unwrap-not-NF e (body-not-nf-if-not-lam-nf e nf) \in (l B', bred-lam red-B')
+  | e1 @ e2 => \case e1 \as t \return \Sigma (e' : Expr_) (BetaRed (t @ e2) e') \with {
+    | c n => {?}
+    | v n => {?}
+    | l e => (apply_ e e2, bred-repl idp)
+    | e @ e3 => {?}
   }
 
-\func con-is-nf (i : Nat) : NormalForm (Con i) (Con i) =>
-  nf (Beta-Chain.end (a2con-eq idp)) (\lam _x => \case _x \with {| (e'',b) => lemma1 i e'' b })
+\func var-is-nf (i : Nat) : NormalForm (v i) (v i) =>
+  nf (BetaChain.b-chain-end idp) (\lam _x => \case _x \with {| (e'',b) => lemma1 i e'' b })
   \where {
-    \func lemma1 (i : Nat) (e : Expr) (red : Beta-Red (Con i) e) : Empty
+    \func lemma1 (i : Nat) (e : Expr_) (red : BetaRed (v i) e) : Empty
   }
 
-\func decideNF (e : Expr) : Or (NormalForm e e) (Not (NormalForm e e)) \elim e
-  | Con n => inl (con-is-nf n)
-  | Var n => inl (var-is-nf n)
-  | Lam n e => \let dec => decideNF e \in
+\func con-is-nf (i : Nat) : NormalForm (c i) (c i) =>
+  nf (BetaChain.b-chain-end idp) (\lam _x => \case _x \with {| (e'',b) => lemma1 i e'' b })
+  \where {
+    \func lemma1 (i : Nat) (e : Expr_) (red : BetaRed (c i) e) : Empty
+  }
+
+\func decideNF (e : Expr_) : Or (NormalForm e e) (Not (NormalForm e e)) \elim e
+  | c n => inl (con-is-nf n)
+  | v n => inl (var-is-nf n)
+  | l e => \let dec => decideNF e \in
     \case dec \with {
-      | inl a => inl $ lam-nf-if-body-nf n e a
-      | inr b => inr $ lam-not-nf-if-not-body-nf n e b
+      | inl a => inl $ lam-nf-if-body-nf e a
+      | inr b => inr $ lam-not-nf-if-not-body-nf e b
     }
-  | App e1 e2 => \case e1 \as P, decideNF P \as dec \return Or (NormalForm (App P e2) (App P e2)) (Not (NormalForm (App P e2) (App P e2))) \with {
-    | Con n, dec => \case decideNF e2 \with {
-      | inl a1 => \case con-is-nf n, a1 \return Or (NormalForm (App (Con n) e2) (App (Con n) e2)) (Not (NormalForm (App (Con n) e2) (App (Con n) e2))) \with {
-        | nf _ n, nf _ n1 => inl (nf (end A-Eq2.ref) (\lam (x, red-x) => lemma1 red-x n n1 (lemma2-2 idp)))
+  | e1 @ e2 => \case e1 \as P, decideNF P \as dec \return Or (NormalForm (P @ e2) (P @ e2)) (Not (NormalForm (P @ e2) (P @ e2))) \with {
+    | c n, dec => \case decideNF e2 \with {
+      | inl a1 => \case con-is-nf n, a1 \return Or (NormalForm (c n @ e2) (c n @ e2)) (Not (NormalForm (c n @ e2) (c n @ e2))) \with {
+        | nf _ n, nf _ n1 => inl (nf (b-chain-end idp) (\lam (x, red-x) => lemma1 red-x n n1 (lemma2-2 idp)))
       }
       | inr b => inr (\lam n1 => \case n1 \with {
-        | nf _ n2 => b (nf (end A-Eq2.ref) (\lam (e2', red-e2') => n2 (App (Con n) e2', beta-app-left A-Eq2.ref red-e2')))
+        | nf _ n2 => b (nf (b-chain-end idp) (\lam (e2', red-e2') => n2 (c n @ e2', bred-app-right idp red-e2')))
       })
     }
-    | Var n, dec => \case decideNF e2 \with {
-      | inl a1 => \case var-is-nf n, a1 \return Or (NormalForm (App (Var n) e2) (App (Var n) e2)) (Not (NormalForm (App (Var n) e2) (App (Var n) e2))) \with {
-        | nf _ n, nf _ n1 => inl (nf (end A-Eq2.ref) (\lam (x, red-x) => lemma1 red-x n n1 (lemma2-1 idp)))
+    | v n, dec => \case decideNF e2 \with {
+      | inl a1 => \case var-is-nf n, a1 \return Or (NormalForm (v n @ e2) (v n @ e2)) (Not (NormalForm (v n @ e2) (v n @ e2))) \with {
+        | nf _ n, nf _ n1 => inl (nf (b-chain-end idp) (\lam (x, red-x) => lemma1 red-x n n1 (lemma2-1 idp)))
       }
       | inr b => inr (\lam n1 => \case n1 \with {
-        | nf _ n2 => b (nf (end A-Eq2.ref) (\lam (e2', red-e2') => n2 (App (Var n) e2', beta-app-left A-Eq2.ref red-e2')))
+        | nf _ n2 => b (nf (b-chain-end idp) (\lam (e2', red-e2') => n2 (v n @ e2', bred-app-right idp red-e2')))
       })
     }
-    | Lam n P, dec => inr (\lam n1 => \case n1 \with {
-      | nf b n2 => n2 (replace P n e2, beta-repl-right idp)
+    | l P, dec => inr (\lam n1 => \case n1 \with {
+      | nf b n2 => n2 (apply_ P e2, bred-repl idp)
     })
-    | App P1 P2, inl a =>
+    | P1 @ P2, inl a =>
       \case decideNF e2 \with {
-      | inl a1 => \case a, a1 \return Or (NormalForm (App (App P1 P2) e2) (App (App P1 P2) e2)) (Not (NormalForm (App (App P1 P2) e2) (App (App P1 P2) e2))) \with {
-        | nf _ n, nf _ n1 => inl (nf (end A-Eq2.ref) (\lam (x, red-x) => lemma1 red-x n n1 (lemma2-3 idp)))
+      | inl a1 => \case a, a1 \return Or (NormalForm (P1 @ P2 @ e2) (P1 @ P2 @ e2)) (Not (NormalForm (P1 @ P2 @ e2) (P1 @ P2 @ e2))) \with {
+        | nf _ n, nf _ n1 => inl (nf (b-chain-end idp) (\lam (x, red-x) => lemma1 red-x n n1 (lemma2-3 idp)))
       }
       | inr b => inr (\lam n1 => \case n1 \with {
-        | nf _ n2 => b (nf (end A-Eq2.ref) (\lam (e2', red-e2') => n2 (App (App P1 P2) e2', beta-app-left A-Eq2.ref red-e2')))
+        | nf _ n2 => b (nf (b-chain-end idp) (\lam (e2', red-e2') => n2 (P1 @ P2 @ e2', bred-app-right idp red-e2')))
       })
     }
-    | App P P1, inr b => inr (\lam n1 => \case n1 \with {
-      | nf _ n2 => b (nf (end A-Eq2.ref) (\lam (e1', red-e1') => n2 (App e1' e2, beta-app-right red-e1' A-Eq2.ref)))
+    | P @ P1, inr b => inr (\lam n1 => \case n1 \with {
+      | nf _ n2 => b (nf (b-chain-end idp) (\lam (e1', red-e1') => n2 (e1' @ e2, bred-app-left red-e1' idp)))
     })
   }
   \where {
     -- Or (\Sigma (e1' e2' : Expr) (x = App e1' e2')) (\Sigma (P : Expr) (i : Nat) (e1 = Lam i P))
-    \func lemma1 {x e1 e2 : Expr} (b-red : Beta-Red (App e1 e2) x)
-                 (n : Not (\Sigma (e'' : Expr) (Beta-Red e1 e'')))
-                 (n1 : Not (\Sigma (e'' : Expr) (Beta-Red e2 e'')))
-                 (e1/=Lam : Not (\Sigma (B : Expr) (i : Nat) (e1 = Lam i B))) : Empty
+    \func lemma1 {x e1 e2 : Expr_} (b-red : BetaRed (e1 @ e2) x)
+                 (n : Not (\Sigma (e'' : Expr_) (BetaRed e1 e'')))
+                 (n1 : Not (\Sigma (e'' : Expr_) (BetaRed e2 e'')))
+                 (e1/=Lam : Not (\Sigma (B : Expr_) (e1 = l B))) : Empty
     \elim x, e1, e2, b-red
-      | App x x1, e1, e2, beta-app-left a b-red => n1 (x1, b-red)
-      | App x x1, e1, e2, beta-app-right b-red a => n (x, b-red)
-      | x, Lam i e1, e2, beta-repl-right p => e1/=Lam (e1, i, idp)
+      | x @ x1, e1, e2, bred-app-right a b-red => n1 (x1, b-red)
+      | x @ x1, e1, e2, bred-app-left b-red a => n (x, b-red)
+      | x, l e1, e2, bred-repl p => e1/=Lam (e1, idp)
 
-    \func lemma2-1 {e : Expr} {i : Nat} (p : e = Var i) : Not (\Sigma (B : Expr) (j : Nat) (e = Lam j B)) =>
+    \func lemma2-1 {e : Expr_} {i : Nat} (p : e = v i) : Not (\Sigma (B : Expr_) (e = l B)) =>
       \lam _x => suc/=0
           (pmap
-              (\lam (smth : Expr) => \case smth \with {
-                | Con n => 4
-                | Var n => 0
-                | Lam n e1 => 1
-                | App e1 e2 => 2
+              (\lam (smth : Expr_) => \case smth \with {
+                | c n => 4
+                | v n => 0
+                | l e1 => 1
+                | e1 @ e2 => 2
               })
-            (inv _x.3 *> p)
+            (inv _x.2 *> p)
           )
 
-    \func lemma2-2 {e : Expr} {i : Nat} (p : e = Con i) : Not (\Sigma (B : Expr) (j : Nat) (e = Lam j B)) =>
+    \func lemma2-2 {e : Expr_} {i : Nat} (p : e = c i) : Not (\Sigma (B : Expr_) (e = l B)) =>
       \lam _x => suc/=0
           (pmap
-              (\lam (smth : Expr) => \case smth \with {
-                | Con n => 0
-                | Var n => 4
-                | Lam n e1 => 1
-                | App e1 e2 => 2
+              (\lam (smth : Expr_) => \case smth \with {
+                | c n => 0
+                | v n => 4
+                | l e1 => 1
+                | e1 @ e2 => 2
               })
-              (inv _x.3 *> p)
+              (inv _x.2 *> p)
           )
 
-    \func lemma2-3 {e P Q : Expr}  (p : e = App P Q) : Not (\Sigma (B : Expr) (j : Nat) (e = Lam j B)) =>
+    \func lemma2-3 {e P Q : Expr_} (p : e = P @ Q) : Not (\Sigma (B : Expr_) (e = l B)) =>
       \lam _x => suc/=0
           (pmap
-              (\lam (smth : Expr) => \case smth \with {
-                | Con n => 2
-                | Var n => 4
-                | Lam n e1 => 1
-                | App e1 e2 => 0
+              (\lam (smth : Expr_) => \case smth \with {
+                | c n => 2
+                | v n => 4
+                | l e1 => 1
+                | e1 @ e2 => 0
               })
-              (inv _x.3 *> p)
+              (inv _x.2 *> p)
           )
   }
 
 -- TODO
-\func not-app-conclusion {e P Q : Expr} (is-app : e = App P Q) (notNF : Not (NormalForm e e)) :
+\func not-app-conclusion {e P Q : Expr_} (is-app : e = P @ Q) (notNF : Not (NormalForm e e)) :
   Or
       (Or
           (Not (NormalForm P P))
           (Not (NormalForm Q Q))
       )
-      (\Sigma (B : Expr) (i : Nat) (P = Lam i B)) =>
+      (\Sigma (B : Expr_) (P = l B)) =>
   \case
     P \as P', decideNF P', decideNF Q
   \return Or
@@ -162,15 +163,15 @@
           (Not (NormalForm P' P'))
           (Not (NormalForm Q Q))
       )
-      (\Sigma (B : Expr) (i : Nat) (P' = Lam i B))
+      (\Sigma (B : Expr_) (P' = l B))
   \with {
     | _, inl a, inr b => inl (inr b)
     | _, inr b, inl a => inl (inl b)
     | _, inr b, inr b1 => inl (inl b)
-    | Con n, inl a, inl a1 => {?}
-    | Var n, inl a, inl a1 => {?}
-    | Lam n P', inl a, inl a1 => inr (P', n, idp)
-    | App P'1 P'2, inl a, inl a1 => {?}
+    | c n, inl a, inl a1 => {?}
+    | v n, inl a, inl a1 => {?}
+    | l P', inl a, inl a1 => inr (P', idp)
+    | P'1 @ P'2, inl a, inl a1 => {?}
   }
 
 
@@ -180,54 +181,53 @@
   | inr na, inl b => inl na
   | inr na, inr nb => inl na
 
-\func lam-not-nf-if-not-body-nf (i : Nat) (B : Expr) (b-nf : Not(NormalForm B B)) : Not(NormalForm (Lam i B) (Lam i B)) =>
-  \lam n => b-nf (body-nf-if-lam-nf i B n)
+\func lam-not-nf-if-not-body-nf (B : Expr_) (b-nf : Not(NormalForm B B)) : Not(NormalForm (l B) (l B)) =>
+  \lam n => b-nf (body-nf-if-lam-nf B n)
 
-\func lam-nf-if-body-nf (i : Nat) (B : Expr) (b-nf : NormalForm B B) : NormalForm (Lam i B) (Lam i B) \elim b-nf
+\func lam-nf-if-body-nf (B : Expr_) (b-nf : NormalForm B B) : NormalForm (l B) (l B) \elim b-nf
   | nf b n => nf
-      (end A-Eq2.ref)
+      (b-chain-end idp)
       (\lam _x =>
           \let (se, beta) => _x \in lam-nf-if-body-nf-lemma se beta n
       )
   \where {
     \func lam-nf-if-body-nf-lemma
-        {i : Nat}
-        {B : Expr}
-        (se : Expr)
-        (beta : Beta-Red (Lam i B) se)
-        (n : Not (\Sigma (e'' : Expr) (Beta-Red B e''))) : Empty \elim se, beta
-      | Lam j se, beta-lam p beta => n (se, beta)
+        {B : Expr_}
+        (se : Expr_)
+        (beta : BetaRed (l B) se)
+        (n : Not (\Sigma (e'' : Expr_) (BetaRed B e''))) : Empty \elim se, beta
+      | l se, bred-lam beta => n (se, beta)
   }
 
-\func body-not-nf-if-not-lam-nf (i : Nat) (B : Expr) (lam-nf : Not(NormalForm (Lam i B) (Lam i B))) : Not(NormalForm B B) =>
-  \lam p => lam-nf (lam-nf-if-body-nf i B p)
+\func body-not-nf-if-not-lam-nf (B : Expr_) (lam-nf : Not(NormalForm (l B) (l B))) : Not(NormalForm B B) =>
+  \lam p => lam-nf (lam-nf-if-body-nf B p)
 
-\func body-nf-if-lam-nf (i : Nat) (B : Expr) (lam-nf : NormalForm (Lam i B) (Lam i B)) : NormalForm B B \elim lam-nf
-  | nf _ n => nf (end A-Eq2.ref) $ \lam (x, red-x) => n (Lam i x, beta-lam idp red-x)
+\func body-nf-if-lam-nf (B : Expr_) (lam-nf : NormalForm (l B) (l B)) : NormalForm B B \elim lam-nf
+  | nf _ n => nf (b-chain-end idp) $ \lam (x, red-x) => n (l x, bred-lam red-x)
 
-\func app-with-lam-reducable {e B Q : Expr} {i : Nat} (p : e = App (Lam i B) Q) : Beta-Red e (replace B i Q) =>
-  rewriteF (inv p) (beta-repl-right (idp {Expr} {replace B i Q}))
+\func app-with-lam-reducable {e B Q : Expr_} (p : e = l B @ Q) : BetaRed e (apply_ B Q) =>
+  rewriteF (inv p) (bred-repl (idp {Expr_} {apply_ B Q}))
 
-\func no-nf-if-lam-app (e P Q : Expr) (i : Nat) (has-lam : SubTerm e (App (Lam i P) Q)) : Not (NormalForm e e) \elim e, has-lam
-  | Lam i1 e, sub-lam has-lam => \lam n => (no-nf-if-lam-app e P Q i has-lam) (body-nf-if-lam-nf i1 e n)
-  | App P' Q', sub-app o => \case o  \with {
+\func no-nf-if-lam-app (e P Q : Expr_) (has-lam : SubTerm e (l P @ Q)) : Not (NormalForm e e) \elim e, has-lam
+  | l e, sub-lam has-lam => \lam n => (no-nf-if-lam-app e P Q has-lam) (body-nf-if-lam-nf e n)
+  | P' @ Q', sub-app o => \case o \with {
     | inl a => \lam n => \let
-        | notNF-P => no-nf-if-lam-app P' P Q i a
+        | notNF-P => no-nf-if-lam-app P' P Q a
         | (P'', red-P'') => unwrap-not-NF P' notNF-P
                             \in \case n \with {
-      | nf _ n1 => n1 (App P'' Q', beta-app-right red-P'' A-Eq2.ref)
+      | nf _ n1 => n1 (P'' @ Q', bred-app-left red-P'' idp)
     }
     | inr b =>  \lam n => \let
-      | notNF-Q => no-nf-if-lam-app Q' P Q i b
+      | notNF-Q => no-nf-if-lam-app Q' P Q b
       | (Q'', red-Q'') => unwrap-not-NF Q' notNF-Q
                           \in \case n \with {
-        | nf _ n1 => n1 (App P' Q'', beta-app-left A-Eq2.ref red-Q'')
+        | nf _ n1 => n1 (P' @ Q'', bred-app-right idp red-Q'')
       }
   }
   | e, sub-same a => \lam n => \case n \with {
-    | nf _ n1 => n1 (replace P i Q, app-with-lam-reducable a)
+    | nf _ n1 => n1 (apply_ P Q, app-with-lam-reducable a)
   }
 
-\func no-lam-app-in-nf (e : Expr) (nf : NormalForm e e) :
-  Not(\Sigma (P Q : Expr) (i : Nat) (has-lam : SubTerm e (App (Lam i P) Q))) =>
-  \lam p => (no-nf-if-lam-app e p.1 p.2 p.3 p.4) nf
+\func no-lam-app-in-nf (e : Expr_) (nf : NormalForm e e) :
+  Not(\Sigma (P Q : Expr_) (has-lam : SubTerm e (l P @ Q))) =>
+  \lam p => (no-nf-if-lam-app e p.1 p.2 p.3) nf

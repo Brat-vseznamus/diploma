@@ -1,3 +1,4 @@
+\import Arith.Int
 \import Arith.Nat
 \import Data.Bool
 \import Logic
@@ -10,149 +11,154 @@
 \import math.utils
 
 -- TODO change to addOrUpdate
-\data Context
+
+\data Context_
   | empty
-  | with (\Sigma Nat SimpleType) Context
+  | with (\Sigma Int Type_) Context_
   \where {
-    \func rm-assump (assumption : \Sigma Nat SimpleType) (context : Context) : Context \elim assumption, context
+    \func rm-assump (assumption : \Sigma Int Type_) (context : Context_) : Context_ \elim assumption, context
       | (n,s), with _x _context => if (_x.1 == n) _context (with _x (rm-assump (n, s) _context))
       | (n,s), empty => empty
-    \func add-assump (newAssumption : \Sigma Nat SimpleType) (context : Context) : Context \elim newAssumption, context
-      | (n,s), with _x _context => with _x (if (_x.1 == n) _context (add-assump (n, s)  _context))
-      | (n,s), empty => with (n, s) empty
-    \func update-assump (newAssumption : \Sigma Nat SimpleType) (context : Context) : Context \elim newAssumption, context
+
+    \func update-assump (newAssumption : \Sigma Int Type_) (context : Context_) : Context_ \elim newAssumption, context
       | (n,s), with (n', s') _context => with (n', if (n' == n) s s') (if (n' == n) _context (update-assump (n, s)  _context))
       | (n,s), empty => with (n, s) empty
-    \func var-in-context (var : Nat) (c : Context) : Bool \elim c
+
+    \func add-assump (newAssumption : \Sigma Int Type_) (context : Context_) : Context_ \elim newAssumption, context
+      | (n,s), with _x _context => with _x (if (_x.1 == n) _context (add-assump (n, s)  _context))
+      | (n,s), empty => with (n, s) empty
+
+    \func var-in-context (var : Int) (c : Context_) : Bool \elim c
       | empty => false
-      | with (i, _) c => if (i == var) true (var-in-context var c)
-    \func typed-var-in-context (var-with-type : \Sigma Nat SimpleType) (c : Context) : Bool \elim c
+      | with (i, _) c' => if (i == var) true (var-in-context var c')
+
+    \func typed-var-in-context (var-with-type : \Sigma Int Type_) (c : Context_) : Bool \elim c
       | empty => false
-      | with (i, t) c =>
+      | with (i, t) c' =>
         if (i == var-with-type.1)
-            (t STDecSet.== var-with-type.2)
-            (typed-var-in-context var-with-type c)
+            (t TDecSet.== var-with-type.2)
+            (typed-var-in-context var-with-type c')
 
     \func typed-var-ex=>var-ex
-      {var : Nat} {t : SimpleType} {c : Context} (p : typed-var-in-context (var, t) c = true) : var-in-context var c = true \elim c
-      | empty => p
-      | with _x c => \case
-        (decideEq _x.1 var) \as d1,
-        (decideEq _x.2 t) \as d2,
-        p : if {Bool} (decToBool d1) (decToBool d2) (typed-var-in-context (var, t) c) = true
-        \return if {Bool} (decToBool d1) true (var-in-context var c) = true
-      \with {
-        | yes e, yes e1, p1 => p1
-        | no n, yes e, p1 => typed-var-ex=>var-ex p1
-        | no n, no n1, p1 => typed-var-ex=>var-ex p1
-      }
-
-    \func extract-type {var : Nat} {c : Context} (p : var-in-context var c = true) : SimpleType \elim c
-      | empty => absurd (true/=false (inv p))
-      | with (n, t) c => \case decideEq n var \as d, p : if (decToBool d) true (var-in-context var c) = true \with {
-        | yes e, p => t
-        | no n1, p => extract-type p
-      }
-
-    \func type-unique {var : Nat} {a b : SimpleType} {c : Context}
-                      (p1 : typed-var-in-context (var, a) c = true)
-                      (p2 : typed-var-in-context (var, b) c = true) : a = b =>
-      \let
-        | inC => typed-var-ex=>var-ex p1
-        | tu1 => type-unique' inC p1
-        | tu2 => type-unique' inC p2
-      \in tu1 *> inv tu2
-
-
-    \func type-unique' {var : Nat} {t : SimpleType} {c : Context}
-                      (p1 : var-in-context var c = true)
-                      (p : typed-var-in-context (var, t) c = true) : t = extract-type p1 \elim c
-      | empty => absurd (true/=false (inv p))
-      | with _x c =>
-        \case
-          decideEq _x.1 var \as d1,
-          decideEq _x.2 t \as d2,
-          p1 \as p2 : if (decToBool d1) true (var-in-context var c) = true,
-          p \as p' : if {Bool} (decToBool d1) (decToBool d2) (typed-var-in-context (var, t) c) = true
-          \return t = \case d1 \as d1, p2 : if (decToBool d1) true (var-in-context var c) = true \with {
-          | yes _, _ => _x.2
-          | no _, p => extract-type {var} {c} p
-        }
+        {var : Nat} {t : Type_} {c : Context_} (p : typed-var-in-context (var, t) c = true) : var-in-context var c = true \elim c
+        | empty => p
+        | with _x c' => \case
+          (decideEq _x.1 var) \as d1,
+          (decideEq _x.2 t) \as d2,
+          p : if {Bool} (decToBool d1) (decToBool d2) (typed-var-in-context (var, t) c') = true
+          \return if {Bool} (decToBool d1) true (var-in-context var c') = true
         \with {
-          | yes e, yes e1, p2, p' => inv e1
-          | yes e, no n, p2, ()
-          | no n, yes e, p2, p' => type-unique' p2 p'
-          | no n, no n1, p2, p' => type-unique' p2 p'
+          | yes e, yes e1, p1 => p1
+          | no n, yes e, p1 => typed-var-ex=>var-ex p1
+          | no n, no n1, p1 => typed-var-ex=>var-ex p1
         }
 
-    \func extract-works {var : Nat} {c : Context}
-                        (p1 : var-in-context var c = true) : typed-var-in-context (var, extract-type p1) c = true  \elim c
-      | empty => p1
-      | with _x c =>
-        \case
-          decideEq _x.1 var \as d
-        \return
-          if {Bool}
-              (decToBool d)
-              (_x.2 == (
-                         \case decideEq _x.1 var \as d', p1 : if (decToBool d') true (var-in-context var c) = true \with {
-                            | yes _, _ => _x.2
-                            | no _, p => extract-type {var} {c} p
-                          }
-                       )
-              )
-              (typed-var-in-context
-                  (
-                    var,
-                    \case decideEq _x.1 var \as d', p1 : if (decToBool d') true (var-in-context var c) = true \with {
-                       | yes _, _ => _x.2
-                       | no _, p => extract-type {var} {c} p
-                    }
-                  )
-                  c
-              )
-            = true
-        \with {
-        | yes e =>
+      \func extract-type {var : Nat} {c : Context_} (p : var-in-context var c = true) : Type_ \elim c
+        | empty => absurd (true/=false (inv p))
+        | with (n, t) c' => \case decideEq n var \as d, p : if (decToBool d) true (var-in-context var c') = true \with {
+          | yes e, p => t
+          | no n1, p => extract-type p
+        }
+
+      \func type-unique {var : Nat} {a b : Type_} {c : Context_}
+                        (p1 : typed-var-in-context (var, a) c = true)
+                        (p2 : typed-var-in-context (var, b) c = true) : a = b =>
+        \let
+          | inC => typed-var-ex=>var-ex p1
+          | tu1 => type-unique' inC p1
+          | tu2 => type-unique' inC p2
+        \in tu1 *> inv tu2
+
+
+      \func type-unique' {var : Nat} {t : Type_} {c : Context_}
+                        (p1 : var-in-context var c = true)
+                        (p : typed-var-in-context (var, t) c = true) : t = extract-type p1 \elim c
+        | empty => absurd (true/=false (inv p))
+        | with _x c' =>
           \case
-            decideEq _x.1 var \as d,
-            p1 \as p2 : if (decToBool d) true (var-in-context var c) = true
-          \return
-            _x.2 == (\case d \as d, p2 : if (decToBool d) true (var-in-context var c) = true \with {
-              | yes _, _ => _x.2
-              | no _, p => extract-type {var} {c} p
-            }) = true
-          \with {
-            | yes e1, p => \case decideEq _x.2 _x.2 \as d \return decToBool d = true \with {
-              | yes e2 => idp
-              | no n => absurd (n idp)
-            }
-            | no n, p => absurd (n e)
+            decideEq _x.1 var \as d1,
+            decideEq _x.2 t \as d2,
+            p1 \as p2 : if (decToBool d1) true (var-in-context var c') = true,
+            p \as p' : if {Bool} (decToBool d1) (decToBool d2) (typed-var-in-context (var, t) c') = true
+            \return t = \case d1 \as d1, p2 : if (decToBool d1) true (var-in-context var c') = true \with {
+            | yes _, _ => _x.2
+            | no _, p => extract-type {var} {c'} p
           }
-        | no n => \case decideEq _x.1 var \as d, p1 \as p2 : if (decToBool d) true (var-in-context var c) = true \return typed-var-in-context (var, \case d \as d, p2 : if (decToBool d) true (var-in-context var c) = true \with {
-          | yes _, _ => _x.2
-          | no _, p => extract-type {var} {c} p
-        }) c = true \with {
-          | yes e1, p => absurd (n e1)
-          | no n, p => extract-works p
+          \with {
+            | yes e, yes e1, p2, p' => inv e1
+            | yes e, no n, p2, ()
+            | no n, yes e, p2, p' => type-unique' p2 p'
+            | no n, no n1, p2, p' => type-unique' p2 p'
+          }
+
+      \func extract-works {var : Nat} {c : Context_}
+                          (p1 : var-in-context var c = true) : typed-var-in-context (var, extract-type p1) c = true  \elim c
+        | empty => p1
+        | with _x c' =>
+          \case
+            decideEq _x.1 var \as d
+          \return
+            if {Bool}
+                (decToBool d)
+                (_x.2 == (
+                           \case decideEq _x.1 var \as d', p1 : if (decToBool d') true (var-in-context var c') = true \with {
+                              | yes _, _ => _x.2
+                              | no _, p => extract-type {var} {c'} p
+                            }
+                         )
+                )
+                (typed-var-in-context
+                    (
+                      var,
+                      \case decideEq _x.1 var \as d', p1 : if (decToBool d') true (var-in-context var c') = true \with {
+                         | yes _, _ => _x.2
+                         | no _, p => extract-type {var} {c'} p
+                      }
+                    )
+                    c'
+                )
+              = true
+          \with {
+          | yes e =>
+            \case
+              decideEq _x.1 var \as d,
+              p1 \as p2 : if (decToBool d) true (var-in-context var c') = true
+            \return
+              _x.2 == (\case d \as d, p2 : if (decToBool d) true (var-in-context var c') = true \with {
+                | yes _, _ => _x.2
+                | no _, p => extract-type {var} {c'} p
+              }) = true
+            \with {
+              | yes e1, p => \case decideEq _x.2 _x.2 \as d \return decToBool d = true \with {
+                | yes e2 => idp
+                | no n => absurd (n idp)
+              }
+              | no n, p => absurd (n e)
+            }
+          | no n => \case decideEq _x.1 var \as d, p1 \as p2 : if (decToBool d) true (var-in-context var c') = true \return typed-var-in-context (var, \case d \as d, p2 : if (decToBool d) true (var-in-context var c') = true \with {
+            | yes _, _ => _x.2
+            | no _, p => extract-type {var} {c'} p
+          }) c' = true \with {
+            | yes e1, p => absurd (n e1)
+            | no n, p => extract-works p
+          }
         }
-      }
 
   }
 
-\func CV (c : Context) : Array Nat \elim c
+\func CV (c : Context_) (h : Nat) : Array Int \elim c
   | empty => nil
-  | with _x c => addDistinct (CV c) _x.1
+  | with (i, _) c' => addDistinct (CV c' h) (i_ h i)
 
-\func FV (e : Expr) : Array Nat \elim e
-  | Con n => nil
-  | Var n => n :: nil
-  | Lam n e => removeAll (FV e) n
-  | App e1 e2 => mergeUnique (FV e1) (FV e2)
+\func FV (e : Expr_) (h : Nat) : Array Int \elim e
+  | c n => nil
+  | v n => if {Array Int} (isFree n h) (n :: nil) nil
+  | l e => FV e (suc h)
+  | e1 @ e2 => mergeUnique (FV e1 h) (FV e2 h)
 
-\func V (e : Expr) : Array Nat \elim e
-  | Con n => nil
-  | Var n => n :: nil
-  | Lam n e => V e
-  | App e1 e2 => mergeUnique (V e2) (V e1)
+--\func V (e : Expr_) : Array Nat \elim e
+--  | Con n => nil
+--  | Var n => n :: nil
+--  | Lam n e => V e
+--  | App e1 e2 => mergeUnique (V e2) (V e1)
 
