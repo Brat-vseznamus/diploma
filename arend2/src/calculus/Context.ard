@@ -158,7 +158,7 @@
 
 --\func V (e : Expr_) : Array Nat \elim e
 --  | Con n => nil
---  | Var n => n :: nil
+--  | Var n => n :: nil\Pi (i : Nat) (h' : Nat) (ti : Type_) (Context_.typed-var-in-context (h_c h' i, ti) con = true) -> inS ti
 --  | Lam n e => V e
 --  | App e1 e2 => mergeUnique (V e2) (V e1)
 

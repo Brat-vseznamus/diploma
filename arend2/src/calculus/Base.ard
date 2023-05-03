@@ -1,5 +1,6 @@
 \import Arith.Nat
 \import Data.Bool
+\import Logic
 \import Paths
 \import Paths.Meta
 \import Set

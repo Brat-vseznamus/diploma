@@ -5,7 +5,6 @@
 \import Logic
 \import Paths
 \import Paths.Meta
-\import Set
 \import calculus.Base
 \import calculus.Beta
 \import calculus.Context
@@ -33,7 +32,7 @@
   (t-inS : inS t)
   (no-con : \Pi (i : Nat) -> Not (SubTerm e (c i)))
   (closed : FV e h leq CV con h)
-  (each-var-typed : \Pi (i : Nat) (h' : Nat) (ti : Type_) (Context_.typed-var-in-context (h_c h' i, ti) con = true) -> inS ti) :
+  (each-var-typed : VarsTypedCorrectly con) :
   \Pi (se : Expr_) (sub : SubTerm e se) -> inS (SubTerm.type-subterm e se sub t h con typed).1 \elim e
   | c n => \lam se sub => \case sub \with {
     | sub-same p => absurd (no-con n (sub-same idp))
