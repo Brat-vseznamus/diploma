@@ -32,7 +32,7 @@
   | suc n, suc m =>
     \let
       | r => rep2.replace-args-left {m} {v 2} {v 0} {rep2 n (l (v 2 @ rep2 m (v 2) (v 0))) (v 0)}
-      | r2 => test3 m (n * m + n)
+      | r2 => +-def.+-def-rep2-eq m (n * m + n)
     \in
       b-eq-chain (v 1 @ rep2 m (v 1) (rep2 n (l (v 2 @ rep2 m (v 2) (v 0))) (v 0)))
           (b-eq-red (bred-repl (pmap (v 1 @) (pmap2 (rep2 m) idp apply_.trivial-apply *> r))))
