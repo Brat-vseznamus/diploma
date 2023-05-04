@@ -129,3 +129,6 @@
   | yes e => absurd $ p e
   | no n => idp
 }
+
+\func pmap3 {A B C D : \Type} (f : A -> B -> C -> D) {a a' : A} (p : a = a') {b b' : B} (q : b = b') (c c' : C) (k : c = c') : f a b c = f a' b' c'
+  => path (\lam i => f (p @ i) (q @ i) (k @ i))
