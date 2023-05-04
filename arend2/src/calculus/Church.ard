@@ -16,6 +16,10 @@
   | 0 => x
   | suc n => f @ rep2 n f x
   \where {
+    \func replace-args-left' {h : Nat} {n : Nat} {f x x0 : Expr_} : rep2 n (apply_.apply''_ f x0 h) (apply_.apply''_ x x0 h) = apply_.apply''_ (rep2 n f x) x0 h \elim n
+      | 0 => idp
+      | suc n => pmap2 (@) idp replace-args-left'
+
     \func replace-args-left {n : Nat} {f x x0 : Expr_} : rep2 n (apply_ f x0) (apply_ x x0) = apply_ (rep2 n f x) x0 \elim n
       | 0 => idp
       | suc n => pmap2 (@) idp replace-args-left
@@ -24,37 +28,6 @@
       | 0 => bx1-x2
       | suc n => BetaEq.app-save-eq-right (save-beta-eq n bx1-x2)
   }
-
-\func test4 (n m : Nat) : BetaEq (rep2 n (l $ rep2 m (v 2) (v 0)) (v 0)) (rep2 (n * m) (v 1) (v 0))
-  | 0, 0 => b-eq-eq idp
-  | 0, suc m => rewrite NatSemiring.zro_*-left (b-eq-eq idp)
-  | suc n, 0 => b-eq-chain (rep2 n (l (v 0)) (v 0)) (b-eq-red (bred-repl apply_.trivial-apply)) (test4-lemma n)
-  | suc n, suc m =>
-    \let
-      | r => rep2.replace-args-left {m} {v 2} {v 0} {rep2 n (l (v 2 @ rep2 m (v 2) (v 0))) (v 0)}
-      | r2 => +-def.+-def-rep2-eq m (n * m + n)
-    \in
-      b-eq-chain (v 1 @ rep2 m (v 1) (rep2 n (l (v 2 @ rep2 m (v 2) (v 0))) (v 0)))
-          (b-eq-red (bred-repl (pmap (v 1 @) (pmap2 (rep2 m) idp apply_.trivial-apply *> r))))
-          (b-eq-chain (rep2 (suc m) (v 1) (rep2 (n * suc m) (v 1) (v 0)))
-              (BetaEq.app-save-eq-right (rep2.save-beta-eq m (test4 n (suc m))))
-              (b-eq-eq (pmap (v 1 @) (r2 *> pmap (\lam x => rep2 x (v 1) (v 0)) (repeat-linear-*-math-lemma m n))))
-          )
-  \where {
-    \func test4-lemma (n : Nat) : BetaEq (rep2 n (l (v 0)) (v 0)) (v 0) \elim n
-      | 0 => b-eq-eq idp
-      | suc n => b-eq-chain (rep2 n (l (v 0)) (v 0)) (b-eq-red (bred-repl apply_.trivial-apply)) (test4-lemma n)
-
-    \func repeat-linear-*-math-lemma (m n : Nat) : m Nat.+ (n Nat.* m Nat.+ n) = suc n Nat.* m Nat.+ n =>
-      rewrite
-          (
-            inv NatSemiring.+-assoc,
-            NatSemiring.+-comm {m} {n * m},
-            (rewrite (NatSemiring.*-comm {suc n} {m}) (rewrite (NatSemiring.*-comm {n} {m}) idp) : suc n * m = n * m + m)
-          )
-          idp
-  }
-
 
 \func Numeral : Repr Nat => \lam n => l $ l $ rep2 n (v 1) (v 0)
 
@@ -74,7 +47,7 @@
           b-eq-chain ((l $ l $ l $ Numeral n @ v 1 @ (v 2 @ v 1 @ v 0)) @ Numeral m)
               (b-eq-red (bred-app-left (bred-repl (pmap (\lam x => l $ l $ l ((l $ l x) @ v 1 @ (v 2 @ v 1 @ v 0))) (+-def-lemma' n (suc<suc zero<suc)) : l (l (l (Numeral n @ v 1 @ (v 2 @ v 1 @ v 0)))) = l (l (l (apply_.apply''_ (v 3 @ v 1 @ (v 2 @ v 1 @ v 0)) (Numeral n) 3))))) idp))
               (b-eq-chain (l $ l $ Numeral n @ v 1 @ (Numeral m @ v 1 @ v 0))
-                  (b-eq-red (bred-repl (pmap (\lam x => l $ l $ x) (pmap2 (\lam x y => (l $ l $ x) @ v 1 @ (y @ v 1 @ v 0)) (+-def-lemma'' n m (suc<suc zero<suc)) (pmap (\lam x => l $ l x) (+-def-lemma' m (suc<suc zero<suc)))))))
+                  (b-eq-red (bred-repl (pmap (\lam x => l $ l $ x) (pmap2 (\lam x y => (l $ l $ x) @ v 1 @ (y @ v 1 @ v 0)) (+-def-lemma'' n (suc<suc zero<suc)) (pmap (\lam x => l $ l x) (+-def-lemma' m (suc<suc zero<suc)))))))
                   (b-eq-chain (l $ l $ (l $ rep2 n (v 2) (v 0)) @ (Numeral m @ v 1 @ v 0))
                       (b-eq-red (bred-lam (bred-lam (bred-app-left (bred-repl (pmap l (+-def-lemma2 n))) idp))))
                       (b-eq-chain (l $ l $ (l $ rep2 n (v 2) (v 0)) @ ((l $ rep2 m (v 2) (v 0)) @ v 0))
@@ -128,7 +101,7 @@
         | no n1 => pmap (v 1 @) (+-def-lemma' n h>1)
       }
 
-    \func +-def-lemma'' {x : Expr_} {h : Nat} (n m : Nat) (h>1 : 1 < h) : rep2 n (v 1) (v 0) = apply_.apply''_ (rep2 n (v 1) (v 0)) x h \elim n
+    \func +-def-lemma'' {x : Expr_} {h : Nat} (n : Nat) (h>1 : 1 < h) : rep2 n (v 1) (v 0) = apply_.apply''_ (rep2 n (v 1) (v 0)) x h \elim n
       | 0 => \let h/=0 : 0 /= h => \lam p => NatSemiring.<-irreflexive (NatSemiring.<-transitive (id<suc {0}) (rewrite p h>1)) \in
         \case decideEq 0 h \as d \return v 0 = if {Expr_} (decToBool d) (apply_.shift+dh x h 0) (v 0)\with {
           | yes e => absurd (h/=0 e)
@@ -145,7 +118,7 @@
                 | (suc (suc h)), p => absurd $ suc/=0 p
               }
             \in absurd (h<=1 h>1)
-          | no n2 => pmap (v 1 @) (+-def-lemma'' n m h>1)
+          | no n2 => pmap (v 1 @) (+-def-lemma'' n h>1)
         }
       }
 
@@ -160,5 +133,62 @@
 \func *-def : NatDef {2} (Nat.*) =>
   def-exists
       *-Expr_
-      (\lam (arg-con n (arg-con m arg-empty)) => {?})
+      (\lam (arg-con n (arg-con m arg-empty)) =>
+          b-eq-chain ((l $ l $ Numeral n @ (v 1 @ v 0)) @ Numeral m)
+              (b-eq-red (bred-app-left (bred-repl (pmap (\lam x => l $ l $ ((l $ l $ x) @ (v 1 @ v 0))) (+-def.+-def-lemma' n (suc<suc zero<suc)))) idp))
+              (b-eq-chain (l $ Numeral n @ (Numeral m @ v 0))
+                  (b-eq-red (bred-repl (pmap l (pmap2 (@) (pmap (\lam x => l $ l $ x) (+-def.+-def-lemma'' n (suc<suc zero<suc))) (pmap (\lam x => (l $ l $ x) @ v 0) (+-def.+-def-lemma' m (suc<suc zero<suc)))))))
+                  (b-eq-chain (l $ Numeral n @ (l $ rep2 m (v 1) (v 0)))
+                      (b-eq-red (bred-lam (bred-app-right idp (bred-repl (pmap l (*-def-lemma1 m))))))
+                      (b-eq-chain (l $ l $ rep2 n (l $ rep2 m (v 2) (v 0)) (v 0))
+                          (b-eq-red (bred-lam (bred-repl (pmap l (
+                            \let
+                              | tmp1 => rep2.replace-args-left' {1} {n} {v 1} {v 0} {l $ rep2 m (v 1) (v 0)}
+                              | tmp2 : l (apply_.shift+dh (rep2 m (v 1) (v 0)) 1 1) = l (rep2 m (v 2) (v 0)) => pmap l (inv (*-def-lemma2 m))
+                            \in rewriteF tmp2 tmp1
+                          )))))
+                          (BetaEq.lam-save-eq (BetaEq.lam-save-eq (*-def-rep2-eq n m)))
+                      )
+                  )
+              )
+      )
+  \where {
+    \func *-def-rep2-eq (n m : Nat) : BetaEq (rep2 n (l $ rep2 m (v 2) (v 0)) (v 0)) (rep2 (n * m) (v 1) (v 0))
+      | 0, 0 => b-eq-eq idp
+      | 0, suc m => rewrite NatSemiring.zro_*-left (b-eq-eq idp)
+      | suc n, 0 => b-eq-chain (rep2 n (l (v 0)) (v 0)) (b-eq-red (bred-repl apply_.trivial-apply)) (*-def-rep2-eq-lemma n)
+      | suc n, suc m =>
+        \let
+          | r => rep2.replace-args-left {m} {v 2} {v 0} {rep2 n (l (v 2 @ rep2 m (v 2) (v 0))) (v 0)}
+          | r2 => +-def.+-def-rep2-eq m (n * m + n)
+        \in
+          b-eq-chain (v 1 @ rep2 m (v 1) (rep2 n (l (v 2 @ rep2 m (v 2) (v 0))) (v 0)))
+              (b-eq-red (bred-repl (pmap (v 1 @) (pmap2 (rep2 m) idp apply_.trivial-apply *> r))))
+              (b-eq-chain (rep2 (suc m) (v 1) (rep2 (n * suc m) (v 1) (v 0)))
+                  (BetaEq.app-save-eq-right (rep2.save-beta-eq m (*-def-rep2-eq n (suc m))))
+                  (b-eq-eq (pmap (v 1 @) (r2 *> pmap (\lam x => rep2 x (v 1) (v 0)) (repeat-linear-*-math-lemma m n))))
+              )
+      \where {
+        \func *-def-rep2-eq-lemma (n : Nat) : BetaEq (rep2 n (l (v 0)) (v 0)) (v 0) \elim n
+          | 0 => b-eq-eq idp
+          | suc n => b-eq-chain (rep2 n (l (v 0)) (v 0)) (b-eq-red (bred-repl apply_.trivial-apply)) (*-def-rep2-eq-lemma n)
+
+        \func repeat-linear-*-math-lemma (m n : Nat) : m Nat.+ (n Nat.* m Nat.+ n) = suc n Nat.* m Nat.+ n =>
+          rewrite
+              (
+                inv NatSemiring.+-assoc,
+                NatSemiring.+-comm {m} {n * m},
+                (rewrite (NatSemiring.*-comm {suc n} {m}) (rewrite (NatSemiring.*-comm {n} {m}) idp) : suc n * m = n * m + m)
+              )
+              idp
+      }
+
+    \func *-def-lemma1 (m : Nat) : rep2 m (v 1) (v 0) = apply_.apply''_ (rep2 m (v 1) (v 0)) (v 0) 1 \elim m
+      | 0 => idp
+      | suc m => pmap (v 1 @) (*-def-lemma1 m)
+
+    \func *-def-lemma2 (m : Nat) : rep2 m (v 2) (v 0) = apply_.shift+dh (rep2 m (v 1) (v 0)) 1 1 \elim m
+      | 0 => idp
+      | suc m => pmap (v 2 @) (*-def-lemma2 m)
+  }
 

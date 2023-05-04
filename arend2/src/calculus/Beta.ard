@@ -34,4 +34,10 @@
       | b-eq-red b => b-eq-red (bred-app-right idp b)
       | b-eq-inv-red b => b-eq-inv-red (bred-app-right idp b)
       | b-eq-chain tmp b-p1 b-p2 => b-eq-chain (P @ tmp) (app-save-eq-right b-p1) (app-save-eq-right b-p2)
+
+    \func lam-save-eq {B1 B2 : Expr_} (b-q : BetaEq B1 B2) : BetaEq (l B1) (l B2) \elim b-q
+      | b-eq-eq p => b-eq-eq (pmap l p)
+      | b-eq-red b => b-eq-red (bred-lam b)
+      | b-eq-inv-red b => b-eq-inv-red (bred-lam b)
+      | b-eq-chain tmp b-q1 b-q2 => b-eq-chain (l tmp) (lam-save-eq b-q1) (lam-save-eq b-q2)
   }
