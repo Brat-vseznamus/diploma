@@ -1,0 +1,41 @@
+\import Data.Or
+\import Function.Meta
+\import Logic
+\import calculus.Base
+\import calculus.Context
+\import calculus.SubTerm
+\import calculus.Types
+\import calculus.theorems.common
+\import math.sets
+\import math.utils
+
+\func Theorem2-Context : Context_ =>
+  with (-3, (A ~> A) ~> (A ~> A)) $
+  with (-2, (A ~> A) ~> (A ~> A)) $
+  with (-1,        A ~> A       )
+  empty
+
+\func Theorem2
+  (td-fun : Expr_)
+  (td-typed : TypedExpr_ td-fun (A ~> A) 0 Theorem2-Context)
+  (td-nf : NormalForm td-fun td-fun)
+  (td-no-con : \Pi (i : Nat) -> Not (SubTerm td-fun (c i)))
+  (td-closed : FV td-fun 0 leq CV Theorem2-Context 0)
+  : \Pi (se : Expr_) (sub : SubTerm td-fun se) ->
+        \let
+            | (t', h', c', typed) => SubTerm.type-subterm td-fun se sub (A ~> A) 0 Theorem2-Context td-typed
+        \in t' = (A ~> A) ~> (A ~> A) -> \Sigma (i : Nat) (se = v i) (Or (h_c h' i = -3) (h_c h' i = -2))
+--  => {?}
+  => \lam se sub => \case (SubTerm.type-subterm td-fun se sub (A ~> A) 0 Theorem2-Context td-typed) \as typing \return \let (t',h',c',typed) => typing
+                                        \in t' = (A ~> A) ~> A ~> A -> \Sigma (i : Nat) (se = v i) (Or (h_c h' i = neg 3) (h_c h' i = neg 2)) \with {
+    | (t',h',c',t) => \lam p => \case td-fun \as f, td-typed : TypedExpr_ f (A ~> A) 0 Theorem2-Context, se \as sf, sub : SubTerm f sf \with {
+      | c n, t-con, sf, sub-same p1 => {?}
+      | v i, t-var i-exist, sf, sub-same p1 => {?}
+      | l f, t-lam B-typed, sf, sub-lam s => {?}
+      | l f, t-lam B-typed, sf, sub-same p1 => {?}
+      | f @ f1, t-app tq P-typed Q-typed, sf, sub-app o => {?}
+      | f @ f1, t-app tq P-typed Q-typed, sf, sub-same p1 => {?}
+    }
+  }
+--      \case
+--    (SubTerm.type-subterm td-fun se sub (A ~> A) 0 Theorem2-Context td-typed) \as typing \with {}

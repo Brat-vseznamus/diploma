@@ -10,19 +10,11 @@
 \import calculus.Context
 \import calculus.SubTerm
 \import calculus.Types
+\import calculus.theorems.common
 \import math.sets
 \import math.utils
 
-\func A => Base 0
-
-\data Set3 {T : \Type} (e1 e2 e3 : T) (e : T)
-  | is1 (e = e1)
-  | is2 (e = e2)
-  | is3 (e = e3)
-
-\func inS (e : Type_) => Set3 {Type_} A (A ~> A) ((A ~> A) ~> (A ~> A)) e
-
-\func theorema1
+\func Theorema1
   (e : Expr_)
   (t : Type_)
   (h : Nat)
@@ -58,7 +50,7 @@
       }
       | closedL : FV e (suc h) leq CV (Context_.update-assump (h, a) con) (suc h) => theorema1-lemma e h a con -- ext-closed e n a c closed
       | var-ext : VarsTypedCorrectly (Context_.update-assump (h, a) con) => var-ext-impl h a b a-inSl b-inSl con each-var-typed
-      | rec => theorema1 e b (suc h) (Context_.update-assump (h, a) con) nfl typedl b-inSl no-conl closedL var-ext se s
+      | rec => Theorema1 e b (suc h) (Context_.update-assump (h, a) con) nfl typedl b-inSl no-conl closedL var-ext se s
                     \in rec
     | sub-same p, t' ~> t'1, t-lam typed', t-inS' => t-inS'
   }
@@ -67,7 +59,7 @@
     | sub-app (inl a), t', t-app Qt typed' typed'1, t-inS' =>
       \let
         | pt-inS => leftInS3 e1 e2 t' Qt h con typed' typed'1 no-con nf each-var-typed
-      \in theorema1
+      \in Theorema1
           e1
           (Qt ~> t')
           h
@@ -94,7 +86,7 @@
           | is3 p, is2 p1 => \let (eq1, eq2) => TDecSet.rmFunc p \in is2 eq1
           | is3 p, is3 p1 => \let (eq1, eq2) => TDecSet.rmFunc p \in absurd (suc/=0 (pmap TDecSet.conNo (TDecSet.rmFunc (inv p1 *> eq2)).1))
         }
-      \in theorema1
+      \in Theorema1
           e2
           Qt
           h

@@ -1,0 +1,10 @@
+\import calculus.Types
+
+\func A => Base 0
+
+\data Set3 {T : \Type} (e1 e2 e3 : T) (e : T)
+  | is1 (e = e1)
+  | is2 (e = e2)
+  | is3 (e = e3)
+
+\func inS (e : Type_) => Set3 {Type_} A (A ~> A) ((A ~> A) ~> (A ~> A)) e
