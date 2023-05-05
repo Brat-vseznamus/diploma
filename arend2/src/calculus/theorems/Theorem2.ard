@@ -175,3 +175,163 @@
     \func Theorema2-1-lemma (h : Nat) (a : Type_) (con : Context_) : \Pi (hc : Int) -> ConReq hc (Context_.update-assump (pos h, a) con) =>
       {?}
   }
+
+\func Req2 (e : Expr_) (t : Type_) (h : Nat) (con : Context_) (typed : TypedExpr_ e t h con) (B : Expr_) (sub : SubTerm e (l B)) =>
+  (SubTerm.type-subterm e (l B) sub t h con typed).1 = (A ~> A)
+
+\func Theorema2-2
+  (e : Expr_)
+  (t : Type_)
+  (h : Nat)
+  (con : Context_)
+  (con-req : \Pi (hc : Int) -> ConReq hc con)
+  (nf : NormalForm e e)
+  (typed : TypedExpr_ e t h con)
+  (t-inS' : \Sigma (inS t) (t /= (A ~> A) ~> (A ~> A)))
+  (no-con : \Pi (i : Nat) -> Not (SubTerm e (c i)))
+  (closed : ClosedForm e h con)
+  (each-var-typed : VarsTypedCorrectly con) :
+  \Pi (B : Expr_) (sub : SubTerm e (l B)) -> Req2 e t h con typed B sub \elim e
+  | c n => absurd (no-con n (sub-same idp))
+  | v n => \lam B sub => \case sub \with {
+    | sub-same p => contradiction
+  }
+  | l e => \lam B sub =>
+      \case
+        sub \as s,
+        t \as type,
+        t-inS' : \Sigma (inS type) (type /= (A ~> A) ~> (A ~> A)),
+        typed \as tpd : TypedExpr_ (l e) type h con
+      \return (SubTerm.type-subterm (l e) (l B) s type h con tpd).1 = (A ~> A)
+      \with {
+        | sub-lam s, a ~> b, t-inS, t-lam tpd =>
+          \let
+            | b-inS =>
+              rewriteF SubTerm.ref $
+              Theorema1
+                  (l e)
+                  (a ~> b)
+                  h
+                  con
+                  nf
+                  (t-lam tpd)
+                  t-inS.1
+                  no-con
+                  closed
+                  each-var-typed
+                  e
+                  (sub-lam (sub-same idp))
+            | b/=A4 : b /= (A ~> A) ~> (A ~> A) => \case t-inS.1 \with {
+              | is1 p => contradiction
+              | is2 p => \let b=A => (TDecSet.rmFunc p).2 \in \lam p1 => contradiction
+              | is3 p => \let b=A2 => (TDecSet.rmFunc p).2 \in \lam p1 => contradiction
+            }
+            | a-inS : inS a => \case t-inS.1 \with {
+              | is1 p2 => contradiction
+              | is2 p2 => is1 (TDecSet.rmFunc p2).1
+              | is3 p2 => is2 (TDecSet.rmFunc p2).1
+            }
+          \in
+          Theorema2-2 e b (suc h)
+              (Context_.update-assump (h, a) con)
+              (Theorema2-1.Theorema2-1-lemma h a con)
+              (\case nf \with {
+                | NormalForm.nf b1 n1 => NormalForm.nf (b-chain-end idp) (\lam (e', b-e') => n1 (l e', bred-lam b-e'))
+              })
+              tpd
+              (b-inS, b/=A4)
+              (\lam i s => (no-con i) (sub-lam s))
+              (Theorema1.theorema1-lemma e h a con)
+              (Theorema1.var-ext-impl h a b a-inS b-inS con each-var-typed)
+              B
+              s
+        | sub-same p, type ~> type1, t-inS, tpd => \case t-inS.1 \with {
+          | is1 p1 => contradiction
+          | is2 p1 => p1
+          | is3 p1 => absurd $ t-inS.2 p1
+        }
+      }
+  | e1 @ e2 => \lam B sub =>
+      \case
+        sub \as s,
+        typed \as tpd : TypedExpr_ (e1 @ e2) t h con
+        \return (SubTerm.type-subterm (e1 @ e2) (l B) s t h con tpd).1 = (A ~> A)
+      \with {
+        | sub-app-left s, t-app tq tp tp1 =>
+          Theorema2-2 e1 (tq ~> t) h con con-req
+              (NormalForm.nf (b-chain-end idp) (\lam (e, b-e) => \case nf \with {
+                | NormalForm.nf b1 n => n (e @ e2, bred-app-left b-e idp)
+              }))
+              tp
+              (
+                \case
+                  e1 \as P,
+                  no-con : \Pi (i : Nat) -> Not (SubTerm (P @ e2) (c i)),
+                  s : SubTerm P (l B),
+                  nf : NormalForm (P @ e2) (P @ e2),
+                  tp : TypedExpr_ P (tq ~> t) h con,
+                  closed : ClosedForm (P @ e2) h con
+                \with {
+                  | c n, _x, _, _, _, _ => absurd (_x n (sub-app-left (sub-same idp)))
+                  | v n, _, _s, _, _, _ => \case _s \with {
+                    | sub-same p => contradiction
+                  }
+                  | l P, _x, _s, nf_, _, _ => \case nf_ \with {
+                    | NormalForm.nf b n => absurd (n (apply_ P e2, bred-repl idp))
+                  }
+                  | P1 @ P2, _x, _s, _nf, tp, cl =>
+                    \let
+                      | rec => Theorema1.leftInS3 (P1 @ P2) e2 t tq h con tp tp1 _x _nf each-var-typed
+                    \in \case rec \with {
+                      | is1 p => (is1 p, \lam p1 => contradiction)
+                      | is2 p => (is2 p, \lam p1 => contradiction)
+                      | is3 p => \case tp \with {
+                        | t-app tq1 P-typed Q-typed =>
+                          \let
+                            | P1-inS => rewrite p $ rewriteF SubTerm.ref $
+                              Theorema1
+                                  (P1 @ P2 @ e2)
+                                  t
+                                  h
+                                  con
+                                  _nf
+                                  (t-app tq (t-app tq1 P-typed Q-typed) tp1)
+                                  t-inS'.1
+                                  _x
+                                  cl
+                                  each-var-typed
+                                  P1
+                                  (sub-app-left (sub-app-left (sub-same idp)))
+                          \in contradiction
+                      }
+                    }
+                }
+              )
+              (\lam i s => no-con i (sub-app-left s))
+              (Theorema1.decon-closed {e1 @ e2} {e1} {e2} {h} {con} {idp} closed).1
+              each-var-typed
+              B
+              s
+        | sub-app-right s, t-app tq tp tp1 =>
+          Theorema2-2 e2 tq h con con-req
+              (NormalForm.nf (b-chain-end idp) (\lam (e, b-e) => \case nf \with {
+                | NormalForm.nf b1 n => n (e1 @ e, bred-app-right idp b-e)
+              }))
+              tp1
+              (
+                \let
+                  | tq->t-inS => Theorema1.leftInS3 e1 e2 t tq h con tp tp1 no-con nf each-var-typed
+                \in
+                \case tq->t-inS \with {
+                  | is1 p => contradiction
+                  | is2 p => \let pr => (TDecSet.rmFunc p).1 \in (is1 pr, \lam p1 => contradiction)
+                  | is3 p => \let pr => (TDecSet.rmFunc p).1 \in (is2 pr, \lam p1 => contradiction)
+                }
+              )
+              (\lam i s => no-con i (sub-app-right s))
+              (Theorema1.decon-closed {e1 @ e2} {e1} {e2} {h} {con} {idp} closed).2
+              each-var-typed
+              B
+              s
+        | sub-same p, tp => contradiction
+      }
