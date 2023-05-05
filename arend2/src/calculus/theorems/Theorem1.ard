@@ -23,7 +23,7 @@
   (typed : TypedExpr_ e t h con)
   (t-inS : inS t)
   (no-con : \Pi (i : Nat) -> Not (SubTerm e (c i)))
-  (closed : FV e h leq CV con h)
+  (closed : ClosedForm e h con)
   (each-var-typed : VarsTypedCorrectly con) :
   \Pi (se : Expr_) (sub : SubTerm e se) -> inS (SubTerm.type-subterm e se sub t h con typed).1 \elim e
   | c n => \lam se sub => \case sub \with {
@@ -56,7 +56,7 @@
   }
 
   | e1 @ e2 => \lam se sub => \case sub \as s, t \as t', typed \as typed' : TypedExpr_ (e1 @ e2) t' h con, t-inS : inS t' \return inS (SubTerm.type-subterm (e1 @ e2) se s t' h con typed').1 \with {
-    | sub-app (inl a), t', t-app Qt typed' typed'1, t-inS' =>
+    | sub-app-left a, t', t-app Qt typed' typed'1, t-inS' =>
       \let
         | pt-inS => leftInS3 e1 e2 t' Qt h con typed' typed'1 no-con nf each-var-typed
       \in Theorema1
@@ -69,12 +69,12 @@
           }))
           typed'
           pt-inS
-          (\lam i s => no-con i (sub-app (inl s)))
+          (\lam i s => no-con i (sub-app-left s))
           (decon-closed {e1 @ e2} {e1} {e2} {h} {con} {idp} closed).1
           each-var-typed
           se
           a
-    | sub-app (inr b), t', t-app Qt typed' typed'1, t-inS' =>
+    | sub-app-right b, t', t-app Qt typed' typed'1, t-inS' =>
       \let
         | pt-inS => leftInS3 e1 e2 t' Qt h con typed' typed'1 no-con nf each-var-typed
         | q-inS : inS Qt => \case pt-inS, t-inS' \with {
@@ -96,7 +96,7 @@
           }))
           typed'1
           q-inS
-          (\lam i s => no-con i (sub-app (inr s)))
+          (\lam i s => no-con i (sub-app-right s))
           (decon-closed {e1 @ e2} {e1} {e2} {h} {con} {idp} closed).2
           each-var-typed
           se
@@ -216,7 +216,7 @@
       (no-con : \Pi (i : Nat) -> Not (SubTerm (e1 @ e2) (c i)))
       (nf : NormalForm (e1 @ e2) (e1 @ e2))
       (each-var-typed : VarsTypedCorrectly con) : inS (Qt ~> t) \elim e1
-      | c n => absurd (no-con n (sub-app (inl (sub-same idp))))
+      | c n => absurd (no-con n (sub-app-left (sub-same idp)))
       | v n => \case typedP \with {
         | t-var i-exists => \let f-inS => each-var-typed n h (Qt ~> t) i-exists \in f-inS
       }
@@ -231,7 +231,7 @@
               h
               con
               typedP
-              (\lam i s => no-con i (sub-app (inl s)))
+              (\lam i s => no-con i (sub-app-left s))
               (NormalForm.nf (b-chain-end idp) (\lam (app-red, app-red-b) => \case nf \with {
                 | NormalForm.nf b n => n (app-red @ e2, bred-app-left app-red-b idp)
               }))
@@ -257,7 +257,7 @@
       (nf : NormalForm (e1 @ e2) (e1 @ e2))
       (each-var-typed : VarsTypedCorrectly con) :
       \Sigma (t' : Type_) (inS (t' ~> t)) (TypedExpr_ e1 (t' ~> t) h con) \elim e1, typed
-      | c n, t-app Qt typed1 typed2 => absurd (no-con n (sub-app (inl (sub-same idp))))
+      | c n, t-app Qt typed1 typed2 => absurd (no-con n (sub-app-left (sub-same idp)))
       | v n, t-app Qt typed1 typed2 => \case typed1 \with {
         | t-var i-exists => \let f-inS => each-var-typed n h (Qt ~> t) i-exists \in (Qt, f-inS, typed1)
       }
@@ -272,7 +272,7 @@
               h
               con
               typed1
-              (\lam i s => no-con i (sub-app (inl s)))
+              (\lam i s => no-con i (sub-app-left s))
               (NormalForm.nf (b-chain-end idp) (\lam (app-red, app-red-b) => \case nf \with {
                 | NormalForm.nf b n => n (app-red @ e2, bred-app-left app-red-b idp)
               }))
@@ -289,9 +289,6 @@
           }
         }
 
-    \func theorema1-lemma (e : Expr_) (h : Nat) (a : Type_) (con : Context_) : FV e (suc h) leq CV (Context_.update-assump (pos h, a) con) (suc h) =>
+    \func theorema1-lemma (e : Expr_) (h : Nat) (a : Type_) (con : Context_) : ClosedForm e (suc h) (Context_.update-assump (pos h, a) con) =>
       {?}
   }
-
-\type VarsTypedCorrectly (c : Context_) => \Pi (i : Nat) (h' : Nat) (ti : Type_) (Context_.typed-var-in-context (h_c h' i, ti) c = true) -> inS ti
-  

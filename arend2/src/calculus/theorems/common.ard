@@ -1,4 +1,9 @@
+\import Data.Bool
+\import calculus.Base
+\import calculus.Context
 \import calculus.Types
+\import math.sets
+\import math.utils
 
 \func A => Base 0
 
@@ -8,3 +13,7 @@
   | is3 (e = e3)
 
 \func inS (e : Type_) => Set3 {Type_} A (A ~> A) ((A ~> A) ~> (A ~> A)) e
+
+
+\type ClosedForm (e : Expr_) (h : Nat) (c_ : Context_) => FV e h leq CV c_ h
+\type VarsTypedCorrectly (c : Context_) => \Pi (i : Nat) (h' : Nat) (ti : Type_) (Context_.typed-var-in-context (h_c h' i, ti) c = true) -> inS ti

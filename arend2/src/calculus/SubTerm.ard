@@ -11,18 +11,19 @@
 
 \data SubTerm (e se : Expr_) \elim e
   | l B     => sub-lam  (SubTerm B se)
-  | P @ Q   => sub-app  (Or (SubTerm P se) (SubTerm Q se))
+  | P @ Q   => sub-app-left (SubTerm P se)
+  | P @ Q   => sub-app-right (SubTerm Q se)
   | e       => sub-same (e = se)
   \where {
     \func type-subterm
       (e se : Expr_)
       (sub : SubTerm e se)
       (t : Type_) (h : Nat) (c : Context_) (typed : TypedExpr_ e t h c) :
-    \Sigma (t' : Type_) (h' : Nat) (c' : Context_) (TypedExpr_ se t' h' c') \elim e, se, sub, t, typed
-      | l e1, se1, sub-lam sub, a ~> b, (t-lam b-exists) => type-subterm e1 se1 sub b (suc h) (Context_.update-assump (h, a) c) b-exists
-      | e1 @ e2, se1, sub-app (inl a), t, (t-app Qt te1 te2) => type-subterm e1 se1 a (Qt ~> t) h c te1
-      | e1 @ e2, se1, sub-app (inr b), t, (t-app Qt te1 te2) => type-subterm e2 se1 b Qt h c te2
-      | e1, se1, sub-same p, t', tp => (t', h, c, rewriteF p tp)
+    \Sigma (t' : Type_) (h' : Nat) (c' : Context_) (TypedExpr_ se t' h' c') \elim e, se, sub, t, h, c, typed
+      | l e1, se1, sub-lam sub, a ~> b, h, c_, (t-lam b-exists) => type-subterm e1 se1 sub b (suc h) (Context_.update-assump (h, a) c_) b-exists
+      | e1 @ e2, se1, sub-app-left a, t, h, c_, (t-app Qt te1 te2) => type-subterm e1 se1 a (Qt ~> t) h c_ te1
+      | e1 @ e2, se1, sub-app-right b, t, h, c_, (t-app Qt te1 te2) => type-subterm e2 se1 b Qt h c_ te2
+      | e1, se1, sub-same p, t', h, c_, tp => (t', h, c_, rewriteF p tp)
 
     \func ref (e : Expr_) (t : Type_) (h : Nat) (c : Context_) (typed : TypedExpr_ e t h c) :
       type-subterm e e (sub-same idp) t h c typed = (t, h, c, typed)
@@ -210,20 +211,19 @@
 
 \func no-nf-if-lam-app (e P Q : Expr_) (has-lam : SubTerm e (l P @ Q)) : Not (NormalForm e e) \elim e, has-lam
   | l e, sub-lam has-lam => \lam n => (no-nf-if-lam-app e P Q has-lam) (body-nf-if-lam-nf e n)
-  | P' @ Q', sub-app o => \case o \with {
-    | inl a => \lam n => \let
+  | P' @ Q', sub-app-left a => \lam n => \let
         | notNF-P => no-nf-if-lam-app P' P Q a
         | (P'', red-P'') => unwrap-not-NF P' notNF-P
                             \in \case n \with {
       | nf _ n1 => n1 (P'' @ Q', bred-app-left red-P'' idp)
     }
-    | inr b =>  \lam n => \let
-      | notNF-Q => no-nf-if-lam-app Q' P Q b
-      | (Q'', red-Q'') => unwrap-not-NF Q' notNF-Q
-                          \in \case n \with {
+
+  | P' @ Q', sub-app-right b => \lam n => \let
+        | notNF-Q => no-nf-if-lam-app Q' P Q b
+        | (Q'', red-Q'') => unwrap-not-NF Q' notNF-Q
+                            \in \case n \with {
         | nf _ n1 => n1 (P' @ Q'', bred-app-right idp red-Q'')
       }
-  }
   | e, sub-same a => \lam n => \case n \with {
     | nf _ n1 => n1 (apply_ P Q, app-with-lam-reducable a)
   }
