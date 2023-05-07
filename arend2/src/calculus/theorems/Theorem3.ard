@@ -1,0 +1,96 @@
+\import Arith.Int
+\import Data.Bool
+\import Function.Meta
+\import Logic
+\import Logic.Meta
+\import Paths
+\import Paths.Meta
+\import Set \hiding (#)
+\import calculus.Base
+\import calculus.Beta
+\import calculus.Church
+\import calculus.Context
+\import calculus.SubTerm
+\import calculus.Types
+\import calculus.theorems.Theorem1
+\import calculus.theorems.common
+\import math.utils
+
+\data Polynom (n m : Nat)
+  | poly-con (k : Nat)
+  | poly-sum (Polynom n m) (Polynom n m)
+  | poly-mul (Polynom n m) (Polynom n m)
+
+\func eval {n m : Nat} (p : Polynom n m) : Nat \elim p
+  | poly-con k => k
+  | poly-sum p1 p2 => eval p1 Nat.+ eval p2
+  | poly-mul p1 p2 => eval p1 Nat.* eval p2
+
+
+\func PolynomExpr (n m : Nat) (e : Expr_) (h : Nat) =>
+  \Sigma (P : Polynom n m) (i : Nat) (BetaEq e (l (Numeral (eval P) @ v (suc h) @ v i)))
+
+
+\func Theorem+1
+  (e : Expr_)
+  (a b : Type_)
+  (h : Nat)
+  (nf : NormalForm e e)
+  (typed : TypedExpr_ e (a ~> b) h empty)
+  (no-con : \Pi (i : Nat) -> Not (SubTerm e (c i)))
+  (closed : ClosedForm e h empty)
+  : \Sigma (B : Expr_) (e = l B) \elim e
+  | c n => absurd (no-con n (sub-same idp))
+  | v n => \case typed \with {
+    | t-var i-exist => absurd (true/=false (inv i-exist))
+  }
+  | l e => (e, idp)
+  | e1 @ e2 => \case typed \with {
+    | t-app tq P-typed Q-typed =>
+      \let name => Theorem+1 e1 tq (a ~> b) h (NormalForm.nf (b-chain-end idp) (\lam (e, b-e) => \case nf \with {
+        | NormalForm.nf b1 n => n (e @ e2, bred-app-left b-e idp)
+      })) P-typed (\lam i s => no-con i (sub-app-left s)) (Theorema1.decon-closed {e1 @ e2} {e1} {e2} {h} {empty} {idp} closed).1
+      \in
+        absurd (\case nf \with {
+          | NormalForm.nf _ n => n (apply_ name.1 e2, rewrite name.2 (bred-repl idp))
+        })
+  }
+
+\func Theorem+2
+  (e : Expr_)
+  (h : Nat)
+  (nf : NormalForm e e)
+  (typed : TypedExpr_ e (((A ~> A) ~> (A ~> A)) ~> ((A ~> A) ~> (A ~> A)) ~> (A ~> A) ~> (A ~> A)) h empty)
+  (no-con : \Pi (i : Nat) -> Not (SubTerm e (c i)))
+  (closed : ClosedForm e h empty)
+  : \Sigma (B : Expr_) (e = l (l (l B))) \elim e
+  | c n => absurd (no-con n (sub-same idp))
+  | v n => \case typed \with {
+    | t-var i-exist => absurd (true/=false (inv i-exist))
+  }
+  | l e => \case typed \with {
+    | t-lam B-typed =>
+      \case
+        e \as B,
+        B-typed : TypedExpr_ B (((A ~> A) ~> (A ~> A)) ~> (A ~> A) ~> (A ~> A)) (suc h) (Context_.update-assump (h, (A ~> A) ~> (A ~> A)) empty)
+      \with {
+      | c n, t-con => {?} -- add no-con
+      | v i, t-var i-exist => \case IntRing.decideEq h (h_c (suc h) i) \as d, i-exist : if {Bool} (decToBool d) ((A ~> A) ~> A ~> A Set.== ((A ~> A) ~> A ~> A) ~> (A ~> A) ~> A ~> A)
+          false = true  \with {
+        | yes e1, p => contradiction
+        | no n, p => contradiction
+      }
+      | l B, t-lam B-typed1 => {?}
+      | B @ B1, t-app tq P-typed Q-typed => {?}
+    }
+  }
+  | e1 @ e2 => \case typed \with {
+    | t-app tq P-typed Q-typed =>
+      \let name => Theorem+1 e1 tq (((A ~> A) ~> (A ~> A)) ~> ((A ~> A) ~> (A ~> A)) ~> (A ~> A) ~> (A ~> A)) h (NormalForm.nf (b-chain-end idp) (\lam (e, b-e) => \case nf \with {
+        | NormalForm.nf b1 n => n (e @ e2, bred-app-left b-e idp)
+      })) P-typed (\lam i s => no-con i (sub-app-left s)) (Theorema1.decon-closed {e1 @ e2} {e1} {e2} {h} {empty} {idp} closed).1
+      \in
+        absurd (\case nf \with {
+          | NormalForm.nf _ n => n (apply_ name.1 e2, rewrite name.2 (bred-repl idp))
+        })
+  }

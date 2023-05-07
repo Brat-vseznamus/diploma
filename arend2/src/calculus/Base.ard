@@ -1,9 +1,13 @@
+\import Arith.Int
 \import Arith.Nat
 \import Data.Bool
+\import Function.Meta ($)
 \import Logic
+\import Logic.Meta
 \import Paths
 \import Paths.Meta
 \import Set
+\import calculus.Beta
 \import calculus.Context
 \import calculus.Types
 \import math.utils
@@ -38,6 +42,65 @@
       \Sigma (a b : Type_) (TypedExpr_ P (a ~> b) h c) (TypedExpr_ Q a h c)
       \elim t, typed
         | Rt, t-app Qt typed typed1 => (Qt, Rt, typed, typed1)
+
+    \func bred-save-types {e1 e2 : Expr_} {t : Type_} {h : Nat} {con : Context_} (bred : BetaRed e1 e2) (tp : TypedExpr_ e1 t h con) : TypedExpr_ e2 t h con \elim e1, e2, t, bred, tp
+      | e1 @ e2, e3 @ e4, t1, bred-app-right p bred, t-app tq tp tp1 => t-app tq (rewriteF p tp) (bred-save-types bred tp1)
+      | e1 @ e2, e3 @ e4, t1, bred-app-left bred p, t-app tq tp tp1 => t-app tq (bred-save-types bred tp) (rewriteF p tp1)
+      | (l e1) @ e2, e3, t1, bred-repl p, t-app tq tp tp1 => \case tp \with {
+        | t-lam B-typed => rewrite p (bred-save-types-lemma e1 e2 t1 tq h con B-typed tp1 0)
+      }
+
+      | l e1, l e2, t1 ~> t2, bred-lam bred, t-lam tp => t-lam (bred-save-types bred tp)
+      \where {
+        \func bred-save-types-lemma (e1 e2 : Expr_) (t1 tq : Type_) (h : Nat) (con : Context_)
+                                    (tp1 : TypedExpr_ e1 t1 (suc h) (Context_.update-assump (h, tq) con))
+                                    (tp2 : TypedExpr_ e2 tq h con)
+                                    (h' : Nat) : TypedExpr_ (apply_.apply''_ e1 e2 h') t1 h con \elim e1, t1, tp1
+          | Expr_.c n, t1, t-con => t-con
+          | v i, t1, t-var i-exist => {?}
+          | l e1, t1 ~> t2, t-lam tp1 => t-lam
+              (bred-save-types-lemma e1 e2 t2 tq (suc h) (Context_.update-assump (h, t1) con)
+                  (rewrite ({?} : Context_.update-assump (pos (suc h), tq) (Context_.update-assump (pos h, t1) con) = Context_.update-assump (pos (suc h), t1) (Context_.update-assump (pos h, tq) con)) tp1)
+                  {?} -- tp2
+                  (suc h')
+              )
+          | e1 @ e3, t1, t-app tq1 tp1 tp3 => t-app tq1
+              (bred-save-types-lemma e1 e2 (tq1 ~> t1) tq h con tp1 tp2 h')
+              (bred-save-types-lemma e3 e2 tq1 tq h con tp3 tp2 h')
+      }
+
+    \func type-shift-work {e : Expr_} {t : Type_} {h : Nat} {con : Context_} (dh : Nat) (tp : TypedExpr_ e t h con) : TypedExpr_ e t (h Nat.+ dh) (Context_.shift-context dh con)
+    \elim e, t, tp
+      | Expr_.c n, t1, t-con => t-con
+      | v i, t1, t-var i-exist => t-var (type-shift-work-lemma h dh i t1 con i-exist)
+      | l e1, t1 ~> t2, t-lam tp => t-lam (rewriteF (type-shift-work-lemma' dh h t1 con) (type-shift-work dh tp))
+      | e1 @ e2, t1, t-app tq tp tp1 => t-app tq (type-shift-work dh tp) (type-shift-work dh tp1)
+      \where {
+        \func type-shift-work-lemma (h dh i : Nat) (t1 : Type_) (con : Context_) (i-exist : Context_.typed-var-in-context (h_c h i, t1) con = true) : Context_.typed-var-in-context (h_c (h Nat.+ dh) i, t1) (Context_.shift-context (pos dh) con) = true
+        \elim con , i-exist
+          | with _x cn, p =>
+            \let
+              | h_c-mon => rewrite (IntRing.+-comm {pos dh} {h_c h i}) $ h_c-monotone {h} {dh} {i}
+            \in \case decideEq _x.1 (h_c h i) \as d, p : if {Bool} (decToBool d) (_x.2 == t1) (Context_.typed-var-in-context (h_c h i, t1) cn) = true \with {
+              | yes e1, p1 => \case decideEq (_x.1 IntRing.+ pos dh) (h_c (h Nat.+ dh) i) \as d1 \return if {Bool} (decToBool d1) (_x.2 == t1)
+                  (Context_.typed-var-in-context (h_c (h Nat.+ dh) i, t1) (Context_.shift-context (pos dh) cn)) = true \with {
+                | yes e2 => p1
+                | no n => absurd (n
+                    (pmap (\lam b => b IntRing.+ pos dh) e1 *>
+                    (inv $ rewrite (IntRing.+-comm {h_c h i} {pos dh}) $ h_c-monotone {h} {dh} {i})))
+              }
+              | no n, p1 => \case decideEq (_x.1 IntRing.+ pos dh) (h_c (h Nat.+ dh) i) \as d1 \return if {Bool} (decToBool d1) (_x.2 == t1)
+                  (Context_.typed-var-in-context (h_c (h Nat.+ dh) i, t1) (Context_.shift-context (pos dh) cn)) = true \with {
+                | yes e2 => absurd (n (IntRing.cancel-right (pos dh) (e2 *> h_c-mon)))
+                | no n => type-shift-work-lemma h dh i t1 cn p1
+              }
+            }
+
+        \func type-shift-work-lemma' (dh h : Nat) (t1 : Type_) (con : Context_) :
+          Context_.shift-context (pos dh) (Context_.update-assump (pos h, t1) con) =
+          Context_.update-assump (pos (h Nat.+ dh), t1) (Context_.shift-context (pos dh) con) =>
+          {?}
+      }
   }
 
 

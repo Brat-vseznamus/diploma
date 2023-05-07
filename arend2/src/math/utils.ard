@@ -16,6 +16,29 @@
 \func h_c (h : Nat) (i : Nat) => h Nat.- suc i
 \func i_  (h : Nat) (hc : Int) => h IntRing.+ IntRing.negative (isuc hc)
 
+\func h_c-monotone {h dh i : Nat} : h_c (h Nat.+ dh) i = dh IntRing.+ h_c h i \elim dh
+  | 0 => rewrite IntRing.zro-left idp
+  | suc dh => (
+    (rewrite (IntRing.+-assoc {pos 1} {pos dh} {h Nat.- suc i})
+    (rewrite (inv $ h_c-monotone {h} {dh} {i})
+    (rewrite (inv $ distr {1} {h Nat.+ dh} {suc i}) idp))
+    : (1 Nat.+ (h Nat.+ dh)) Nat.- suc i = pos 1 IntRing.+ pos dh IntRing.+ (h Nat.- suc i))
+    : suc (h Nat.+ dh) Nat.- suc i = pos (suc dh) + h_c h i)
+  \where {
+    \func distr {a b c : Nat} : (a Nat.+ b) Nat.- c = a IntRing.+ (b Nat.- c)
+      | {0}, {0}, {0} => idp
+      | {0}, {0}, {suc c} => idp
+      | {0}, {suc b}, {0} => idp
+      | {0}, {suc b}, {suc c} => rewrite IntRing.zro-left idp
+      | {suc a}, {0}, {0} => idp
+      | {suc a}, {0}, {suc c} => idp
+      | {suc a}, {suc b}, {0} => idp
+      | {suc a}, {suc b}, {suc c} => (rewrite
+          (IntRing.+-assoc {pos 1} {pos a} {b Nat.- c})
+          (rewrite (inv (distr {a} {b} {c})) distr) : suc (a Nat.+ b) Nat.- c = pos 1 + pos a + (b Nat.- c))
+  }
+
+\func i_h_-1=h (h : Nat) : i_ h -1 = h => idp
 \func hc<->i (h i : Nat) : pos i = i_ h (h_c h i)
   | 0, 0 => idp
   | 0, suc i => idp

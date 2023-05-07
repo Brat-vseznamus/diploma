@@ -335,3 +335,154 @@
               s
         | sub-same p, tp => contradiction
       }
+
+\func ConReq2 (hc : Int) (con : Context_) =>
+  (Context_.typed-var-in-context (hc, A ~> A) con = true) -> (hc = -1)
+
+\func Req3 (e : Expr_) (t : Type_) (h : Nat) (con : Context_) (typed : TypedExpr_ e t h con) (i : Nat) (sub : SubTerm e (v i)) =>
+  ((SubTerm.type-subterm e (v i) sub t h con typed).1 = (A ~> A))
+  ->
+  (h_c (SubTerm.type-subterm e (v i) sub t h con typed).2 i = -1)
+
+\func Theorema2-3
+  (e : Expr_)
+  (t : Type_)
+  (h : Nat)
+  (con : Context_)
+  (con-req : \Pi (hc : Int) -> ConReq2 hc con)
+  (nf : NormalForm e e)
+  (typed : TypedExpr_ e t h con)
+  (t-inS : inS t)
+  (no-con : \Pi (i : Nat) -> Not (SubTerm e (c i)))
+  (closed : FV e h leq CV con h)
+  (each-var-typed : VarsTypedCorrectly con) :
+  \Pi (i : Nat) (sub : SubTerm e (v i)) -> Req3 e t h con typed i sub  \elim e
+  | c n => absurd (no-con n (sub-same idp))
+  | v n => \lam i sub =>
+      \case
+        sub \as s,
+        typed : TypedExpr_ (v n) t h con
+      \return Req3 (v n) t h con typed i s
+      \with {
+        | sub-same p, t-var i-exist =>
+          \let
+            | n=i => pmap (\lam x => \case x \with { | v x => x | _ => 7 }) p
+          \in
+            \lam p1 => con-req (h_c h i) (rewrite (inv n=i, inv p1) i-exist)
+      }
+  | l e => \lam i sub p =>
+      \case
+        sub \as s,
+        t \as type,
+        t-inS : inS type,
+        typed \as tp : TypedExpr_ (l e) type h con,
+        p : (SubTerm.type-subterm (l e) (v i) s type h con tp).1 = (A ~> A)
+      \return h_c (SubTerm.type-subterm (l e) (v i) s type h con tp).2 i = neg 1
+      \with {
+        | sub-lam s, a ~> b, t-inS, t-lam tp, p1 =>
+          \let
+            | b-inS =>
+              rewriteF SubTerm.ref $
+              Theorema1
+                  (l e)
+                  (a ~> b)
+                  h
+                  con
+                  nf
+                  (t-lam tp)
+                  t-inS
+                  no-con
+                  closed
+                  each-var-typed
+                  e
+                  (sub-lam (sub-same idp))
+            | a-inS : inS a => \case t-inS \with {
+              | is1 p2 => contradiction
+              | is2 p2 => is1 (TDecSet.rmFunc p2).1
+              | is3 p2 => is2 (TDecSet.rmFunc p2).1
+            }
+          \in
+            Theorema2-3 e b (suc h) (Context_.update-assump (pos h, a) con)
+                (Theorema2-3-lemma h a con) -- TODO prove as step from lemma 2 with considering two cases
+                (\case nf \with {
+                  | NormalForm.nf b1 n1 => NormalForm.nf (b-chain-end idp) (\lam (e', b-e') => n1 (l e', bred-lam b-e'))
+                })
+                tp
+                b-inS
+                (\lam i s => (no-con i) (sub-lam s))
+                (Theorema1.theorema1-lemma e h a con)
+                (Theorema1.var-ext-impl h a b a-inS b-inS con each-var-typed)
+                i
+                s
+                p1
+        | sub-same p1, type, t-inS, tp, p2 => contradiction
+      }
+  | e1 @ e2 => \lam i sub p =>
+      \case
+        sub \as s,
+        typed \as tp : TypedExpr_ (e1 @ e2) t h con,
+        p : (SubTerm.type-subterm (e1 @ e2) (v i) s t h con tp).1 = A ~> A
+      \return h_c (SubTerm.type-subterm (e1 @ e2) (v i) s t h con tp).2 i = neg 1
+      \with {
+        | sub-app-left a, t-app tq tp tp1 \as t', p =>
+          Theorema2-3 e1 (tq ~> t) h con con-req
+              (NormalForm.nf (b-chain-end idp) (\lam (e, b-e) => \case nf \with {
+                | NormalForm.nf b1 n => n (e @ e2, bred-app-left b-e idp)
+              }))
+              tp
+              (
+                rewriteF SubTerm.ref $
+                Theorema1
+                    (e1 @ e2)
+                    t
+                    h
+                    con
+                    nf
+                    t'
+                    t-inS
+                    no-con
+                    closed
+                    each-var-typed
+                    e1
+                    (sub-app-left (sub-same idp) : SubTerm (e1 @ e2) e1)
+              )
+              (\lam i s => no-con i (sub-app-left s))
+              (Theorema1.decon-closed {e1 @ e2} {e1} {e2} {h} {con} {idp} closed).1
+              each-var-typed
+              i
+              a
+              p
+        | sub-app-right b, t-app tq tp tp1 \as t', p =>
+          Theorema2-3 e2 tq h con con-req
+              (NormalForm.nf (b-chain-end idp) (\lam (e, b-e) => \case nf \with {
+                | NormalForm.nf b1 n => n (e1 @ e, bred-app-right idp b-e)
+              }))
+              tp1
+              (
+                rewriteF SubTerm.ref $
+                Theorema1
+                    (e1 @ e2)
+                    t
+                    h
+                    con
+                    nf
+                    t'
+                    t-inS
+                    no-con
+                    closed
+                    each-var-typed
+                    e2
+                    (sub-app-right (sub-same idp) : SubTerm (e1 @ e2) e2)
+              )
+              (\lam i s => no-con i (sub-app-right s))
+              (Theorema1.decon-closed {e1 @ e2} {e1} {e2} {h} {con} {idp} closed).2
+              each-var-typed
+              i
+              b
+              p
+        | sub-same p1, tp, _ => contradiction
+      }
+  \where {
+    \func Theorema2-3-lemma (h : Nat) (a : Type_) (con : Context_) : \Pi (hc : Int) -> ConReq2 hc (Context_.update-assump (pos h, a) con) =>
+      {?}
+  }

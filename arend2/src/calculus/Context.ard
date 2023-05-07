@@ -16,6 +16,10 @@
   | empty
   | with (\Sigma Int Type_) Context_
   \where {
+    \func shift-context (shift : Int) (context : Context_) : Context_ \elim context
+      | empty => empty
+      | with _x context => with (_x.1 IntRing.+ shift, _x.2) (shift-context shift context)
+
     \func rm-assump (assumption : \Sigma Int Type_) (context : Context_) : Context_ \elim assumption, context
       | (n,s), with _x _context => if (_x.1 == n) _context (with _x (rm-assump (n, s) _context))
       | (n,s), empty => empty
