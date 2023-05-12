@@ -16,6 +16,15 @@
 \import calculus.theorems.common
 \import math.utils
 
+\data Poly
+  | con Nat
+  | add (p1 p2 : Poly) \with {
+    | con k1, con k2 => con (k1 Nat.+ k2)
+  }
+  | mul (p1 p2 : Poly) \with {
+    | con k1, con k2 => con (k1 Nat.* k2)
+  }
+
 \data Polynom (n m : Nat)
   | poly-con (k : Nat)
   | poly-sum (Polynom n m) (Polynom n m)
