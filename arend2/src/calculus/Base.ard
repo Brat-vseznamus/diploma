@@ -1,15 +1,20 @@
 \import Arith.Int
 \import Arith.Nat
 \import Data.Bool
+\import Data.Or
 \import Function.Meta ($)
 \import Logic
 \import Logic.Meta
+\import Order.LinearOrder
+\import Order.PartialOrder
+\import Order.StrictOrder
 \import Paths
 \import Paths.Meta
 \import Set
 \import calculus.Beta
 \import calculus.Context
 \import calculus.Types
+\import calculus.theorems.common
 \import math.utils
 
 \data Expr_
@@ -21,15 +26,15 @@
   \where {
     \func app-decon {P1 Q1 P2 Q2 : Expr_} (p : P1 @ Q1 = P2 @ Q2) : \Sigma (P1 = P2) (Q1 = Q2) =>
       (
-        pmap (\lam x => \case x \with {| c n => c 0 | v n => c 0 | l e => c 0| e @ e1 => e}) p,
-        pmap (\lam x => \case x \with {| c n => c 0 | v n => c 0 | l e => c 0| e @ e1 => e1}) p
+        pmap (\lam x => \case x \with {| c n => c 0 | v n => c 0 | l e => c 0 | e @ e1 => e}) p,
+        pmap (\lam x => \case x \with {| c n => c 0 | v n => c 0 | l e => c 0 | e @ e1 => e1}) p
       )
   }
 
 \data TypedExpr_ (e : Expr_) (t : Type_) (h : Nat) (c : Context_) \elim e, t
   | (c _), t => t-con
-  | (v i), t => t-var (i-exist : Context_.typed-var-in-context (h_c h i, t) c = true)
-  | (l B), tx ~> tB => t-lam (B-typed : TypedExpr_ B tB (suc h) (Context_.update-assump (h, tx) c))
+  | (v i), t => t-var (i-exist : c types (h_c h i, t))
+  | (l B), tx ~> tB => t-lam (B-typed : TypedExpr_ B tB (suc h) ((h, tx) extend c))
   | P @ Q, tr => t-app (tq : Type_) (P-typed : TypedExpr_ P (tq ~> tr) h c) (Q-typed : TypedExpr_ Q tq h c)
 
   \where {
@@ -43,31 +48,16 @@
       \elim t, typed
         | Rt, t-app Qt typed typed1 => (Qt, Rt, typed, typed1)
 
-    \func bred-save-types {e1 e2 : Expr_} {t : Type_} {h : Nat} {con : Context_} (bred : BetaRed e1 e2) (tp : TypedExpr_ e1 t h con) : TypedExpr_ e2 t h con \elim e1, e2, t, bred, tp
+    \func bred-save-types {e1 e2 : Expr_} {t : Type_} {h : Nat} {con : Context_}
+                          (bred : BetaRed e1 e2) (tp : TypedExpr_ e1 t h con) : TypedExpr_ e2 t h con \elim e1, e2, t, bred, tp
       | e1 @ e2, e3 @ e4, t1, bred-app-right p bred, t-app tq tp tp1 => t-app tq (rewriteF p tp) (bred-save-types bred tp1)
       | e1 @ e2, e3 @ e4, t1, bred-app-left bred p, t-app tq tp tp1 => t-app tq (bred-save-types bred tp) (rewriteF p tp1)
-      | (l e1) @ e2, e3, t1, bred-repl p, t-app tq tp tp1 => \case tp \with {
-        | t-lam B-typed => rewrite p (bred-save-types-lemma e1 e2 t1 tq h con B-typed tp1 0)
-      }
-
+      | (l e1) @ e2, e3, t1, bred-repl p, tp => rewrite p (apply_.apply-save-type tp)
       | l e1, l e2, t1 ~> t2, bred-lam bred, t-lam tp => t-lam (bred-save-types bred tp)
-      \where {
-        \func bred-save-types-lemma (e1 e2 : Expr_) (t1 tq : Type_) (h : Nat) (con : Context_)
-                                    (tp1 : TypedExpr_ e1 t1 (suc h) (Context_.update-assump (h, tq) con))
-                                    (tp2 : TypedExpr_ e2 tq h con)
-                                    (h' : Nat) : TypedExpr_ (apply_.apply''_ e1 e2 h') t1 h con \elim e1, t1, tp1
-          | Expr_.c n, t1, t-con => t-con
-          | v i, t1, t-var i-exist => {?}
-          | l e1, t1 ~> t2, t-lam tp1 => t-lam
-              (bred-save-types-lemma e1 e2 t2 tq (suc h) (Context_.update-assump (h, t1) con)
-                  (rewrite ({?} : Context_.update-assump (pos (suc h), tq) (Context_.update-assump (pos h, t1) con) = Context_.update-assump (pos (suc h), t1) (Context_.update-assump (pos h, tq) con)) tp1)
-                  {?} -- tp2
-                  (suc h')
-              )
-          | e1 @ e3, t1, t-app tq1 tp1 tp3 => t-app tq1
-              (bred-save-types-lemma e1 e2 (tq1 ~> t1) tq h con tp1 tp2 h')
-              (bred-save-types-lemma e3 e2 tq1 tq h con tp3 tp2 h')
-      }
+
+    \func bred-save-types-sym {e1 e2 : Expr_} {t : Type_} {h : Nat} {con : Context_}
+                          (bred : BetaRed e1 e2) (tp : TypedExpr_ e2 t h con) : TypedExpr_ e1 t h con => {?}
+
 
     \func type-shift-work {e : Expr_} {t : Type_} {h : Nat} {con : Context_} (dh : Nat) (tp : TypedExpr_ e t h con) : TypedExpr_ e t (h Nat.+ dh) (Context_.shift-context dh con)
     \elim e, t, tp
@@ -106,6 +96,9 @@
 
 \func isFree (n cur_h : Nat) => nat_<=-dec.nat_<=_Bool cur_h n
 
+\func \infixl 6 apl (E : Expr_) (p : \Sigma Expr_ Nat) => apply_.apply''_ E p.1 p.2
+
+
 -- (l B) A = B[0=A]
 \func apply_ (B A : Expr_) : Expr_ => apply''_ B A 0
   \where {
@@ -142,5 +135,124 @@
         idp
         : v n = if (suc n == 0) (apply_.shift+dh x 0 0) (if (isFree (suc n) 0) (v n) (v (suc n)))
       )
+
+    \func apply-save-type {B x : Expr_} {t : Type_} {h : Nat} {c : Context_}
+        (typed : TypedExpr_ (l B @ x) t h c)
+      : TypedExpr_ (apply_ B x) t h c \elim typed
+      | t-app tq (t-lam B-typed) typed1 => lemma B x tq t h 0 c ((pos h, tq) extend c) c
+          (\lam x1 _x {t1} t2 => {?}) -- |
+          (\lam x1 _x {t1} t2 => {?}) -- | TOD0 - same as down
+          (\lam {t1} dh t2 => {?})    -- |
+          B-typed
+          typed1
+
+      \where {
+        \func ContextExt (extC origC : Context_) (h : Nat) =>
+          \Pi (x : Int) (x < h) {t : Type_} (origC types (x, t)) -> extC types (x, t)
+
+        \func lemma (B x : Expr_) (ta tb : Type_) (h dh : Nat) (c c' c'' : Context_)
+          (c-ext         : ContextExt c' ((h, ta) extend c) (suc h))
+          (c-same_domain : ContextExt c'' c' h)
+          (c-shift : \Pi {t : Type_} (dh : Nat) (c' types (h Nat.+ suc dh, t)) -> c'' types (h Nat.+ dh, t))
+          (B-typed : TypedExpr_ B tb (h Nat.+ suc dh) c')
+          (x-typed : TypedExpr_ x ta h c) : TypedExpr_ (apply_.apply''_ B x dh) tb (h Nat.+ dh) c'' \elim B, tb, B-typed
+          | Expr_.c n, tb, t-con => t-con
+          | v i, tb, t-var i-exist =>
+            \case i \as j, i-exist : c' types (h_c (h Nat.+ suc dh) j, tb) \return TypedExpr_ (apply''_ (v j) x dh) tb (h Nat.+ dh) c'' \with {
+            | 0, j-exists => \case dh \as dh', j-exists : c' types (h_c (suc (h Nat.+ dh')) 0, tb) \return TypedExpr_ (if {Expr_} (0 == dh') (shift+dh x dh' 0) (v 0)) tb (h Nat.+ dh') c'' \with {
+              | 0, jt => rewrite apply_.shift-0=id (rewrite ({?} : tb = ta) {?}) -- TODO tb = ta - from c-ext + proof if sets equal types are same
+              | suc dh', jt =>
+                \let
+                  | name => c-shift dh' jt
+                \in t-var name
+            }
+            | suc j, j-exists => \case decideEq (suc j) dh \as d \return TypedExpr_ (if {Expr_} (decToBool d) (shift+dh x dh 0) (if {Expr_} (isFree (suc j) dh) (v j) (v (suc j)))) tb (h Nat.+ dh) c'' \with {
+              | yes e => {?}
+              | no n => \case NatSemiring.trichotomy (suc j) dh \with {
+                | less _x => rewrite (a<b->isFree _x) (t-var {?}) -- TODO use c-shift
+                | equals p => absurd (n p)
+                | greater _x => rewrite (b<a->!isFree _x) {?} -- TODO use c-domain
+              }
+            }
+          }
+          | l B1, tb ~> tb1, t-lam B-typed => -- t-lam {?}
+            t-lam
+                (lemma B1 x ta tb1 h (suc dh)
+                    c
+                    (Context_.update-assump (h Nat.+ suc dh, tb) c')
+                    (Context_.update-assump (h Nat.+ dh, tb) c'')
+                    (\lam x1 _x {t} t1 =>
+                        \let
+                          | r => c-ext x1 _x {t} t1
+                          | h+dh+1/=x1 : pos(h Nat.+ suc dh) /= x1 => {?} -- TODO result from _x
+                        \in Context_.update-not-rewrite (h Nat.+ suc dh, tb) c' (x1, t) r h+dh+1/=x1
+                    )
+                    (\lam x1 _x {t} t1 =>
+                        \let
+                          | r => c-same_domain x1 _x {t}
+                          | h+dh+1/=x1 : pos(h Nat.+ suc dh) /= x1 => {?} -- TODO result from _x
+                          | h+dh/=x1 : pos(h Nat.+ dh) /= x1 => {?} -- TODO result from _x
+                          | arg : c' types (x1, t) => \case Context_.update->or (x1, t) (h Nat.+ suc dh, tb) c' t1 \with {
+                            | inl a => \let leftEq => pmap (\lam x => x.1) a \in absurd (h+dh+1/=x1 (inv leftEq))
+                            | inr b => b
+                          }
+                        \in Context_.update-not-rewrite (h Nat.+ dh, tb) c'' (x1, t) (r arg) h+dh/=x1
+                    )
+                    (\lam {t} dh1 t1 =>
+                        \let
+                          | r => c-shift {t} dh1
+                        \in \case decideEq dh dh1 \as d \with {
+                          | yes e => \let t1' => rewrite e t1 \in \case Context_.update->or (h Nat.+ suc dh1, t) (h Nat.+ suc dh1, tb) c' t1' \with {
+                            | inl a => \let
+                              | rightEq => pmap (\lam x => x.2) a
+                                       \in rewrite rightEq (rewrite e (Context_.type-after-update c'' (h Nat.+ dh1, tb)))
+                            | inr b => \let
+                              | typesEq => Context_.type-unique {suc (h Nat.+ dh1)} {t} {tb}
+                                  {Context_.update-assump (pos (suc (h Nat.+ dh1)), tb) c'}
+                                  t1'
+                                  (Context_.type-after-update c' (suc (h Nat.+ dh1), tb))
+                              | apply => r b
+                                       \in rewrite e (rewrite typesEq (Context_.type-after-update c'' (h Nat.+ dh1, tb)))
+                          }
+                          | no n => \let
+                            | c'types_h+dh1 : c' types (pos (suc (h Nat.+ dh1)), t) => \case Context_.update->or (pos (suc (h Nat.+ dh1)), t) (h Nat.+ suc dh, tb) c' t1 \with {
+                              | inl a => \let leftEq => pmap (\lam x => \case x.1 \with {| pos (suc a) => a | neg x => 0 | _ => 0}) a
+                                         \in absurd (n (NatSemiring.cancel-left h (inv leftEq)))
+                              | inr b => b
+                            }
+                            | res1 => r c'types_h+dh1
+                                    \in
+                            Context_.update-not-rewrite (h Nat.+ dh, tb) c'' (h Nat.+ dh1, t) res1
+                                (\lam p => \let leftEq => pmap (\lam x => \case x \with {| pos a => a | neg x => 0}) p
+                                           \in absurd (n (NatSemiring.cancel-left h leftEq)))
+                        }
+                    )
+                    B-typed
+                    x-typed
+                )
+          | B1 @ B2, tb, t-app tq B-typed B-typed1 => t-app tq
+              (lemma B1 x ta (tq ~> tb) h dh c c' c'' c-ext c-same_domain c-shift B-typed x-typed)
+              (lemma B2 x ta tq h dh c c' c'' c-ext c-same_domain c-shift B-typed1 x-typed)
+
+
+        -- TODO
+        \func a<b->isFree {a b : Nat} (less : a < b) : isFree a b = true \elim a, b
+          | 0, 0 => idp
+          | 0, suc b => {?}
+          | suc a, 0 => idp
+          | suc a, suc b => {?}
+
+        \func b<a->!isFree {a b : Nat} (greater : b < a) : isFree a b = false \elim a, b
+          | 0, 0 => {?}
+          | 0, suc b => idp
+          | suc a, 0 => {?}
+          | suc a, suc b => {?}
+
+        \func apply_save_type' (B x : Expr_) (ta tb : Type_) (h dh : Nat) (c : Context_)
+            (var_typed : Context_.typed-var-in-context (h, ta) c = true)
+            (B-typed : TypedExpr_ B tb (h Nat.+ dh) c)
+            (x-typed : TypedExpr_ x ta h c)
+              : TypedExpr_ (apply_ B x) tb h c => {?}
+      }
   }
 

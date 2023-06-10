@@ -24,19 +24,63 @@
     (rewrite (inv $ distr {1} {h Nat.+ dh} {suc i}) idp))
     : (1 Nat.+ (h Nat.+ dh)) Nat.- suc i = pos 1 IntRing.+ pos dh IntRing.+ (h Nat.- suc i))
     : suc (h Nat.+ dh) Nat.- suc i = pos (suc dh) + h_c h i)
+
+\func distr {a b c : Nat} : (a Nat.+ b) Nat.- c = a IntRing.+ (b Nat.- c)
+  | {0}, {0}, {0} => idp
+  | {0}, {0}, {suc c} => idp
+  | {0}, {suc b}, {0} => idp
+  | {0}, {suc b}, {suc c} => rewrite IntRing.zro-left idp
+  | {suc a}, {0}, {0} => idp
+  | {suc a}, {0}, {suc c} => idp
+  | {suc a}, {suc b}, {0} => idp
+  | {suc a}, {suc b}, {suc c} => (rewrite
+      (IntRing.+-assoc {pos 1} {pos a} {b Nat.- c})
+      (rewrite (inv (distr {a} {b} {c})) distr) : suc (a Nat.+ b) Nat.- c = pos 1 + pos a + (b Nat.- c))
+
+
+\func minus-rewrite {a b : Nat} {r : Int} (p : a Nat.- b = r) : pos a = r IntRing.+ pos b
+  | {0}, {0}, {pos n}, p1 => p1
+  | {0}, {0}, {neg n}, p1 => p1
+  | {0}, {suc b}, {neg (suc n)}, p1 =>
+    \let
+      | r => pmap (\lam y => \case y \with {
+        | pos x => x | neg (suc x) => x
+      }) p1
+    \in rewrite r (lemma-lemma n)
+  | {suc a}, {0}, {pos n}, p1 => p1
+  | {suc a}, {suc b}, {pos n}, p1 =>
+    \let
+      | r => minus-rewrite p1
+    \in pmap (\lam x => \case x \with {
+      | pos n1 => pos (suc n1)
+      | neg (suc n1) => neg n1
+    }) r
+  | {suc a}, {suc b}, {neg (suc n)}, p1 => \let r => pmap isuc $ minus-rewrite p1 \in r *> lemma-lemma' b n
   \where {
-    \func distr {a b c : Nat} : (a Nat.+ b) Nat.- c = a IntRing.+ (b Nat.- c)
-      | {0}, {0}, {0} => idp
-      | {0}, {0}, {suc c} => idp
-      | {0}, {suc b}, {0} => idp
-      | {0}, {suc b}, {suc c} => rewrite IntRing.zro-left idp
-      | {suc a}, {0}, {0} => idp
-      | {suc a}, {0}, {suc c} => idp
-      | {suc a}, {suc b}, {0} => idp
-      | {suc a}, {suc b}, {suc c} => (rewrite
-          (IntRing.+-assoc {pos 1} {pos a} {b Nat.- c})
-          (rewrite (inv (distr {a} {b} {c})) distr) : suc (a Nat.+ b) Nat.- c = pos 1 + pos a + (b Nat.- c))
+    \func lemma-lemma (n : Nat) : pos 0 = n Nat.- n \elim n
+      | 0 => idp
+      | suc n => lemma-lemma n
+
+    \func lemma-lemma' (b n : Nat) : isuc (b Nat.- suc n) = b Nat.- n \elim b, n
+      | 0, 0 => idp
+      | 0, suc n => idp
+      | suc b, 0 => idp
+      | suc b, suc n => lemma-lemma' b n
   }
+
+\func distr2 {a b d : Nat} : (a Nat.- b) IntRing.+ neg d = a Nat.- (b Nat.+ d) \elim a, b, d
+  | 0, 0, 0 => idp
+  | 0, 0, suc d => idp
+  | 0, suc b, 0 => idp
+  | 0, suc b, suc d => idp
+  | suc a, 0, 0 => idp
+  | suc a, 0, suc d => idp
+  | suc a, suc b, 0 => IntRing.zro-right
+  | suc a, suc b, suc d => {?}
+
+\func a/=suc_a {a : Nat} (r : a = suc a) : Empty \elim a
+  | 0 => suc/=0 (inv r)
+  | suc a => a/=suc_a {a} (pmap pred r)
 
 \func i_h_-1=h (h : Nat) : i_ h -1 = h => idp
 \func hc<->i (h i : Nat) : pos i = i_ h (h_c h i)
@@ -155,3 +199,4 @@
 
 \func pmap3 {A B C D : \Type} (f : A -> B -> C -> D) {a a' : A} (p : a = a') {b b' : B} (q : b = b') (c c' : C) (k : c = c') : f a b c = f a' b' c'
   => path (\lam i => f (p @ i) (q @ i) (k @ i))
+

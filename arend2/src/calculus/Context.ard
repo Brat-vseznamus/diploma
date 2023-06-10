@@ -1,6 +1,7 @@
 \import Arith.Int
 \import Arith.Nat
 \import Data.Bool
+\import Data.Or
 \import Logic
 \import Paths
 \import Paths.Meta
@@ -11,6 +12,15 @@
 \import math.utils
 
 -- TODO change to addOrUpdate
+
+\func SubContext (c sc : Context_) =>
+  \Pi (tx : \Sigma Int Type_) (typed : Context_.typed-var-in-context tx sc = true) ->
+      Context_.typed-var-in-context tx c = true
+
+\func \infixr 6 types (c_ : Context_) (p : \Sigma Int Type_) => Context_.typed-var-in-context p c_ = true
+\func \infixr 6 extend (p : \Sigma  Int Type_) (c_ : Context_) => Context_.update-assump p c_
+
+\func TypedVar => \Sigma Int Type_
 
 \data Context_
   | empty
@@ -44,7 +54,7 @@
             (typed-var-in-context var-with-type c')
 
     \func typed-var-ex=>var-ex
-        {var : Nat} {t : Type_} {c : Context_} (p : typed-var-in-context (var, t) c = true) : var-in-context var c = true \elim c
+        {var : Int} {t : Type_} {c : Context_} (p : typed-var-in-context (var, t) c = true) : var-in-context var c = true \elim c
         | empty => p
         | with _x c' => \case
           (decideEq _x.1 var) \as d1,
@@ -57,14 +67,14 @@
           | no n, no n1, p1 => typed-var-ex=>var-ex p1
         }
 
-      \func extract-type {var : Nat} {c : Context_} (p : var-in-context var c = true) : Type_ \elim c
+      \func extract-type {var : Int} {c : Context_} (p : var-in-context var c = true) : Type_ \elim c
         | empty => absurd (true/=false (inv p))
         | with (n, t) c' => \case decideEq n var \as d, p : if (decToBool d) true (var-in-context var c') = true \with {
           | yes e, p => t
           | no n1, p => extract-type p
         }
 
-      \func type-unique {var : Nat} {a b : Type_} {c : Context_}
+      \func type-unique {var : Int} {a b : Type_} {c : Context_}
                         (p1 : typed-var-in-context (var, a) c = true)
                         (p2 : typed-var-in-context (var, b) c = true) : a = b =>
         \let
@@ -74,7 +84,7 @@
         \in tu1 *> inv tu2
 
 
-      \func type-unique' {var : Nat} {t : Type_} {c : Context_}
+      \func type-unique' {var : Int} {t : Type_} {c : Context_}
                         (p1 : var-in-context var c = true)
                         (p : typed-var-in-context (var, t) c = true) : t = extract-type p1 \elim c
         | empty => absurd (true/=false (inv p))
@@ -148,21 +158,67 @@
           }
         }
 
+      \func update->or (p p' : \Sigma Int Type_) (c : Context_)
+                       (t : typed-var-in-context p (update-assump p' c) = true)
+        : Or (p = p') (typed-var-in-context p c = true) \elim c
+        | empty => \case decideEq p'.1 p.1 \as d1, decideEq p'.2 p.2 \as d2, t : if (decToBool d1) (decToBool d2) false = true \with {
+          | yes e, yes e1, p1 => inl (pmap2 (\lam x y => (x, y)) (inv e) (inv e1))
+          | no n, yes e, ()
+        }
+        | with _x c' => \case
+          decideEq _x.1 p.1 \as d1,
+          decideEq _x.2 p.2 \as d2,
+          t : if {Bool} (decToBool d1) (if {Type_} (_x.1 == p'.1) p'.2 _x.2 == p.2) (typed-var-in-context p (if {Context_} (_x.1 == p'.1) c' (update-assump (p'.1, p'.2) c'))) = true
+        \return Or (p = p') (if {Bool} (decToBool d1) (decToBool d2) (typed-var-in-context p c') = true) \with {
+          | yes e, yes e1, p1 => inr idp
+          | yes e, no n, p1 => \case decideEq _x.1 p'.1 \as d', p1 : if {Type_} (decToBool d') p'.2 _x.2 == p.2 = true \with {
+            | yes e1, p2 => \case decideEq p'.2 p.2 \as dp, p2 : decToBool dp = true \with {
+              | yes e2, p3 => inl (pmap2 (\lam x y => (x, y)) (inv e *> e1) (inv e2))
+            }
+            | no n1, p2 => \case decideEq _x.2 p.2 \as dp, p2 : decToBool dp = true \with {
+              | yes e1, p3 => absurd (n e1)
+            }
+          }
+          | no n, _, p1 => \case decideEq _x.1 p'.1 \as dp, p1 : typed-var-in-context p (if {Context_} (decToBool dp) c' (update-assump p' c')) = true \with {
+            | yes e1, p2 => inr p2
+            | no n1, p2 => update->or p p' c' p2
+          }
+        }
+
+      -- TODO
+      \func update-not-rewrite (upd : TypedVar) (c_ : Context_) : \Pi (tv : TypedVar) (c_ types tv) (upd.1 /= tv.1) -> update-assump upd c_ types tv
+        | upd, empty => {?}
+        | upd, with _x c_ => {?}
+
+    \func type-after-update (c_ : Context_) (p : \Sigma Int Type_) : update-assump p c_ types p \elim c_
+        | empty => \case decideEq p.1 p.1 \as d1, decideEq p.2 p.2 \as d2 \return if (decToBool d1) (decToBool d2) false = true \with {
+          | yes e, yes e1 => idp
+          | yes e, no n => absurd (n idp)
+          | no n, _ => absurd (n idp)
+        }
+        | with _x c_ => \case decideEq _x.1 p.1 \as d1 \return if {Bool} (decToBool d1) (if {Type_} (decToBool d1) p.2 _x.2 == p.2)
+            (typed-var-in-context p (if {Context_} (decToBool d1) c_ (update-assump p c_))) = true \with {
+          | yes e => \case decideEq p.2 p.2 \as d2 \return decToBool d2 = true \with {
+            | yes e1 => idp
+            | no n => absurd (n idp)
+          }
+          | no n => type-after-update c_ p
+        }
   }
 
 \func CV (c : Context_) (h : Nat) : Array Int \elim c
   | empty => nil
-  | with (i, _) c' => addDistinct (CV c' h) (i_ h i)
+  | with (i, _) c' => addDistinct (CV c' h) i -- (i_ h i)
 
 \func FV (e : Expr_) (h : Nat) : Array Int \elim e
   | c n => nil
-  | v n => if {Array Int} (isFree n h) (n :: nil) nil
+  | v n => if {Array Int} (isFree n h) (h_c h n :: nil) nil
   | l e => FV e (suc h)
   | e1 @ e2 => mergeUnique (FV e1 h) (FV e2 h)
 
 --\func V (e : Expr_) : Array Nat \elim e
 --  | Con n => nil
---  | Var n => n :: nil\Pi (i : Nat) (h' : Nat) (ti : Type_) (Context_.typed-var-in-context (h_c h' i, ti) con = true) -> inS ti
+--  | Var n => n :: nil -- \Pi (i : Nat) (h' : Nat) (ti : Type_) (Context_.typed-var-in-context (h_c h' i, ti) con = true) -> inS ti
 --  | Lam n e => V e
 --  | App e1 e2 => mergeUnique (V e2) (V e1)
 

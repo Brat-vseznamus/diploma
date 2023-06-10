@@ -1,5 +1,8 @@
 \import Paths
+\import Paths.Meta
 \import calculus.Base
+\import calculus.Context
+\import calculus.Types
 
 \data BetaRed (e1 e2 : Expr_) \elim e1, e2
   | P1 @ Q1, P2 @ Q2 => bred-app-right (P1 = P2) (BetaRed Q1 Q2)
@@ -10,6 +13,16 @@
 \data BetaChain (e1 e2 : Expr_)
   | b-chain-end (e1 = e2)
   | b-chain-con (tmp : Expr_) (BetaRed e1 tmp) (BetaChain tmp e2)
+  \where {
+    \func betach->betaeq {e1 e2 : Expr_} (b-ch : BetaChain e1 e2) : BetaEq e1 e2 \elim b-ch
+      | b-chain-end p => b-eq-eq p
+      | b-chain-con tmp b b-ch => b-eq-chain tmp (b-eq-red b) (betach->betaeq b-ch)
+
+    \func betach-save-type {t : Type_} {h : Nat} {c_ : Context_} {e1 e2 : Expr_}
+                           (b-ch : BetaChain e1 e2) (e1-typed : TypedExpr_ e1 t h c_) : TypedExpr_ e2 t h c_ \elim b-ch
+      | b-chain-end p => rewrite (inv p) e1-typed
+      | b-chain-con tmp b b-ch => betach-save-type b-ch (TypedExpr_.bred-save-types b e1-typed)
+  }
 
 \data BetaEq (e1 e2 : Expr_)
   | b-eq-eq (e1 = e2)
@@ -40,4 +53,14 @@
       | b-eq-red b => b-eq-red (bred-lam b)
       | b-eq-inv-red b => b-eq-inv-red (bred-lam b)
       | b-eq-chain tmp b-q1 b-q2 => b-eq-chain (l tmp) (lam-save-eq b-q1) (lam-save-eq b-q2)
+
+    \func save-type {e1 e2 : Expr_} {t : Type_} {h : Nat} {c_ : Context_}
+      (b-eq : BetaEq e1 e2) (e1-typed : TypedExpr_ e1 t h c_) : TypedExpr_ e2 t h c_ \elim b-eq
+      | b-eq-eq p => rewrite (inv p) e1-typed
+      | b-eq-red b => TypedExpr_.bred-save-types b e1-typed
+      | b-eq-inv-red b => TypedExpr_.bred-save-types-sym b e1-typed
+      | b-eq-chain tmp b-eq1 b-eq2 =>
+        \let
+          | r1 => save-type b-eq1 e1-typed
+        \in save-type b-eq2 r1
   }

@@ -16,29 +16,6 @@
 \import calculus.theorems.common
 \import math.utils
 
-\data Poly
-  | con Nat
-  | add (p1 p2 : Poly) \with {
-    | con k1, con k2 => con (k1 Nat.+ k2)
-  }
-  | mul (p1 p2 : Poly) \with {
-    | con k1, con k2 => con (k1 Nat.* k2)
-  }
-
-\data Polynom (n m : Nat)
-  | poly-con (k : Nat)
-  | poly-sum (Polynom n m) (Polynom n m)
-  | poly-mul (Polynom n m) (Polynom n m)
-
-\func eval {n m : Nat} (p : Polynom n m) : Nat \elim p
-  | poly-con k => k
-  | poly-sum p1 p2 => eval p1 Nat.+ eval p2
-  | poly-mul p1 p2 => eval p1 Nat.* eval p2
-
-
-\func PolynomExpr (n m : Nat) (e : Expr_) (h : Nat) =>
-  \Sigma (P : Polynom n m) (i : Nat) (BetaEq e (l (Numeral (eval P) @ v (suc h) @ v i)))
-
 
 \func Theorem+1
   (e : Expr_)
@@ -69,7 +46,7 @@
   (e : Expr_)
   (h : Nat)
   (nf : NormalForm e e)
-  (typed : TypedExpr_ e (((A ~> A) ~> (A ~> A)) ~> ((A ~> A) ~> (A ~> A)) ~> (A ~> A) ~> (A ~> A)) h empty)
+  (typed : TypedExpr_ e (N ~> N ~> N) h empty)
   (no-con : \Pi (i : Nat) -> Not (SubTerm e (c i)))
   (closed : ClosedForm e h empty)
   : \Sigma (B : Expr_) (e = l (l (l B))) \elim e
@@ -81,7 +58,7 @@
     | t-lam B-typed =>
       \case
         e \as B,
-        B-typed : TypedExpr_ B (((A ~> A) ~> (A ~> A)) ~> (A ~> A) ~> (A ~> A)) (suc h) (Context_.update-assump (h, (A ~> A) ~> (A ~> A)) empty)
+        B-typed : TypedExpr_ B (N ~> N) (suc h) (Context_.update-assump (h, N) empty)
       \with {
       | c n, t-con => {?} -- add no-con
       | v i, t-var i-exist => \case IntRing.decideEq h (h_c (suc h) i) \as d, i-exist : if {Bool} (decToBool d) ((A ~> A) ~> A ~> A Set.== ((A ~> A) ~> A ~> A) ~> (A ~> A) ~> A ~> A)
@@ -95,7 +72,7 @@
   }
   | e1 @ e2 => \case typed \with {
     | t-app tq P-typed Q-typed =>
-      \let name => Theorem+1 e1 tq (((A ~> A) ~> (A ~> A)) ~> ((A ~> A) ~> (A ~> A)) ~> (A ~> A) ~> (A ~> A)) h (NormalForm.nf (b-chain-end idp) (\lam (e, b-e) => \case nf \with {
+      \let name => Theorem+1 e1 tq (N ~> N ~> N) h (NormalForm.nf (b-chain-end idp) (\lam (e, b-e) => \case nf \with {
         | NormalForm.nf b1 n => n (e @ e2, bred-app-left b-e idp)
       })) P-typed (\lam i s => no-con i (sub-app-left s)) (Theorema1.decon-closed {e1 @ e2} {e1} {e2} {h} {empty} {idp} closed).1
       \in
@@ -103,3 +80,13 @@
           | NormalForm.nf _ n => n (apply_ name.1 e2, rewrite name.2 (bred-repl idp))
         })
   }
+
+
+--  \func SubTermTheorem
+--    (e : Expr_)
+--    (t : Type_)
+--    (h : Nat)
+--    (con : Context_)
+--    (typed : TypedExpr_ e t h con)
+--    (x : Expr_)
+--    (f : )

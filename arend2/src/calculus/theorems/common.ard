@@ -1,19 +1,48 @@
+\import Arith.Nat
 \import Data.Bool
 \import calculus.Base
+\import calculus.Beta
+\import calculus.Church
 \import calculus.Context
+\import calculus.Defs
 \import calculus.Types
 \import math.sets
 \import math.utils
 
+\open Nat
+
 \func A => Base 0
+\func N => (A ~> A) ~> (A ~> A)
 
 \data Set3 {T : \Type} (e1 e2 e3 : T) (e : T)
   | is1 (e = e1)
   | is2 (e = e2)
   | is3 (e = e3)
 
-\func inS (e : Type_) => Set3 {Type_} A (A ~> A) ((A ~> A) ~> (A ~> A)) e
+\func inS (e : Type_) => Set3 {Type_} A (A ~> A) N e
 
 
 \type ClosedForm (e : Expr_) (h : Nat) (c_ : Context_) => FV e h leq CV c_ h
 \type VarsTypedCorrectly (c : Context_) => \Pi (i : Nat) (h' : Nat) (ti : Type_) (Context_.typed-var-in-context (h_c h' i, ti) c = true) -> inS ti
+
+\func F (n : Nat) => K-Args-Fun Nat n
+\func X (n : Nat) => K-Args Nat n
+
+\data ExtPoly {n : Nat} (f : F n) \elim n
+  | n       => sum (f1 f2 : F n) (ExtPoly f1) (ExtPoly f2) (\Pi (x : X n) -> (f <- x) = (f1 <- x) Nat.+ (f2 <- x))
+  | n       => mul (f1 f2 : F n) (ExtPoly f1) (ExtPoly f2) (\Pi (x : X n) -> (f <- x) = (f1 <- x) Nat.* (f2 <- x))
+  | (suc n) => down (f' : F n) (ExtPoly f') (\Pi (a : Nat) (x : X n) -> (f <- arg-con a x) = f' <- x)
+  | (suc n) => pr0 (\Pi (a : Nat) (x : X n) -> f <- arg-con a x = a)
+  | n       => const (k : Nat) (\Pi (x : X n) -> f <- x = k)
+
+
+\func test (n m : Nat) (B : Expr_) : BetaChain (l (l (l B)) @ Numeral n @ Numeral m) (l (B apl (Numeral n, 2) apl (Numeral m, 1))) =>
+  b-chain-con
+      (l (l (B apl (Numeral n, 2))) @ Numeral m)
+      (bred-app-left (bred-repl idp) idp)
+      (b-chain-con
+          (l (B apl (Numeral n, 2) apl (Numeral m, 1)))
+          (bred-repl idp)
+          (b-chain-end idp)
+      )
+
