@@ -1,5 +1,6 @@
 \import Arith.Nat
 \import Data.Bool
+\import Set
 \import calculus.Base
 \import calculus.Beta
 \import calculus.Church
@@ -31,6 +32,8 @@
 \data ExtPoly {n : Nat} (f : F n) \elim n
   | n       => sum (f1 f2 : F n) (ExtPoly f1) (ExtPoly f2) (\Pi (x : X n) -> (f <- x) = (f1 <- x) Nat.+ (f2 <- x))
   | n       => mul (f1 f2 : F n) (ExtPoly f1) (ExtPoly f2) (\Pi (x : X n) -> (f <- x) = (f1 <- x) Nat.* (f2 <- x))
+  | (suc n) => iff (f1 f2 : F (suc n)) (ExtPoly {suc n} f1) (ExtPoly {suc n} f2)
+                   (\Pi (a : Nat) (x : X n) -> f <- arg-con a x = if (a == 0) (f1 <- arg-con a x) (f2 <- arg-con a x))
   | (suc n) => down (f' : F n) (ExtPoly f') (\Pi (a : Nat) (x : X n) -> (f <- arg-con a x) = f' <- x)
   | (suc n) => pr0 (\Pi (a : Nat) (x : X n) -> f <- arg-con a x = a)
   | n       => const (k : Nat) (\Pi (x : X n) -> f <- x = k)
