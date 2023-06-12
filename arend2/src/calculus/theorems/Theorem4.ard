@@ -278,171 +278,424 @@
                                               : BetaEq ((v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (rep2 (n * P11 n m) (v (suc h)) (v z11))))
                                       )
                               )
-                        | yes e, no n => {?}
-                        | no n, yes e => {?}
-                        | no n, no n1 => {?}
+                        | yes e, no n1 =>
+                          inr
+                              (
+                                const-zero.1,
+                                const-zero.1,
+                                \lam x y => x * P10 x y,
+                                P11,
+                                const-zero.2,
+                                const-zero.2,
+                                mul (\lam x y => x) P10 (pr0 (\lam a1 (arg-con x arg-empty) => idp)) p10 (\lam (arg-con x (arg-con y arg-empty)) => idp),
+                                p11,
+                                0, 0, z10, z11,
+                                \lam n m =>
+                                    \let
+                                      | =n : v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) = Numeral n => {?}
+                                      | tmp1 => rep2.replace-args-left' {1} {n} {v 1} {v 0} {v h}
+                                    \in
+
+                                      (
+                                        \lam p p2 => (
+                                          rewrite =n $
+                                          rewrite p  $
+                                          b-eq-red (bred-repl idp)
+                                          : BetaEq ((v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (v 0))
+                                        ),
+                                        \lam p p2 => (
+                                          rewrite =n $
+                                          rewrite p  $
+                                          b-eq-red (bred-repl idp)
+                                          : BetaEq ((v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (v 0))
+                                        ),
+                                        \lam _x p =>
+                                            (
+                                              rewrite =n $
+                                              b-eq-chain
+                                                  (Numeral n @ l (rep2 (P10 n m) (v (suc h)) (v z10)))
+                                                  (BetaEq.app-save-eq-right ((f n m).3 _x p))
+                                                  (rewrite e (Theorem4-lemma_ n P10 m h))
+                                              : BetaEq ((v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (rep2 (n * P10 n m) (v (suc h)) (v z10)))) ,
+                                        \lam _x _x1 =>
+                                            (
+                                              rewrite =n $
+                                              b-eq-chain
+                                                  (Numeral n @ l (rep2 (P11 n m) (v (suc h)) (v z11)))
+                                                  (BetaEq.app-save-eq-right ((f n m).4 _x _x1))
+                                                  (Theorem4_-lemma2 n P11 m h z11 n1)
+                                              : BetaEq ((v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (rep2 (P11 n m) (v (suc h)) (v z11))))
+                                      )
+                              )
+                        | no n1, yes e =>
+                          inr
+                              (
+                                const-zero.1,
+                                const-zero.1,
+                                P10,
+                                \lam x y => x * P11 x y,
+                                const-zero.2,
+                                const-zero.2,
+                                p10,
+                                mul (\lam x y => x) P11 (pr0 (\lam a1 (arg-con x arg-empty) => idp)) p11 (\lam (arg-con x (arg-con y arg-empty)) => idp),
+                                0, 0, z10, z11,
+                                \lam n m =>
+                                    \let
+                                      | =n : v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) = Numeral n => {?}
+                                      | tmp1 => rep2.replace-args-left' {1} {n} {v 1} {v 0} {v h}
+                                    \in
+                                      (
+                                        \lam p p2 => (
+                                          rewrite =n $
+                                          rewrite p  $
+                                          b-eq-red (bred-repl idp)
+                                          : BetaEq ((v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (v 0))
+                                        ),
+                                        \lam p p2 => (
+                                          rewrite =n $
+                                          rewrite p  $
+                                          b-eq-red (bred-repl idp)
+                                          : BetaEq ((v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (v 0))
+                                        ),
+                                        \lam _x p =>
+                                            (
+                                              rewrite =n $
+                                              b-eq-chain
+                                                  (Numeral n @ l (rep2 (P10 n m) (v (suc h)) (v z10)))
+                                                  (BetaEq.app-save-eq-right ((f n m).3 _x p))
+                                                  (Theorem4_-lemma2 n P10 m h z10 n1)
+                                              : BetaEq ((v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (rep2 (P10 n m) (v (suc h)) (v z10)))) ,
+                                        \lam _x _x1 =>
+                                            (
+                                              rewrite =n $
+                                              b-eq-chain
+                                                  (Numeral n @ l (rep2 (P11 n m) (v (suc h)) (v z11)))
+                                                  (BetaEq.app-save-eq-right ((f n m).4 _x _x1))
+                                                  (rewrite e (Theorem4-lemma_ n P11 m h))
+                                              : BetaEq ((v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (rep2 (n * P11 n m) (v (suc h)) (v z11))))
+                                      )
+                              )
+                        | no n1, no n2 =>
+                          inr
+                              (
+                                const-zero.1,
+                                const-zero.1,
+                                P10,
+                                P11,
+                                const-zero.2,
+                                const-zero.2,
+                                p10,
+                                p11,
+                                0, 0, z10, z11,
+                                \lam n m =>
+                                    \let
+                                      | =n : v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) = Numeral n => {?}
+                                      | tmp1 => rep2.replace-args-left' {1} {n} {v 1} {v 0} {v h}
+                                    \in
+                                      (
+                                        \lam p p2 => (
+                                          rewrite =n $
+                                          rewrite p  $
+                                          b-eq-red (bred-repl idp)
+                                          : BetaEq ((v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (v 0))
+                                        ),
+                                        \lam p p2 => (
+                                          rewrite =n $
+                                          rewrite p  $
+                                          b-eq-red (bred-repl idp)
+                                          : BetaEq ((v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (v 0))
+                                        ),
+                                        \lam _x p =>
+                                            (
+                                              rewrite =n $
+                                              b-eq-chain
+                                                  (Numeral n @ l (rep2 (P10 n m) (v (suc h)) (v z10)))
+                                                  (BetaEq.app-save-eq-right ((f n m).3 _x p))
+                                                  (Theorem4_-lemma2 n P10 m h z10 n1)
+                                              : BetaEq ((v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (rep2 (P10 n m) (v (suc h)) (v z10)))) ,
+                                        \lam _x _x1 =>
+                                            (
+                                              rewrite =n $
+                                              b-eq-chain
+                                                  (Numeral n @ l (rep2 (P11 n m) (v (suc h)) (v z11)))
+                                                  (BetaEq.app-save-eq-right ((f n m).4 _x _x1))
+                                                  (Theorem4_-lemma2 n P11 m h z11 n2)
+                                              : BetaEq ((v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (rep2 (P11 n m) (v (suc h)) (v z11))))
+                                      )
+                              )
                       }
---                      inr (
---                        \lam x y => x * P x y,
---                        mul
---                            (\lam x _ => x)
---                            P
---                            (pr0 (\lam x (arg-con y arg-empty) => idp))
---                            exP
---                            (\lam (arg-con x (arg-con y arg-empty)) => idp),
---                        \lam x y => if (x == 0) 0 (Q x y),
---                        iff
---                            const-zero.1
---                            Q
---                            const-zero.2
---                            exQ
---                            0
---                            (\lam (arg-con x (arg-con y arg-empty)) => idp),
---                          \case =rep2 \with {
---                            | inl a1 => {?}
---                            | inr b => {?}
---                          }
-
--- AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-
---                        \lam n m =>
---                            \let
---                              | rec_case => =rep2 n m
---                              | =n : v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) = Numeral n => {?}
---                              | tmp1 => rep2.replace-args-left' {1} {n} {v 1} {v 0} {v h}
---                            \in
---                            \case rec_case \with {
---                              | inl beq =>
---                                  inl (
---                                    rewrite =n $
---                                    b-eq-chain
---                                        (Numeral n @ l (rep2 (P n m) (v (suc h)) (v 0)))
---                                        (BetaEq.app-save-eq-right beq)
---                                        (Theorem4-lemma_ n P m h)
---                                    : BetaEq (v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) @ ((e2 apl (Numeral n, suc (suc h))) apl (Numeral m, suc h))) (l (rep2 (n * P n m) (v (suc h)) (v 0)))
---                                  )
---                              | inr (j, beq) =>
---                                \case
---                                  n \as k,
---                                  =n : v (suc (suc h)) apl (Numeral k, suc (suc h)) apl (Numeral m, suc h) = Numeral k,
---                                  beq : BetaEq (e2 apl (Numeral k, suc (suc h)) apl (Numeral m, suc h)) (l (rep2 (Q k m) (v (suc h)) (v j)))
---                                \return Or (BetaEq (v (suc (suc h)) @ e2 apl (Numeral k, suc (suc h)) apl (Numeral m, suc h)) (l (rep2 (k * P k m) (v (suc h)) (v 0))))
---                                    (\Sigma (j : Nat) (BetaEq (v (suc (suc h)) @ e2 apl (Numeral k, suc (suc h)) apl (Numeral m, suc h))
---                                        (l (rep2 (if {Nat} (k == 0) 0 (Q k m)) (v (suc h)) (v j)))))
---                                \with {
---                                  | 0, =n, _ =>
---                                    inl (
---                                      rewrite =n $
---                                      b-eq-chain
---                                        (l $ v 0 apl (l (rep2 (P n m) (v (suc h)) (v (suc j))), 1))
---                                        (b-eq-red (bred-repl idp))
---                                        (rewrite NatSemiring.zro_*-left (b-eq-eq idp))
---                                      : BetaEq ((v (suc (suc h)) apl (Numeral 0, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral 0, suc (suc h)) apl (Numeral m, suc h)) ) (l (rep2 (0 * P 0 m) (v (suc h)) (v 0)))
---                                    )
---                                  | suc k, =n, beq =>
---                                    inr (
---                                      j,
---                                      rewrite =n $
---                                      b-eq-chain
---                                          (Numeral (suc k) @ l (rep2 (Q (suc k) m) (v (suc h)) (v j)))
---                                          (BetaEq.app-save-eq-right beq)
---                                          (Theorem4_-lemma2 k Q m h j)
---                                      : BetaEq ((v (suc (suc h)) apl (Numeral (suc k), suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral (suc k), suc (suc h)) apl (Numeral m, suc h)))
---                                          (l (rep2 (Q (suc k) m) (v (suc h)) (v j)))
---                                    )
---                                }
---                            }
                   }
                 )
-            | inr b => rewrite b {?}
---                (
---                  \case rec \with {
---                    | inl =f =>
---                      inr (
---                        \lam _ y => y,
---                        down (\lam x => x) (pr0 (\lam a (arg-empty) => idp)) (\lam a (arg-con x arg-empty) => idp),
---                        const-zero.1,
---                        const-zero.2,
---                        {?}
-----                        \lam n m =>
-----                            \let
-----                              | =m : v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) = Numeral m => {?}
-----                              | tmp1 => rep2.replace-args-left' {1} {m} {v 1} {v 0} {v h}
-----                            \in
-----                              inl (
-----                                rewrite (=f n m) $
-----                                rewrite =m $
-----                                b-eq-red (bred-repl (pmap l tmp1))
-----                                : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ ((e2 apl (Numeral n, suc (suc h))) apl (Numeral m, suc h))) (l (rep2 m (v (suc h)) (v 0)))
-----                              )
---                      )
---                    | inr (P, exP, Q, exQ, =rep2) =>
---                      inr (
---                        \lam x y => y * P x y,
---                        mul
---                            (\lam _ y => y)
---                            P
---                            (down (\lam x => x) (pr0 (\lam a (arg-empty) => idp)) (\lam a (arg-con x _) => idp))
---                            exP
---                            (\lam (arg-con x (arg-con y arg-empty)) => idp),
---                        \lam x y => if (y == 0) 0 (Q x y),
---                        iff
---                            const-zero.1
---                            Q
---                            const-zero.2
---                            exQ
---                            1
---                            (\lam (arg-con x (arg-con y arg-empty)) => idp),
---                        \lam n m =>
---                            \let
---                              | rec_case => =rep2 n m
---                              | =m : v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) = Numeral m => {?}
---                              | tmp1 => rep2.replace-args-left' {1} {m} {v 1} {v 0} {v h}
---                            \in
---                              \case rec_case \with {
---                                | inl beq =>
---                                  inl (
---                                    rewrite =m $
---                                    b-eq-chain
---                                        (Numeral m @ l (rep2 (P n m) (v (suc h)) (v 0)))
---                                        (BetaEq.app-save-eq-right beq)
---                                        (Theorem4_-lemma3 m P n h)
---                                    : BetaEq (v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) @ ((e2 apl (Numeral n, suc (suc h))) apl (Numeral m, suc h))) (l (rep2 (m * P n m) (v (suc h)) (v 0)))
---                                  )
---                                | inr (j, beq) =>
---                                  \case
---                                    m \as k,
---                                    =m : v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral k, suc h) = Numeral k,
---                                    beq : BetaEq (e2 apl (Numeral n, suc (suc h)) apl (Numeral k, suc h)) (l (rep2 (Q n k) (v (suc h)) (v j)))
---                                  \return Or (BetaEq (v (suc h) @ e2 apl (Numeral n, suc (suc h)) apl (Numeral k, suc h)) (l (rep2 (k * P n k) (v (suc h)) (v 0))))
---                                      (\Sigma (j : Nat) (BetaEq (v (suc h) @ e2 apl (Numeral n, suc (suc h)) apl (Numeral k, suc h))
---                                          (l (rep2 (if {Nat} (k == 0) 0 (Q n k)) (v (suc h)) (v j)))))
---                                  \with {
---                                    | 0, =m, _ =>
---                                      inl (
---                                        rewrite =m $
---                                        b-eq-chain
---                                            (l $ v 0 apl (l (rep2 (P n m) (v (suc h)) (v (suc j))), 1))
---                                            (b-eq-red (bred-repl idp))
---                                            (rewrite NatSemiring.zro_*-left (b-eq-eq idp))
---                                        : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral 0, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral 0, suc h))) (l (rep2 (0 * P n 0) (v (suc h)) (v 0)))
---                                      )
---                                    | suc k, =m, beq =>
---                                      inr (
---                                        j,
---                                        rewrite =m $
---                                        b-eq-chain
---                                            (Numeral (suc k) @ l (rep2 (Q n (suc k)) (v (suc h)) (v j)))
---                                            (BetaEq.app-save-eq-right beq)
---                                            (Theorem4_-lemma4 k Q n h j)
---                                        : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral (suc k), suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral (suc k), suc h)))
---                                            (l (rep2 (Q n (suc k)) (v (suc h)) (v j)))
---                                      )
---                                  }
---                              }
---                      )
---                  }
---              )
+            | inr b => rewrite b
+                (
+                  \case rec \with {
+                    | inl =f =>
+                      inr (
+                        \lam _ y => y,
+                        \lam _ y => y,
+                        \lam _ y => y,
+                        \lam _ y => y,
+                        down (\lam x => x) (pr0 (\lam a (arg-empty) => idp)) (\lam a (arg-con x arg-empty) => idp),
+                        down (\lam x => x) (pr0 (\lam a (arg-empty) => idp)) (\lam a (arg-con x arg-empty) => idp),
+                        down (\lam x => x) (pr0 (\lam a (arg-empty) => idp)) (\lam a (arg-con x arg-empty) => idp),
+                        down (\lam x => x) (pr0 (\lam a (arg-empty) => idp)) (\lam a (arg-con x arg-empty) => idp),
+                        0,
+                        0,
+                        0,
+                        0,
+                        \lam n m =>
+                            \let
+                              | =m : v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) = Numeral m => {?}
+                              | tmp1 => rep2.replace-args-left' {1} {m} {v 1} {v 0} {v h}
+                            \in
+                              (
+                                \lam p p2 => (
+                                  rewrite (=f n m) $
+                                  rewrite =m $
+                                  b-eq-red (bred-repl (pmap l tmp1))
+                                  : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ ((e2 apl (Numeral n, suc (suc h))) apl (Numeral m, suc h))) (l (rep2 m (v (suc h)) (v 0)))
+                                )
+                              ,
+                                \lam p p2 => (
+                                  rewrite (=f n m) $
+                                  rewrite =m $
+                                  b-eq-red (bred-repl (pmap l tmp1))
+                                  : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ ((e2 apl (Numeral n, suc (suc h))) apl (Numeral m, suc h))) (l (rep2 m (v (suc h)) (v 0)))
+                                )
+                              ,
+                                \lam p p2 => (
+                                  rewrite (=f n m) $
+                                  rewrite =m $
+                                  b-eq-red (bred-repl (pmap l tmp1))
+                                  : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ ((e2 apl (Numeral n, suc (suc h))) apl (Numeral m, suc h))) (l (rep2 m (v (suc h)) (v 0)))
+                                )
+                              ,
+                                \lam p p2 => (
+                                  rewrite (=f n m) $
+                                  rewrite =m $
+                                  b-eq-red (bred-repl (pmap l tmp1))
+                                  : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ ((e2 apl (Numeral n, suc (suc h))) apl (Numeral m, suc h))) (l (rep2 m (v (suc h)) (v 0)))
+                                )
+                              )
+                      )
+                    | inr (
+                    P00, P01, P10, P11,
+                    p00, p01, p10, p11,
+                    z00, z01, z10, z11,
+                    f
+                    ) =>
+                      \case decideEq z01 0 \as d1, decideEq z11 0 \as d2 \with {
+                        | yes e, yes e3 =>
+                          inr
+                              (
+                                const-zero.1,
+                                \lam x y => y * P01 x y,
+                                const-zero.1,
+                                \lam x y => y * P11 x y,
+                                const-zero.2,
+                                mul (\lam x y => y) P01 (down (\lam x => x) (pr0 (\lam a (arg-empty) => idp)) (\lam a (arg-con x arg-empty) => idp)) p01 (\lam (arg-con x (arg-con y arg-empty)) => idp),
+                                const-zero.2,
+                                mul (\lam x y => y) P11 (down (\lam x => x) (pr0 (\lam a (arg-empty) => idp)) (\lam a (arg-con x arg-empty) => idp)) p11 (\lam (arg-con x (arg-con y arg-empty)) => idp),
+                                0, z01, 0, z11,
+                                \lam n m =>
+                                    \let
+                                      | =m : v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) = Numeral m => {?}
+                                      | tmp1 => rep2.replace-args-left' {1} {m} {v 1} {v 0} {v h}
+                                    \in
+                                      (
+                                        \lam p p2 =>
+                                          (
+                                            rewrite =m $
+                                            rewrite p2 $
+                                            b-eq-red (bred-repl idp)
+                                            : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (v 0))
+                                          ),
+                                        \lam p _x =>
+                                          (
+                                            rewrite =m $
+                                            b-eq-chain
+                                                (Numeral m @ l (rep2 (P01 n m) (v (suc h)) (v z01)))
+                                                (BetaEq.app-save-eq-right ((f n m).2 p _x))
+                                                (rewrite e $ Theorem4_-lemma3 m P01 n h)
+                                            : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (rep2 (m * P01 n m) (v (suc h)) (v z01)))
+                                          ),
+                                        \lam _x p =>
+                                            (
+                                              rewrite =m $
+                                              rewrite p $
+                                              b-eq-red (bred-repl idp)
+                                              : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (v 0))
+                                            ),
+                                        \lam _x _x1 =>
+                                            (
+                                              rewrite =m $
+                                              b-eq-chain
+                                                  (Numeral m @ l (rep2 (P11 n m) (v (suc h)) (v z11)))
+                                                  (BetaEq.app-save-eq-right ((f n m).4 _x _x1))
+                                                  (rewrite e3 $ Theorem4_-lemma3 m P11 n h)
+                                              : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (rep2 (m * P11 n m) (v (suc h)) (v z11)))
+                                            )
+                                      )
+                              )
+                        | yes e, no n1 =>
+                          inr
+                              (
+                                const-zero.1,
+                                \lam x y => y * P01 x y,
+                                const-zero.1,
+                                P11,
+                                const-zero.2,
+                                mul (\lam x y => y) P01 (down (\lam x => x) (pr0 (\lam a (arg-empty) => idp)) (\lam a (arg-con x arg-empty) => idp)) p01 (\lam (arg-con x (arg-con y arg-empty)) => idp),
+                                const-zero.2,
+                                p11,
+                                0, z01, 0, z11,
+                                \lam n m =>
+                                    \let
+                                      | =m : v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) = Numeral m => {?}
+                                      | tmp1 => rep2.replace-args-left' {1} {m} {v 1} {v 0} {v h}
+                                    \in
+                                      (
+                                        \lam p p2 =>
+                                            (
+                                              rewrite =m $
+                                              rewrite p2 $
+                                              b-eq-red (bred-repl idp)
+                                              : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (v 0))
+                                            ),
+                                        \lam p _x =>
+                                            (
+                                              rewrite =m $
+                                              b-eq-chain
+                                                  (Numeral m @ l (rep2 (P01 n m) (v (suc h)) (v z01)))
+                                                  (BetaEq.app-save-eq-right ((f n m).2 p _x))
+                                                  (rewrite e $ Theorem4_-lemma3 m P01 n h)
+                                              : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (rep2 (m * P01 n m) (v (suc h)) (v z01)))
+                                            ),
+                                        \lam _x p =>
+                                            (
+                                              rewrite =m $
+                                              rewrite p $
+                                              b-eq-red (bred-repl idp)
+                                              : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (v 0))
+                                            ),
+                                        \lam _x _x1 =>
+                                            (
+                                              rewrite =m $
+                                              b-eq-chain
+                                                  (Numeral m @ l (rep2 (P11 n m) (v (suc h)) (v z11)))
+                                                  (BetaEq.app-save-eq-right ((f n m).4 _x _x1))
+                                                  (Theorem4_-lemma4 m P11 n h z11 n1)
+                                              : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (rep2 (P11 n m) (v (suc h)) (v z11)))
+                                            )
+                                      )
+                              )
+                        | no n1, yes e =>
+                          inr
+                              (
+                                const-zero.1,
+                                P01,
+                                const-zero.1,
+                                \lam x y => y * P11 x y,
+                                const-zero.2,
+                                p01,
+                                const-zero.2,
+                                mul (\lam x y => y) P11 (down (\lam x => x) (pr0 (\lam a (arg-empty) => idp)) (\lam a (arg-con x arg-empty) => idp)) p11 (\lam (arg-con x (arg-con y arg-empty)) => idp),
+                                0, z01, 0, z11,
+                                \lam n m =>
+                                    \let
+                                      | =m : v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) = Numeral m => {?}
+                                      | tmp1 => rep2.replace-args-left' {1} {m} {v 1} {v 0} {v h}
+                                    \in
+                                      (
+                                        \lam p p2 =>
+                                            (
+                                              rewrite =m $
+                                              rewrite p2 $
+                                              b-eq-red (bred-repl idp)
+                                              : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (v 0))
+                                            ),
+                                        \lam p _x =>
+                                            (
+                                              rewrite =m $
+                                              b-eq-chain
+                                                  (Numeral m @ l (rep2 (P01 n m) (v (suc h)) (v z01)))
+                                                  (BetaEq.app-save-eq-right ((f n m).2 p _x))
+                                                  (Theorem4_-lemma4 m P01 n h z01 n1)
+                                              : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (rep2 (P01 n m) (v (suc h)) (v z01)))
+                                            ),
+                                        \lam _x p =>
+                                            (
+                                              rewrite =m $
+                                              rewrite p $
+                                              b-eq-red (bred-repl idp)
+                                              : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (v 0))
+                                            ),
+                                        \lam _x _x1 =>
+                                            (
+                                              rewrite =m $
+                                              b-eq-chain
+                                                  (Numeral m @ l (rep2 (P11 n m) (v (suc h)) (v z11)))
+                                                  (BetaEq.app-save-eq-right ((f n m).4 _x _x1))
+                                                  (rewrite e $ Theorem4_-lemma3 m P11 n h)
+                                              : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (rep2 (m * P11 n m) (v (suc h)) (v z11)))
+                                            )
+                                      )
+                              )
+                        | no n1, no n2 =>
+                          inr
+                              (
+                                const-zero.1,
+                                P01,
+                                const-zero.1,
+                                P11,
+                                const-zero.2,
+                                p01,
+                                const-zero.2,
+                                p11,
+                                0, z01, 0, z11,
+                                \lam n m =>
+                                    \let
+                                      | =m : v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) = Numeral m => {?}
+                                      | tmp1 => rep2.replace-args-left' {1} {m} {v 1} {v 0} {v h}
+                                    \in
+                                      (
+                                        \lam p p2 =>
+                                            (
+                                              rewrite =m $
+                                              rewrite p2 $
+                                              b-eq-red (bred-repl idp)
+                                              : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (v 0))
+                                            ),
+                                        \lam p _x =>
+                                            (
+                                              rewrite =m $
+                                              b-eq-chain
+                                                  (Numeral m @ l (rep2 (P01 n m) (v (suc h)) (v z01)))
+                                                  (BetaEq.app-save-eq-right ((f n m).2 p _x))
+                                                  (Theorem4_-lemma4 m P01 n h z01 n1)
+                                              : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (rep2 (P01 n m) (v (suc h)) (v z01)))
+                                            ),
+                                        \lam _x p =>
+                                            (
+                                              rewrite =m $
+                                              rewrite p $
+                                              b-eq-red (bred-repl idp)
+                                              : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (v 0))
+                                            ),
+                                        \lam _x _x1 =>
+                                            (
+                                              rewrite =m $
+                                              b-eq-chain
+                                                  (Numeral m @ l (rep2 (P11 n m) (v (suc h)) (v z11)))
+                                                  (BetaEq.app-save-eq-right ((f n m).4 _x _x1))
+                                                  (Theorem4_-lemma4 m P11 n h z11 n2)
+                                              : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h))) (l (rep2 (P11 n m) (v (suc h)) (v z11)))
+                                            )
+                                      )
+                              )
+                      }
+                  }
+              )
           }
       }
   \where {
@@ -455,14 +708,16 @@
           )
       | suc n => \let r => Theorem4-lemma_ n P m h \in {?} -- TODO *-def proof
 
-    \func Theorem4_-lemma2 (k : Nat) (Q : F 2) (m h j : Nat) : BetaEq (Numeral (suc k) @ l (rep2 (Q (suc k) m) (v (suc h)) (v j))) (l (rep2 (Q (suc k) m) (v (suc h)) (v j))) =>
-      {?}
-
-    \func Theorem4_-lemma4 (k : Nat) (Q : F 2) (n h j : Nat) : BetaEq (Numeral (suc k) @ l (rep2 (Q n (suc k)) (v (suc h)) (v j))) (l (rep2 (Q n (suc k)) (v (suc h)) (v j))) =>
+    \func Theorem4_-lemma2 (k : Nat) (Q : F 2) (m h j : Nat) (not-zero : j /= 0) : BetaEq (Numeral k @ l (rep2 (Q k m) (v (suc h)) (v j))) (l (rep2 (Q k m) (v (suc h)) (v j))) =>
       {?}
 
     \func Theorem4_-lemma3 (m : Nat) (P : F 2) (n h : Nat) : BetaEq (Numeral m @ l (rep2 (P n m) (v (suc h)) (v 0))) (l (rep2 (m * P n m) (v (suc h)) (v 0))) =>
       {?}
+
+    \func Theorem4_-lemma4 (k : Nat) (Q : F 2) (n h j : Nat) (not-zero : j /= 0) : BetaEq (Numeral k @ l (rep2 (Q n k) (v (suc h)) (v j))) (l (rep2 (Q n k) (v (suc h)) (v j))) =>
+      {?}
+
+
 
     \func Theorem4_-var-lemma {e : Expr_} {h : Nat} {c_ : Context_}
                               (typed : TypedExpr_ e A (h + 3) c_)
