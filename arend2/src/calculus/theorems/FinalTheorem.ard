@@ -1,11 +1,15 @@
+\import Arith.Nat
+\import Data.Bool
 \import Data.Or
 \import Function.Meta
 \import Logic
 \import Paths.Meta
+\import Set \hiding (#)
 \import calculus.Base
 \import calculus.Beta
 \import calculus.Church
 \import calculus.Context
+\import calculus.Defs
 \import calculus.SubTerm
 \import calculus.Types
 \import calculus.theorems.Theorem2
@@ -34,7 +38,7 @@
     \in \case (rewriteF destruct tpd) \with {
       | t-lam (t-lam (t-lam B-typed)) =>
         \let
-          | th4 => Theorem4_ B-typed
+          | th4_ => Theorem4_ B-typed
               (NormalForm.nf (b-chain-end idp) (\lam _x => \case nf_ \with {
                 | NormalForm.nf b n => n (l (l (l _x.1)), bred-lam (bred-lam (bred-lam _x.2)))
               }))
@@ -42,7 +46,7 @@
               (FinalTheorem-lemma B) -- TODO obs from no-con
               FinalTheorem-lemma-conreq -- TODO obs
               FinalTheorem-lemma-var-typed -- TODO obs
-        \in \case th4 \with {
+        \in \case th4_ \with {
           | inl a =>
             rewrite destruct $
             inl $
@@ -53,8 +57,96 @@
                       (b-eq-red (bred-repl idp))
                       (BetaEq.lam-save-eq (b-eq-eq (a n m)))
                   )
-          | inr (P, exP, Q, exQ, rep) =>
-            inr {?}
+          | inr (
+              P00, P01, P10, P11,
+              p00, p01, p10, p11,
+              z00, z01, z10, z11,
+              f
+            ) =>
+            inr (
+              \lam x y => if (x == 0) (if (y == 0) (P00 x y) (P01 x y)) (if (y == 0) (P10 x y) (P11 x y)),
+              iff
+                  (\lam x y => if (y == 0) (P00 x y) (P01 x y))
+                  (\lam x y => if (y == 0) (P10 x y) (P11 x y))
+                  (iff
+                      P00
+                      P01
+                      p00
+                      p01
+                      1
+                      (\lam (arg-con x (arg-con y arg-empty)) => idp)
+                  )
+                  (iff
+                      P10
+                      P11
+                      p10
+                      p11
+                      1
+                      (\lam (arg-con x (arg-con y arg-empty)) => idp)
+                  )
+                  0
+                  (\lam (arg-con x (arg-con y arg-empty)) => idp),
+              \lam (arg-con x (arg-con y arg-empty)) =>
+                  \case decideEq x 0 \as d1, decideEq y 0 \as d2 \return BetaEq (e @ Numeral x @ Numeral y)
+                      (Numeral (if {Nat} (decToBool d1) (if {Nat} (decToBool d2) (P00 x y) (P01 x y)) (if {Nat} (decToBool d2) (P10 x y) (P11 x y)))) \with {
+                    | yes e1, yes e2 => rewrite destruct
+                        (
+                          b-eq-chain (((l $ l $ B) apl (Numeral x, 0)) @ Numeral y)
+                              (b-eq-red (bred-app-left (bred-repl idp) idp))
+                              (b-eq-chain (l $ B apl (Numeral x, 2) apl (Numeral y, 1))
+                                  (b-eq-red (bred-repl idp))
+                                  (BetaEq.lam-save-eq $
+                                      b-eq-chain
+                                      (l (rep2 (P00 x y) (v 1) (v z00)))
+                                      ((f x y).1 e1 e2)
+                                      (b-eq-eq $ rewrite ({?} : z00 = 0) idp)
+                                  )
+                              )
+                        )
+                    | yes e1, no n => rewrite destruct
+                        (
+                          b-eq-chain (((l $ l $ B) apl (Numeral x, 0)) @ Numeral y)
+                              (b-eq-red (bred-app-left (bred-repl idp) idp))
+                              (b-eq-chain (l $ B apl (Numeral x, 2) apl (Numeral y, 1))
+                                  (b-eq-red (bred-repl idp))
+                                  (BetaEq.lam-save-eq $
+                                  b-eq-chain
+                                      (l (rep2 (P01 x y) (v 1) (v z01)))
+                                      ((f x y).2 e1 n)
+                                      (b-eq-eq $ rewrite ({?} : z01 = 0) idp)
+                                  )
+                              )
+                        )
+                    | no n, yes e1 => rewrite destruct
+                        (
+                          b-eq-chain (((l $ l $ B) apl (Numeral x, 0)) @ Numeral y)
+                              (b-eq-red (bred-app-left (bred-repl idp) idp))
+                              (b-eq-chain (l $ B apl (Numeral x, 2) apl (Numeral y, 1))
+                                  (b-eq-red (bred-repl idp))
+                                  (BetaEq.lam-save-eq $
+                                  b-eq-chain
+                                      (l (rep2 (P10 x y) (v 1) (v z10)))
+                                      ((f x y).3 n e1)
+                                      (b-eq-eq $ rewrite ({?} : z10 = 0) idp)
+                                  )
+                              )
+                        )
+                    | no n, no n1 => rewrite destruct
+                        (
+                          b-eq-chain (((l $ l $ B) apl (Numeral x, 0)) @ Numeral y)
+                              (b-eq-red (bred-app-left (bred-repl idp) idp))
+                              (b-eq-chain (l $ B apl (Numeral x, 2) apl (Numeral y, 1))
+                                  (b-eq-red (bred-repl idp))
+                                  (BetaEq.lam-save-eq $
+                                  b-eq-chain
+                                      (l (rep2 (P11 x y) (v 1) (v z11)))
+                                      ((f x y).4 n n1)
+                                      (b-eq-eq $ rewrite ({?} : z11 = 0) idp)
+                                  )
+                              )
+                        )
+                  }
+            )
         }
     }
   \where {
