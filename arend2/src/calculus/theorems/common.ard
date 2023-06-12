@@ -6,11 +6,10 @@
 \import calculus.Church
 \import calculus.Context
 \import calculus.Defs
+\import calculus.SubTerm
 \import calculus.Types
 \import math.sets
 \import math.utils
-
-\open Nat
 
 \func A => Base 0
 \func N => (A ~> A) ~> (A ~> A)
@@ -22,6 +21,8 @@
 
 \func inS (e : Type_) => Set3 {Type_} A (A ~> A) N e
 
+-- change to it
+\type TrueClosed (e : Expr_) (h : Nat) => \Pi (i : Nat) (sub : SubTerm e (v i)) -> i NatSemiring.< h Nat.+ SubTerm.subterm-height sub
 
 \type ClosedForm (e : Expr_) (h : Nat) (c_ : Context_) => FV e h leq CV c_ h
 \type VarsTypedCorrectly (c : Context_) => \Pi (i : Nat) (h' : Nat) (ti : Type_) (Context_.typed-var-in-context (h_c h' i, ti) c = true) -> inS ti
@@ -29,11 +30,16 @@
 \func F (n : Nat) => K-Args-Fun Nat n
 \func X (n : Nat) => K-Args Nat n
 
+\func proj {n : Nat} (k : Nat) (x : X n) : Nat \elim n, k, x
+  | 0, _, arg-empty => 0
+  | suc n, 0, arg-con a k => a
+  | suc n, suc k, arg-con a k1 => proj k k1
+
 \data ExtPoly {n : Nat} (f : F n) \elim n
   | n       => sum (f1 f2 : F n) (ExtPoly f1) (ExtPoly f2) (\Pi (x : X n) -> (f <- x) = (f1 <- x) Nat.+ (f2 <- x))
   | n       => mul (f1 f2 : F n) (ExtPoly f1) (ExtPoly f2) (\Pi (x : X n) -> (f <- x) = (f1 <- x) Nat.* (f2 <- x))
-  | (suc n) => iff (f1 f2 : F (suc n)) (ExtPoly {suc n} f1) (ExtPoly {suc n} f2)
-                   (\Pi (a : Nat) (x : X n) -> f <- arg-con a x = if (a == 0) (f1 <- arg-con a x) (f2 <- arg-con a x))
+  | n       => iff (f1 f2 : F n) (ExtPoly {n} f1) (ExtPoly {n} f2) (k : Nat)
+                   (\Pi (x : X n) -> f <- x = if (proj k x == 0) (f1 <- x) (f2 <- x))
   | (suc n) => down (f' : F n) (ExtPoly f') (\Pi (a : Nat) (x : X n) -> (f <- arg-con a x) = f' <- x)
   | (suc n) => pr0 (\Pi (a : Nat) (x : X n) -> f <- arg-con a x = a)
   | n       => const (k : Nat) (\Pi (x : X n) -> f <- x = k)

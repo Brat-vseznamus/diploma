@@ -1,0 +1,69 @@
+\import Data.Or
+\import Function.Meta
+\import Logic
+\import Paths.Meta
+\import calculus.Base
+\import calculus.Beta
+\import calculus.Church
+\import calculus.Context
+\import calculus.SubTerm
+\import calculus.Types
+\import calculus.theorems.Theorem2
+\import calculus.theorems.Theorem3
+\import calculus.theorems.Theorem4
+\import calculus.theorems.common
+
+\func FinalTheorem
+  (e : Expr_)
+  (tpd : TypedExpr_ e (N ~> N ~> N) 0 empty)
+  (nf : NormalForm e e)
+  (no-con : \Pi (i : Nat) -> Not (SubTerm e (c i)))
+  (closed : ClosedForm e 0 empty)
+  : Or
+    (\Pi (n m : Nat) -> BetaEq (e @ Numeral n @ Numeral m) (l (v 0)))
+    (\Sigma
+      (P : F 2)
+      (exP : ExtPoly {2} P)
+      (e defines (2, P))
+    )
+  =>
+    \let
+      | (B, destruct) => Theorem+2 e 0 nf tpd no-con closed
+      | nf_ => rewriteF destruct nf
+      | no-con_ => rewriteF destruct (no-con : \Pi (i : Nat) -> Not (SubTerm e (c i)))
+    \in \case (rewriteF destruct tpd) \with {
+      | t-lam (t-lam (t-lam B-typed)) =>
+        \let
+          | th4 => Theorem4_ B-typed
+              (NormalForm.nf (b-chain-end idp) (\lam _x => \case nf_ \with {
+                | NormalForm.nf b n => n (l (l (l _x.1)), bred-lam (bred-lam (bred-lam _x.2)))
+              }))
+              (\lam i s => no-con_ i (sub-lam (sub-lam (sub-lam s))))
+              (FinalTheorem-lemma B) -- TODO obs from no-con
+              FinalTheorem-lemma-conreq -- TODO obs
+              FinalTheorem-lemma-var-typed -- TODO obs
+        \in \case th4 \with {
+          | inl a =>
+            rewrite destruct $
+            inl $
+            \lam n m =>
+              b-eq-chain (((l $ l $ B) apl (Numeral n, 0)) @ Numeral m)
+                  (b-eq-red (bred-app-left (bred-repl idp) idp))
+                  (b-eq-chain (l $ B apl (Numeral n, 2) apl (Numeral m, 1))
+                      (b-eq-red (bred-repl idp))
+                      (BetaEq.lam-save-eq (b-eq-eq (a n m)))
+                  )
+          | inr (P, exP, Q, exQ, rep) =>
+            inr {?}
+        }
+    }
+  \where {
+    \func FinalTheorem-lemma (B : Expr_) : ClosedForm B 3 ((pos 2, A ~> A) extend (pos 1, N) extend (pos 0, N) extend empty) =>
+      {?}
+
+    \func FinalTheorem-lemma-conreq : \Pi (hc : Int) ->
+        ConReq2 hc ((pos 2, A ~> A) extend (pos 1, N) extend (pos 0, N) extend empty) => {?}
+
+    \func FinalTheorem-lemma-var-typed : VarsTypedCorrectly ((pos 2, A ~> A) extend (pos 1, N) extend (pos 0, N) extend empty) =>
+      {?}
+  }

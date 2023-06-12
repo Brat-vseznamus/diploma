@@ -6,7 +6,7 @@
 \import Logic.Meta
 \import Paths
 \import Paths.Meta
-\import Set
+\import Set \hiding (#)
 \import calculus.Base
 \import calculus.Beta
 \import calculus.Church
@@ -23,293 +23,6 @@
 
 \func const-zero : \Sigma (P : F 2) (ExtPoly {2} P) =>
   (\lam n1 n2 => 0, const 0 (\lam (arg-con _ (arg-con _ arg-empty)) => idp))
-
-\func Theorem4 {e : Expr_} {h : Nat} {c_ : Context_}
-    (typed : TypedExpr_ e (A ~> A) (h + 3) c_)
-    (nf : NormalForm e e)
-    (no-con : \Pi (i : Nat) -> Not (SubTerm e (c i)))
-    (closed : ClosedForm e (h + 3) c_)
-    (con-req : \Pi (hc : Int) -> ConReq2 hc c_)
-    (each-var-typed : VarsTypedCorrectly c_):
-  Or
-      (\Pi (n m : Nat) -> e apl (Numeral n, h + 2) apl (Numeral m, h + 1) = v h)
-      (\Sigma
-        (P : F 2)
-        (ExtPoly {2} P)
-        (j : Nat)
-        (\Pi (n m : Nat) ->
-            Or
-                (BetaEq (e apl (Numeral n, h + 2) apl (Numeral m, h + 1)) (l $ rep2 (P n m) (v (h + 1)) (v 0)))
-                (BetaEq (e apl (Numeral n, h + 2) apl (Numeral m, h + 1)) (l $ rep2 (P n m) (v (h + 1)) (v j))))
-      )
-  \elim e
-    -- CONSTANT
-    | c n => absurd (no-con n (sub-same idp))
-    -- VARIABLE
-    | v i =>
-      inl
-        \lam n m => \case
-            i \as j,
-            typed : TypedExpr_ (v j) (A ~> A) (suc (suc (suc h))) c_,
-            nf : NormalForm (v j) (v j),
-            no-con : \Pi (i : Nat) -> Not (SubTerm (v j) (c i)),
-            typed : TypedExpr_ (v j) (A ~> A) (h + 3) c_,
-            closed : ClosedForm (v j) (h + 3) c_
-            \return v j apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) = v h
-          \with {
-            | 0, t-var j-exists, nf_, no-con, typed, closed =>
-              (
-                pmap (\lam x => if x (apply_.shift+dh (Numeral n) (suc (suc h)) 0) (v 0) apl (Numeral m, suc h))
-                    ({?} : 0 == suc (suc h) = false)
-                  *>
-                (
-                  pmap (\lam x => if x (apply_.shift+dh (Numeral m) (suc h) 0) (v 0))
-                      ({?} : 0 == suc h = false)
-                    *>
-                  (
-                    \let
-                      | theorem3 => Theorema2-3 (v 0) (A ~> A) h c_ con-req nf_ (t-var j-exists) (is2 idp)
-                          no-con
-                          leq-empty
-                          each-var-typed
-                          0
-                          (sub-same idp)
-                          idp
-                      | h=0 : h = 0 =>
-                        pmap
-                            (\lam x => \case x \with {| pos (suc (suc (suc x))) => x | neg x => 0 | _ => 0})
-                            (minus-rewrite {suc (suc (suc h))} {1} theorem3)
-
-                    \in rewrite h=0 idp
-                  )
-                  : if (0 == suc h) (apply_.shift+dh (Numeral m) (suc h) 0) (v 0) = v h
-                )
-                : if (0 == suc (suc h)) (apply_.shift+dh (Numeral n) (suc (suc h)) 0) (v 0) apl (Numeral m, suc h) = v h
-              )
-            | suc j, t-var j-exists, nf_, no-con, typed, closed =>
-              (
-                \let
-                  | theorem3 => Theorema2-3 (v (suc j)) (A ~> A) h c_ con-req nf_ (t-var j-exists) (is2 idp)
-                      no-con
-                      closed
-                      each-var-typed
-                      (suc j)
-                      (sub-same idp)
-                      idp
-                  | tmp1 => minus-rewrite {suc (suc (suc h))} {suc (suc j)} theorem3
-                  | tmp2 : h = suc j => pmap (\lam x => \case x \with {| pos (suc (suc (suc x))) => x | neg x => 0 | _ => 0}) tmp1
-                  | tmp3 : suc j == suc (suc h) = false => {?}
-                  | tmp4 : isFree (suc j) (suc (suc h)) = false => {?}
-                  | tmp5 : suc j == suc h = false => {?}
-                  | tmp6 : isFree (suc j) (suc h) = false => {?}
-                \in
-                  rewrite tmp3 $
-                  rewrite tmp4 $
-                  (
-                    rewrite tmp5 $
-                    rewrite tmp6 $
-                    rewrite (inv tmp2) $
-                    idp
-                    : if (suc j == suc h) (apply_.shift+dh (Numeral m) (suc h) 0) (if (isFree (suc j) (suc h)) (v j) (v (suc j))) = v h
-                  )
-                : if (suc j == suc (suc h)) (apply_.shift+dh (Numeral n) (suc (suc h)) 0) (if (isFree (suc j) (suc (suc h))) (v j) (v (suc j))) apl (Numeral m, suc h) = v h
-              )
-        }
-    -- LAMBDA
-    | l (c x) => absurd (no-con x (sub-lam (sub-same idp)))
-    | l (v x) =>
-      \case decideEq x (suc (suc (suc h))) \as d1, decideEq x (suc (suc h)) \as d2 \with {
-        | yes e, yes e1 => absurd (a/=suc_a (inv e1 *> e))
-        | yes e, no n => {?}
-        | no n, yes e => {?}
-        | no n, no n1 => {?}
-      }
-    | l (P @ a) => {?}
-    | l (l r) => \case typed \with {
-      | t-lam B-typed => \case B-typed \with {}
-    }
-    -- APPLICATION
-    | e1 @ e2 =>
-      \let
-        | Th1 => Theorema1 (e1 @ e2) (A ~> A) (h + 3) c_ nf typed (is2 idp) no-con closed each-var-typed
-        | leftType => Th1 e1 (sub-app-left (sub-same idp))
-      \in
-      \case typed \as tpd, leftType : inS (SubTerm.type-subterm
-          (e1 @ e2) e1 (sub-app-left {e1} {e2} {e1} (sub-same {e1} {e1} (idp {Expr_} {e1}))) (A ~> A) (suc (suc (suc h))) c_ tpd).1 \with {
-        | t-app tq P-typed Q-typed, lt =>
-            \let
-              | lt2 => rewrite SubTerm.ref lt
-              | tq=A->A : tq = A ~> A => \case lt2 \with {
-                | is1 p => contradiction
-                | is2 p => contradiction
-                | is3 p => pmap (\lam x => \case x \with {| a ~> b => a | _ => Base 0 }) p
-              }
-              | P-typed' => rewrite tq=A->A P-typed
-              | Q-typed' => rewrite tq=A->A Q-typed
-              | rec => Theorem4 Q-typed'
-                  (NormalForm.nf (b-chain-end idp) (\lam _x => \case nf \with {
-                    | NormalForm.nf b n => n (e1 @ _x.1, bred-app-right idp _x.2)
-                  }))
-                  (\lam i s => no-con i (sub-app-right s))
-                  (Theorema1.decon-closed {e1 @ e2} {e1} {e2} {h Nat.+ 3} {c_} {idp} closed).2
-                  con-req
-                  each-var-typed
-              -- TODO prove it from resolving cases (not con obs, not apl bcs inS, not lam bcs lams only type A -> A)
-              | isVar : Or (e1 = v (h + 2)) (e1 = v (h + 1)) => {?}
-            \in \case isVar \with {
-              | inl a => rewrite a
-                  (
-                    \case rec \with {
-                      | inl =f =>
-                        inr (
-                          \lam x _ => x,
-                          pr0 (\lam x (arg-con y arg-empty) => idp),
-                          0,
-                          \lam n m =>
-                              \let
-                                | =n : v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) = Numeral n => {?}
-                                | tmp1 => rep2.replace-args-left' {1} {n} {v 1} {v 0} {v h}
-                              \in
-                              inl (
-                                rewrite (=f n m) $
-                                rewrite =n $
-                                b-eq-red (bred-repl (pmap l tmp1))
-                                : BetaEq ((v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ ((e2 apl (Numeral n, suc (suc h))) apl (Numeral m, suc h))) (l (rep2 n (v (suc h)) (v 0)))
-                              )
-                        )
-                      | inr (P, exP, suc j, =rep2) =>
-                        inr (
-                          \lam x y => if (x == 0) 0 (P x y),
-                          iff
-                              const-zero.1
-                              P
-                              const-zero.2
-                              exP
-                              (\lam x (arg-con y arg-empty) => idp),
-                          suc j,
-                          \lam n m =>
-                              \let
-                                | =n : v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) = Numeral n => {?}
-                                | tmp1 => rep2.replace-args-left' {1} {n} {v 1} {v 0} {v h}
-                              \in
-                                (
-                                  rewrite =n $
-                                  \case n \as k
-                                    \return
-                                  Or (BetaEq (Numeral k @ (e2 apl (Numeral k, suc (suc h)) apl (Numeral m, suc h)))
-                                      (l (rep2 (if {Nat} (k == 0) 0 (P k m)) (v (suc h)) (v 0))))
-                                      (BetaEq (Numeral k @ (e2 apl (Numeral k, suc (suc h)) apl (Numeral m, suc h)))
-                                          (l (rep2 (if {Nat} (k == 0) 0 (P k m)) (v (suc h)) (v (suc j)))))
-                                  \with {
-                                    | 0 =>
-                                      inl (
-                                          b-eq-chain
-                                          (l $ v 0 apl (l (rep2 (P n m) (v (suc h)) (v (suc j))), 1))
-                                          (b-eq-red (bred-repl idp))
-                                          (b-eq-eq idp)
-                                        )
---                                          inr (
---                                            b-eq-chain
---                                                (Numeral n @ l (rep2 (P n m) (v (suc h)) (v (suc j))))
---                                                (BetaEq.app-save-eq-right a1)
---                                                -- BetaEq (Numeral n @ l (rep2 (P n m) (v (suc h)) (v (suc j)))) (l (rep2 (P n m) (v (suc h)) (v (suc j))))
---                                                (b-eq-chain
---                                                    (l $ rep2 n (v 1) (v 0) apl (l (rep2 (P n m) (v (suc h)) (v (suc j))), 1))
---                                                    (b-eq-red (bred-repl idp))
---                                                    (\case n \as k \return  BetaEq (l (rep2 k (v 1) (v 0) apl (l (rep2 (P k m) (v (suc h)) (v (suc j))), 1)))
---                                                        (l (rep2 (if {Nat} (k == 0) 0 (P k m)) (v (suc h)) (v (suc j)))) \with {
---                                                      | 0 => {?}
---                                                      | suc k => {?}
---                                                    })
---                                                )
---                                          )
---                                      inr (
---                                      b-eq-chain
---                                          (Numeral n @ l (rep2 (P n m) (v (suc h)) (v (suc j))))
---                                          (BetaEq.app-save-eq-right (=rep2 n m))
---                                          -- BetaEq (Numeral n @ l (rep2 (P n m) (v (suc h)) (v (suc j)))) (l (rep2 (P n m) (v (suc h)) (v (suc j))))
---                                          (b-eq-chain
---                                              (l $ rep2 n (v 1) (v 0) apl (l (rep2 (P n m) (v (suc h)) (v (suc j))), 1))
---                                              (b-eq-red (bred-repl idp))
---                                              (\case n \as k \return  BetaEq (l (rep2 k (v 1) (v 0) apl (l (rep2 (P k m) (v (suc h)) (v (suc j))), 1)))
---                                                  (l (rep2 (if {Nat} (k == 0) 0 (P k m)) (v (suc h)) (v (suc j)))) \with {
---                                                | 0 => {?}
---                                                | suc k => {?}
---                                              })
---                                          )
---                                    )
-                                    | suc k => {?}
-                                  }
---                                  b-eq-chain
---                                      (Numeral n @ l (rep2 (P n m) (v (suc h)) (v (suc j))))
---                                      (BetaEq.app-save-eq-right (=rep2 n m))
---                                      -- BetaEq (Numeral n @ l (rep2 (P n m) (v (suc h)) (v (suc j)))) (l (rep2 (P n m) (v (suc h)) (v (suc j))))
---                                      (b-eq-chain
---                                          (l $ rep2 n (v 1) (v 0) apl (l (rep2 (P n m) (v (suc h)) (v (suc j))), 1))
---                                          (b-eq-red (bred-repl idp))
---                                          (\case n \as k \return  BetaEq (l (rep2 k (v 1) (v 0) apl (l (rep2 (P k m) (v (suc h)) (v (suc j))), 1)))
---                                              (l (rep2 (if {Nat} (k == 0) 0 (P k m)) (v (suc h)) (v (suc j)))) \with {
---                                            | 0 => {?}
---                                            | suc k => {?}
---                                          })
---                                      )
-                                  : Or (BetaEq ((v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ ((e2 apl (Numeral n, suc (suc h))) apl (Numeral m, suc h))) (l (rep2 (if (n == 0) 0 (P n m)) (v (suc h)) (v 0))))
-                                      (BetaEq ((v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ ((e2 apl (Numeral n, suc (suc h))) apl (Numeral m, suc h))) (l (rep2 (if (n == 0) 0 (P n m)) (v (suc h)) (v (suc j)))))
-                                )
-                        )
-                      | inr (P, exP, 0, =rep2) =>
-                        inr (
-                          \lam x y => x * P x y,
-                          mul
-                              (\lam x _ => x)
-                              P
-                              (pr0 (\lam x (arg-con y arg-empty) => idp))
-                              exP
-                              (\lam (arg-con x (arg-con y arg-empty)) => idp),
-                          0,
-                          \lam n m =>
-                              \let
-                                | =n : v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) = Numeral n => {?}
-                                | tmp1 => rep2.replace-args-left' {1} {n} {v 1} {v 0} {v h}
-                                | apl_ : BetaEq (e2 apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) (l (rep2 (P n m) (v (suc h)) (v 0))) =>
-                                  \case (=rep2 n m) \with {
-                                    | inl a1 => a1
-                                    | inr b => b
-                                  }
-                              \in
-                                inr (
-                                  rewrite =n $
-                                  b-eq-chain
-                                      (Numeral n @ l (rep2 (P n m) (v (suc h)) (v 0)))
-                                      (BetaEq.app-save-eq-right apl_)
-                                      (Theorem4-lemma n P m h)
-                                  : BetaEq (v (suc (suc h)) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) @ ((e2 apl (Numeral n, suc (suc h))) apl (Numeral m, suc h))) (l (rep2 (n * P n m) (v (suc h)) (v 0)))
-                                )
-                        )
-                    }
-                  )
---                  (
---                    {?},
---                    {?},
---                    \lam n m => \case rec.3 n m \with {
---                      | inl a1 => {?}
---                      | inr b => {?}
---                    }
---                  )
-              | inr b => rewrite b {?}
-            }
-      }
-  \where {
-    \func Theorem4-lemma (n : Nat) (P : F 2) (m h : Nat) : BetaEq (Numeral n @ l (rep2 (P n m) (v (suc h)) (v 0))) (l (rep2 (n * P n m) (v (suc h)) (v 0))) \elim n
-      | 0 => rewrite NatSemiring.zro_*-left
-          (b-eq-chain
-            (l (v 0) apl (l (rep2 (P 0 m) (v (suc h)) (v 0)), 0))
-            (b-eq-red (bred-repl idp))
-            (b-eq-eq (pmap l idp))
-          )
-      | suc n => \let r => Theorem4-lemma n P m h \in {?} -- TODO *-def proof
-  }
-
 
 \func Theorem4_ {e : Expr_} {h : Nat} {c_ : Context_}
                (typed : TypedExpr_ e (A ~> A) (h + 3) c_)
@@ -347,14 +60,13 @@
         \return v j apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) = v h
         \with {
           | 0, t-var j-exists, nf_, no-con, typed, closed =>
+            \let
+              | r1 : 0 == suc (suc h) = false => {?}
+              | r2 : 0 == suc h = false => {?}
+            \in
             (
-              pmap (\lam x => if x (apply_.shift+dh (Numeral n) (suc (suc h)) 0) (v 0) apl (Numeral m, suc h))
-                  ({?} : 0 == suc (suc h) = false)
-                *>
-              (
-                pmap (\lam x => if x (apply_.shift+dh (Numeral m) (suc h) 0) (v 0))
-                    ({?} : 0 == suc h = false)
-                  *>
+              pmap (\lam x => if x (apply_.shift+dh (Numeral n) (suc (suc h)) 0) (v 0) apl (Numeral m, suc h)) r1 *>
+              (pmap (\lam x => if x (apply_.shift+dh (Numeral m) (suc h) 0) (v 0)) r2 *>
                 (
                   \let
                     | theorem3 => Theorema2-3 (v 0) (A ~> A) h c_ con-req nf_ (t-var j-exists) (is2 idp)
@@ -370,11 +82,8 @@
                           (minus-rewrite {suc (suc (suc h))} {1} theorem3)
 
                   \in rewrite h=0 idp
-                )
-                : if (0 == suc h) (apply_.shift+dh (Numeral m) (suc h) 0) (v 0) = v h
-              )
-              : if (0 == suc (suc h)) (apply_.shift+dh (Numeral n) (suc (suc h)) 0) (v 0) apl (Numeral m, suc h) = v h
-            )
+                ) : if (0 == suc h) (apply_.shift+dh (Numeral m) (suc h) 0) (v 0) = v h
+              ) : if (0 == suc (suc h)) (apply_.shift+dh (Numeral n) (suc (suc h)) 0) (v 0) apl (Numeral m, suc h) = v h)
           | suc j, t-var j-exists, nf_, no-con, typed, closed =>
             (
               \let
@@ -405,17 +114,25 @@
             )
         }
   -- LAMBDA
-  | l (c x) => absurd (no-con x (sub-lam (sub-same idp)))
-  | l (v x) =>
-    \case decideEq x (suc (suc (suc h))) \as d1, decideEq x (suc (suc h)) \as d2 \with {
-      | yes e, yes e1 => absurd (a/=suc_a (inv e1 *> e))
-      | yes e, no n => {?}
-      | no n, yes e => {?}
-      | no n, no n1 => {?}
-    }
-  | l (P @ a) => {?}
-  | l (l r) => \case typed \with {
-    | t-lam B-typed => \case B-typed \with {}
+  | l B => \case typed \with {
+    | t-lam B-typed =>
+      \let
+        | (P, exP, Q, exQ, rec) => Theorem4_-var-lemma B-typed {?} {?} {?} {?} {?}
+      \in inr
+          (
+            P,
+            exP,
+            Q,
+            exQ,
+            \lam n m =>
+                \let
+                  | B-f => rec n m
+                \in
+                \case B-f \with {
+                  | inl beq => inl (BetaEq.lam-save-eq beq)
+                  | inr (j, beq) => inr (j, BetaEq.lam-save-eq beq)
+                }
+          )
   }
   -- APPLICATION
   | e1 @ e2 =>
@@ -482,7 +199,8 @@
                             Q
                             const-zero.2
                             exQ
-                            (\lam x (arg-con y arg-empty) => idp),
+                            0
+                            (\lam (arg-con x (arg-con y arg-empty)) => idp),
                         \lam n m =>
                             \let
                               | rec_case => =rep2 n m
@@ -554,72 +272,73 @@
                                 : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h)) @ ((e2 apl (Numeral n, suc (suc h))) apl (Numeral m, suc h))) (l (rep2 m (v (suc h)) (v 0)))
                               )
                       )
-                    | inr (P, exP, Q, exQ, =rep2) => {?}
---                      inr (
---                        \lam x y => y * P x y,
---                        mul
---                            (\lam _ y => y)
---                            P
---                            (down (\lam x => x) (pr0 (\lam a (arg-empty) => idp)) (\lam a (arg-con x arg-empty) => idp))
---                            exP
---                            (\lam (arg-con x (arg-con y arg-empty)) => idp),
---                        \lam x y => if (y == 0) 0 (Q x y),
---                        iff
---                            const-zero.1
---                            Q
---                            const-zero.2
---                            exQ
---                            (\lam x (arg-con y arg-empty) => idp),
---                        \lam n m =>
---                            \let
---                              | rec_case => =rep2 n m
---                              | =m : v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) = Numeral m => {?}
---                              | tmp1 => rep2.replace-args-left' {1} {m} {v 1} {v 0} {v h}
---                            \in
---                              \case rec_case \with {
---                                | inl beq =>
---                                  inl (
---                                    rewrite =m $
---                                    b-eq-chain
---                                        (Numeral m @ l (rep2 (P n m) (v (suc h)) (v 0)))
---                                        (BetaEq.app-save-eq-right beq)
---                                        {?}
---                                    : BetaEq (v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) @ ((e2 apl (Numeral n, suc (suc h))) apl (Numeral m, suc h))) (l (rep2 (n * P n m) (v (suc h)) (v 0)))
---                                  )
---                                | inr (j, beq) =>
---                                  \case
---                                    m \as k,
---                                    =m : v (suc h) apl (Numeral k, suc (suc h)) apl (Numeral m, suc h) = Numeral k,
---                                    beq : BetaEq (e2 apl (Numeral k, suc (suc h)) apl (Numeral m, suc h)) (l (rep2 (Q k m) (v (suc h)) (v j)))
---                                  \return Or (BetaEq (v (suc (suc h)) @ e2 apl (Numeral k, suc (suc h)) apl (Numeral m, suc h)) (l (rep2 (k * P k m) (v (suc h)) (v 0))))
---                                      (\Sigma (j : Nat) (BetaEq (v (suc (suc h)) @ e2 apl (Numeral k, suc (suc h)) apl (Numeral m, suc h))
---                                          (l (rep2 (if {Nat} (k == 0) 0 (Q k m)) (v (suc h)) (v j)))))
---                                  \with {
---                                    | 0, =n, _ =>
---                                      inl (
---                                        rewrite =n $
---                                        b-eq-chain
---                                            (l $ v 0 apl (l (rep2 (P n m) (v (suc h)) (v (suc j))), 1))
---                                            (b-eq-red (bred-repl idp))
---                                            (rewrite NatSemiring.zro_*-left (b-eq-eq idp))
---                                        : BetaEq ((v (suc (suc h)) apl (Numeral 0, suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral 0, suc (suc h)) apl (Numeral m, suc h)) ) (l (rep2 (0 * P 0 m) (v (suc h)) (v 0)))
---                                      )
---                                    | suc k, =n, beq =>
---                                      inr (
---                                        j,
---                                        rewrite =n $
---                                        b-eq-chain
---                                            (Numeral (suc k) @ l (rep2 (Q (suc k) m) (v (suc h)) (v j)))
---                                            (BetaEq.app-save-eq-right beq)
---                                            (Theorem4_-lemma2 k Q m h j)
---                                        : BetaEq ((v (suc (suc h)) apl (Numeral (suc k), suc (suc h)) apl (Numeral m, suc h)) @ (e2 apl (Numeral (suc k), suc (suc h)) apl (Numeral m, suc h)))
---                                            (l (rep2 (Q (suc k) m) (v (suc h)) (v j)))
---                                      )
---                                  }
---                              }
---                      )
+                    | inr (P, exP, Q, exQ, =rep2) =>
+                      inr (
+                        \lam x y => y * P x y,
+                        mul
+                            (\lam _ y => y)
+                            P
+                            (down (\lam x => x) (pr0 (\lam a (arg-empty) => idp)) (\lam a (arg-con x _) => idp))
+                            exP
+                            (\lam (arg-con x (arg-con y arg-empty)) => idp),
+                        \lam x y => if (y == 0) 0 (Q x y),
+                        iff
+                            const-zero.1
+                            Q
+                            const-zero.2
+                            exQ
+                            1
+                            (\lam (arg-con x (arg-con y arg-empty)) => idp),
+                        \lam n m =>
+                            \let
+                              | rec_case => =rep2 n m
+                              | =m : v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) = Numeral m => {?}
+                              | tmp1 => rep2.replace-args-left' {1} {m} {v 1} {v 0} {v h}
+                            \in
+                              \case rec_case \with {
+                                | inl beq =>
+                                  inl (
+                                    rewrite =m $
+                                    b-eq-chain
+                                        (Numeral m @ l (rep2 (P n m) (v (suc h)) (v 0)))
+                                        (BetaEq.app-save-eq-right beq)
+                                        (Theorem4_-lemma3 m P n h)
+                                    : BetaEq (v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral m, suc h) @ ((e2 apl (Numeral n, suc (suc h))) apl (Numeral m, suc h))) (l (rep2 (m * P n m) (v (suc h)) (v 0)))
+                                  )
+                                | inr (j, beq) =>
+                                  \case
+                                    m \as k,
+                                    =m : v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral k, suc h) = Numeral k,
+                                    beq : BetaEq (e2 apl (Numeral n, suc (suc h)) apl (Numeral k, suc h)) (l (rep2 (Q n k) (v (suc h)) (v j)))
+                                  \return Or (BetaEq (v (suc h) @ e2 apl (Numeral n, suc (suc h)) apl (Numeral k, suc h)) (l (rep2 (k * P n k) (v (suc h)) (v 0))))
+                                      (\Sigma (j : Nat) (BetaEq (v (suc h) @ e2 apl (Numeral n, suc (suc h)) apl (Numeral k, suc h))
+                                          (l (rep2 (if {Nat} (k == 0) 0 (Q n k)) (v (suc h)) (v j)))))
+                                  \with {
+                                    | 0, =m, _ => 
+                                      inl (
+                                        rewrite =m $
+                                        b-eq-chain
+                                            (l $ v 0 apl (l (rep2 (P n m) (v (suc h)) (v (suc j))), 1))
+                                            (b-eq-red (bred-repl idp))
+                                            (rewrite NatSemiring.zro_*-left (b-eq-eq idp))
+                                        : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral 0, suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral 0, suc h))) (l (rep2 (0 * P n 0) (v (suc h)) (v 0)))
+                                      )
+                                    | suc k, =m, beq =>
+                                      inr (
+                                        j,
+                                        rewrite =m $
+                                        b-eq-chain
+                                            (Numeral (suc k) @ l (rep2 (Q n (suc k)) (v (suc h)) (v j)))
+                                            (BetaEq.app-save-eq-right beq)
+                                            (Theorem4_-lemma4 k Q n h j)
+                                        : BetaEq ((v (suc h) apl (Numeral n, suc (suc h)) apl (Numeral (suc k), suc h)) @ (e2 apl (Numeral n, suc (suc h)) apl (Numeral (suc k), suc h)))
+                                            (l (rep2 (Q n (suc k)) (v (suc h)) (v j)))
+                                      )
+                                  }
+                              }
+                      )
                   }
-                )
+              )
           }
       }
   \where {
@@ -634,4 +353,40 @@
 
     \func Theorem4_-lemma2 (k : Nat) (Q : F 2) (m h j : Nat) : BetaEq (Numeral (suc k) @ l (rep2 (Q (suc k) m) (v (suc h)) (v j))) (l (rep2 (Q (suc k) m) (v (suc h)) (v j))) =>
       {?}
+
+    \func Theorem4_-lemma4 (k : Nat) (Q : F 2) (n h j : Nat) : BetaEq (Numeral (suc k) @ l (rep2 (Q n (suc k)) (v (suc h)) (v j))) (l (rep2 (Q n (suc k)) (v (suc h)) (v j))) =>
+      {?}
+
+    \func Theorem4_-lemma3 (m : Nat) (P : F 2) (n h : Nat) : BetaEq (Numeral m @ l (rep2 (P n m) (v (suc h)) (v 0))) (l (rep2 (m * P n m) (v (suc h)) (v 0))) =>
+      {?}
+
+    \func Theorem4_-var-lemma {e : Expr_} {h : Nat} {c_ : Context_}
+                              (typed : TypedExpr_ e A (h + 3) c_)
+                              (nf : NormalForm e e)
+                              (no-con : \Pi (i : Nat) -> Not (SubTerm e (c i)))
+                              (closed : ClosedForm e (h + 3) c_)
+                              (con-req : \Pi (hc : Int) -> ConReq2 hc c_)
+                              (each-var-typed : VarsTypedCorrectly c_)
+      :
+      \Sigma
+        (P1 : F 2)
+        (ExtPoly {2} P1)
+        (P2 : F 2)
+        (ExtPoly {2} P2)
+        (\Pi (n m : Nat) ->
+            Or
+                (BetaEq (e apl (Numeral n, h + 2) apl (Numeral m, h + 1)) (rep2 (P1 n m) (v h) (v 0)))
+                (\Sigma (j : Nat) (BetaEq (e apl (Numeral n, h + 2) apl (Numeral m, h + 1)) (rep2 (P2 n m) (v h) (v j))))
+        )
+      \elim e, typed
+        | c n, t-con => absurd (no-con n (sub-same idp))
+        | v i, t-var i-exist =>
+          (
+            const-zero.1,
+            const-zero.2,
+            const-zero.1,
+            const-zero.2,
+            \lam n m => {?}
+          )
+        | e @ e1, t-app tq typed1 typed2 => {?}
   }

@@ -34,6 +34,9 @@
 
 \type NatDef {k : Nat} (f : K-Args-Fun Nat k) => Definable {Nat} {Numeral} {k} f
 
+\func \infixr 6 defines (e : Expr_) (fn : \Sigma (k : Nat) (f : K-Args-Fun Nat k))
+  => \Pi (a : K-Args Nat fn.1) -> BetaEq (K-App e <- map Numeral a) (Numeral (fn.2 <- a))
+
 -- 1. Numbers - NatDef
 
 \func n-def (n : Nat) : NatDef {0} n => def-exists (Numeral n) (\lam (arg-empty) => b-eq-eq idp)

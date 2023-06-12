@@ -15,6 +15,12 @@
   | P @ Q   => sub-app-right (SubTerm Q se)
   | e       => sub-same (e = se)
   \where {
+    \func subterm-height {e e' : Expr_} (st : SubTerm e e') : Nat \elim e, e', st
+      | l e, e', sub-lam st => suc (subterm-height {e} {e'} st)
+      | e @ e1, e', sub-app-left st => subterm-height {e} {e'} st
+      | e @ e1, e', sub-app-right st => subterm-height {e1} {e'} st
+      | e, e', sub-same p => 0
+
     \func type-subterm
       (e se : Expr_)
       (sub : SubTerm e se)

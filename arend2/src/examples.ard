@@ -4,47 +4,30 @@
 \import Paths
 \import Paths.Meta
 \import Set
-\import calculus.AlphaEq
-\import calculus.AlphaEq2
 \import calculus.Base
 \import calculus.Beta
 \import calculus.Context
 \import calculus.Types
 
-\func EXAMPLE1    : A-Eq (Lam 0 (Lam 1 (Var 0))) (Lam 1 (Lam 0 (Var 1))) => A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))
-\func EXAMPLE1-1  : A-Eq (Lam 2 (Lam 0 (Var 0))) (Lam 0 (Lam 1 (Var 1))) => A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))
-\func EXAMPLE1-1' : A-Eq (Lam 0 (Lam 0 (Var 0))) (Lam 2 (Lam 1 (Var 1))) => A-Eq2.a2lam-eq (A-Eq2.a2lam-eq (a2var-eq idp))
-\func EXAMPLE1-2  : Not (A-Eq (Lam 0 (Var 0)) (Lam 1 (Var 2))) => \lam p =>
-  \case p \with {
-    | a2lam-eq-base i new-i-B1 new-i-B2 a => \case a \with {
-      | a2var-eq p1 =>
-        \let
-          | p2  => inv (A-Eq2.parse idNat 0 i 0) *> p1
-          | i>2 => rewriteF (idNat=id {2}) (NewVar2.neq new-i-B2)
-        \in NatSemiring.<-irreflexive (rewriteF p1 i>2)
-    }
-  }
-
-\func EXAMPLE2 : Beta-Red (App (Lam 0 (Var 0)) (Var 1)) (Var 1) => beta-repl-right idp
-\func EXAMPLE3 : Beta-Red (App (Con 0) (App (Lam 0 (Var 0)) (Var 1))) (App (Con 0) (Var 1)) =>
-  beta-app-left (a2con-eq idp) EXAMPLE2
+\func EXAMPLE2 : BetaRed (l (v 0) @ v 0) (v 0) => bred-repl idp
+\func EXAMPLE3 : BetaRed (c 0 @ (l (v 0) @ v 1)) (c 0 @ v 1) => bred-app-right idp (bred-repl idp)
 
 \func T0 => Base 0
 \func T1 => Base 1
 
 -- \x.x : a->a
-\func EXAMPLE4 : TypedExpr (Lam 0 (Var 0)) (Func T0 T0) empty => typed-lam (typed-var idp)
+\func EXAMPLE4 : TypedExpr_ (l (v 0)) (T0 ~> T0) 0 empty => t-lam (t-var idp)
 
-\func Omega => App (Lam 0 (App (Var 0) (Var 0))) (Lam 0 (App (Var 0) (Var 0)))
-\func EXAMPLE5 : Not (\Sigma (t : SimpleType) (TypedExpr Omega t empty)) =>
+\func Omega => l (v 0 @ v 0) @ l (v 0 @ v 0)
+\func EXAMPLE5 : Not (\Sigma (t : Type_) (TypedExpr_ Omega t 0 empty)) =>
   \lam (t, p) => \case p \with {
-    | typed-app Qt p-typed q-typed => \case p-typed \with {
-      | typed-lam b-exists => \case b-exists \with {
-        | typed-app Qt1 p-typed1 q-typed1 => \case p-typed1, q-typed1 \with {
-          | typed-var i-exists, typed-var i-exists1 =>
+    | t-app Qt p-typed q-typed => \case p-typed \with {
+      | t-lam b-exists => \case b-exists \with {
+        | t-app Qt1 p-typed1 q-typed1 => \case p-typed1, q-typed1 \with {
+          | t-var i-exists, t-var i-exists1 =>
             \case
               decideEq Qt Qt1 \as d1,
-              decideEq Qt (Func Qt1 t) \as d2,
+              decideEq Qt (Qt1 ~> t) \as d2,
               i-exists : decToBool d2 = true,
               i-exists1 : decToBool d1 = true \with {
               | yes e, yes e1, _, _ => contr (rewriteF e e1)
@@ -55,62 +38,12 @@
     }
   }
   \where {
-    \func contr {t a : SimpleType} (p : t = Func t a) : Empty \elim t
-      | Base n => suc/=0 (pmap (\lam (x : SimpleType) => \case x \with {| Base n1 => 1 | Func s s1 => 0}) p)
-      | Func t1 t2 =>
+    \func contr {t a : Type_} (p : t = t ~> a) : Empty \elim t
+      | Base n => suc/=0 (pmap (\lam (x : Type_) => \case x \with {| Base n1 => 1 | s ~> s1 => 0}) p)
+      | t1 ~> t2 =>
         \let
-          | rec1 => pmap (\lam (x : SimpleType) => \case x \with {| Base n1 => Base n1 | Func s s1 => s}) p
-          | rec2 => pmap (\lam (x : SimpleType) => \case x \with {| Base n1 => Base n1 | Func s s1 => s1}) p
+          | rec1 => pmap (\lam (x : Type_) => \case x \with {| Base n1 => Base n1 | s ~> s1 => s}) p
+          | rec2 => pmap (\lam (x : Type_) => \case x \with {| Base n1 => Base n1 | s ~> s1 => s1}) p
           | rec3 => rewriteF rec2 rec1
         \in contr rec3
   }
-
--- CHUCH
-\func Church => Func (Func T0 T0) (Func T0 T0)
-
--- \f.\x.x
-\func zero => Lam 0 (Lam 1 (Var 1))
--- \c.\f.\x. f (C f x)
-\func succ => Lam 0 (Lam 1 (Lam 2 (App (Var 1) (App (App (Var 0) (Var 1)) (Var 2)))))
--- \f.\x. f^n x
-\func numeral (n : Nat) : Expr \elim n
-  | 0 => zero
-  | suc n => App succ (numeral n)
-
-\func zeroIsChurch : TypedExpr zero Church empty =>
-  typed-lam (typed-lam (typed-var idp))
-
-\func succIsCh->Ch : TypedExpr succ (Func Church Church) empty =>
-  typed-lam
-      (typed-lam
-          (typed-lam
-              (typed-app
-                  T0
-                  (typed-var idp)
-                  (typed-app
-                      T0
-                      (typed-app
-                          (Func T0 T0)
-                          (typed-var idp)
-                          (typed-var idp)
-                      )
-                      (typed-var idp)
-                  )
-              )
-          )
-      )
-
-\func numeralIsChurch (n : Nat) : TypedExpr (numeral n) Church empty \elim n
-  | 0 => zeroIsChurch
-  | suc n => typed-app Church succIsCh->Ch (numeralIsChurch n)
-
-\func repeat (n : Nat) (f : Expr) (x : Expr) : Expr \elim n
-  | 0 => x
-  | suc n => App f (repeat n f x)
-
-\func numeral2 (n : Nat) : Expr => Lam 0 (Lam 1 (repeat n (Var 0) (Var 1)))
-
---\func same0 : A-Eq (numeral2 0) zero => lam-eq (lam-eq (var-eq idp))
---\func sameN (n : Nat) : A-Eq (numeral2 n) (numeral n) \elim n
---  | 0 => same0
---  | suc n => \let | sameN-1 => sameN n \in {?}
