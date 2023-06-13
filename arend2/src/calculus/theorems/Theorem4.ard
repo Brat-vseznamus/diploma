@@ -743,6 +743,46 @@
         )
       \elim e, typed
         | c n, t-con => absurd (no-con n (sub-same idp))
-        | v i, t-var i-exist => {?}
+        | v 0,       t-var i-exist => \case decideEq 0 (suc (suc h)) \as d
+          \return \Sigma (P00 P01 P10 P11 : F 2) (ExtPoly {2} P00) (ExtPoly {2} P01) (ExtPoly {2} P10) (ExtPoly {2} P11) (z00 z01 z10 z11 : Nat)
+                         (\Pi (n m : Nat) ->
+                             \Sigma (n = 0 -> m = 0 -> BetaEq (if (decToBool d) (apply_.shift+dh (Numeral n) (suc (suc h)) 0) (v 0) apl (Numeral m, suc h)) (rep2 (P00 n m) (v h) (v z00)))
+                                    (n = 0 -> m /= 0 -> BetaEq (if (decToBool d) (apply_.shift+dh (Numeral n) (suc (suc h)) 0) (v 0) apl (Numeral m, suc h)) (rep2 (P01 n m) (v h) (v z01)))
+                                    (n /= 0 -> m = 0 -> BetaEq (if (decToBool d) (apply_.shift+dh (Numeral n) (suc (suc h)) 0) (v 0) apl (Numeral m, suc h)) (rep2 (P10 n m) (v h) (v z10)))
+                                    (n /= 0 -> m /= 0 -> BetaEq (if (decToBool d) (apply_.shift+dh (Numeral n) (suc (suc h)) 0) (v 0) apl (Numeral m, suc h)) (rep2 (P11 n m) (v h) (v z11))))\with {
+          | yes e => absurd (suc/=0 (inv e))
+          | no n => \case decideEq 0 (suc h) \as d
+          \return \Sigma (P00 P01 P10 P11 : F 2) (ExtPoly {2} P00) (ExtPoly {2} P01) (ExtPoly {2} P10) (ExtPoly {2} P11) (z00 z01 z10 z11 : Nat)
+                         (\Pi (n m : Nat) -> \Sigma (n = 0 -> m = 0 -> BetaEq (if (decToBool d) (apply_.shift+dh (Numeral m) (suc h) 0) (v 0)) (rep2 (P00 n m) (v h) (v z00)))
+                                                    (n = 0 -> m /= 0 -> BetaEq (if (decToBool d) (apply_.shift+dh (Numeral m) (suc h) 0) (v 0)) (rep2 (P01 n m) (v h) (v z01)))
+                                                    (n /= 0 -> m = 0 -> BetaEq (if (decToBool d) (apply_.shift+dh (Numeral m) (suc h) 0) (v 0)) (rep2 (P10 n m) (v h) (v z10)))
+                                                    (n /= 0 -> m /= 0 -> BetaEq (if (decToBool d) (apply_.shift+dh (Numeral m) (suc h) 0) (v 0)) (rep2 (P11 n m) (v h) (v z11))))\with {
+            | yes e => absurd (suc/=0 (inv e))
+            | no n1 =>
+              (
+                const-zero.1, const-zero.1, const-zero.1, const-zero.1,
+                const-zero.2, const-zero.2, const-zero.2, const-zero.2,
+                0, 0, 0, 0,
+                \lam n2 m =>
+                    (
+                      \lam p p1 => b-eq-eq idp,
+                      \lam p p1 => b-eq-eq idp,
+                      \lam p p1 => b-eq-eq idp,
+                      \lam p p1 => b-eq-eq idp
+                    )
+             )
+          }
+        }
+
+        | v (suc j), t-var i-exist => \case j \as i, decideEq (suc j) (suc (suc h)) \as d
+          \return \Sigma (P00 P01 P10 P11 : F 2) (ExtPoly {2} P00) (ExtPoly {2} P01) (ExtPoly {2} P10) (ExtPoly {2} P11) (z00 z01 z10 z11 : Nat)
+                         (\Pi (n m : Nat) ->
+                             \Sigma (n = 0 -> m = 0 -> BetaEq (if (decToBool d) (apply_.shift+dh (Numeral n) (suc (suc h)) 0) (if (isFree (suc j) (suc (suc h))) (v j) (v (suc j))) apl (Numeral m, suc h)) (rep2 (P00 n m) (v h) (v z00)))
+                                    (n = 0 -> m /= 0 -> BetaEq (if (decToBool d) (apply_.shift+dh (Numeral n) (suc (suc h)) 0) (if (isFree (suc j) (suc (suc h))) (v j) (v (suc j))) apl (Numeral m, suc h)) (rep2 (P01 n m) (v h) (v z01)))
+                                    (n /= 0 -> m = 0 -> BetaEq (if (decToBool d) (apply_.shift+dh (Numeral n) (suc (suc h)) 0) (if (isFree (suc j) (suc (suc h))) (v j) (v (suc j))) apl (Numeral m, suc h)) (rep2 (P10 n m) (v h) (v z10)))
+                                    (n /= 0 -> m /= 0 -> BetaEq (if (decToBool d) (apply_.shift+dh (Numeral n) (suc (suc h)) 0) (if (isFree (suc j) (suc (suc h))) (v j) (v (suc j))) apl (Numeral m, suc h)) (rep2 (P11 n m) (v h) (v z11)))) \with {
+          | j, yes e => {?}
+          | j, no n => {?}
+        }
         | e @ e1, t-app tq typed1 typed2 => {?}
   }
