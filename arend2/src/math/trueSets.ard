@@ -1,0 +1,318 @@
+\import Arith.Nat
+\import Data.Array (filter)
+\import Data.Bool
+\import Data.Array
+\import Data.Or
+\import Function.Meta ($)
+\import Logic
+\import Paths
+\import Paths.Meta
+\import Relation.Equivalence
+\import Set
+\open ArrayUtils
+
+\use \coerce fromT {T : \Set} (x : T) : Set T => in~ (x :: nil)
+
+\func \infix 4 ~ {T : \Set} (a b : Array T) => \Sigma
+  (\Pi (x : T) (Index x a) -> Index x b)
+  (\Pi (x : T) (Index x b) -> Index x a)
+
+\func \infix 5 in {T : \Set} {d : DecSet T} (x : T) (s : Set T) => Set.inSet x s = true
+
+\func \infix 4 >< {T : \Set} {d : DecSet T} (a b : Set T) => \Sigma
+  (\Pi (x : T) (x in a) -> x in b)
+  (\Pi (x : T) (x in b) -> x in a)
+
+\func Set (T : \Set) => Quotient {Array T} (\lam a b => a ~ b)
+  \where {
+    \func set-equlity {T : \Set} {d : DecSet T} {a b : Set T} (a><b : a >< b) : a = b \elim a, b
+      | in~ a, in~ b => path
+          (
+            ~-equiv
+                a
+                b
+                (
+                  (
+                    \lam x i => inArray_index x b (a><b.1 x (index_to_inArray x a i)),
+                    \lam x i => inArray_index x a (a><b.2 x (index_to_inArray x b i))
+                  ) : a ~ b
+                )
+          )
+
+    \func \infixl 5 ^ {T : \Set} {d : DecSet T} (a b : Set T) : Set T => filter_ (\lam e => inSet e b) a
+      \where {
+        \func from_inSet {T : \Set} {d : DecSet T} {x : T} {a b : Set T}
+                         (both : \Sigma (x in a) (x in b))
+          : x in (a ^ b) \elim a, b
+          | in~ a, in~ b =>
+            \let
+              | index-in-A => inArray_index x a both.1
+              | index-in-A^B => rewrite index-in-A.2 $
+              filter-index (\lam (e : T) => inArray {T} {d} e b) a index-in-A.1 (rewrite index-in-A.2 both.2)
+            \in
+              index_to_inArray x (filter (\lam (e : T) => inArray {T} {d} e b) a) index-in-A^B
+
+        \func to_inSet {T : \Set} {d : DecSet T} {x : T} {a b : Set T}
+                       (xInA^B : x in (a ^ b))
+          : \Sigma (x in a) (x in b) \elim a, b
+          | in~ a, in~ b =>
+            \let index-ab => inArray_index x (filter (\lam (e : T) => inArray {T} {d} e b) a) xInA^B \in
+              (
+                index_to_inArray x a (filter_contains a x index-ab),
+                rewrite (inv index-ab.2) $ filter-sat (\lam (e : T) => inArray {T} {d} e b) a index-ab.1
+              )
+
+        \func refl {T : \Set} {d : DecSet T} (a : Set T) : a ^ a = a => set-equlity
+            (
+              \lam x i => (to_inSet i).1,
+              \lam x i => from_inSet (i, i)
+            )
+
+        \func sym {T : \Set} {d : DecSet T} (a b : Set T) : a ^ b = b ^ a => set-equlity
+            (
+              \lam x i => from_inSet ((to_inSet i).2, (to_inSet i).1),
+              \lam x i => from_inSet ((to_inSet i).2, (to_inSet i).1)
+            )
+
+        \func trans {T : \Set} {d : DecSet T} (a b c : Set T) : (a ^ b) ^ c = a ^ (b ^ c) => set-equlity
+            (
+              \lam x i =>
+                  \let
+                    | (inAB, inC) => to_inSet i
+                    | (inA, inB) => to_inSet inAB
+                  \in from_inSet (inA, from_inSet (inB, inC)),
+              \lam x i =>
+                  \let
+                    | (inA, inBC) => to_inSet i
+                    | (inB, inC) => to_inSet inBC
+                  \in from_inSet (from_inSet (inA, inB), inC)
+            )
+      }
+
+    \func \infixl 5 / {T : \Set} {d : DecSet T} (a b : Set T) : Set T => filter_ (\lam e => not (inSet e b)) a
+
+    \func \infixl 5 v {T : \Set} (a b : Set T) : Set T \elim a, b
+      | in~ a, in~ b => in~ (a ++ b)
+      | in~ a, ~-equiv b1 b2 r => Quotient.fromEquality
+          (
+            Equivalence.cin
+                (
+                  \lam x i => \let orIn => distjoin-in a b1 x i \in
+                    \case orIn \with {
+                      | inl a1 => left-in a b2 x a1
+                      | inr b => right-in a b2 x (r.1 x b)
+                    },
+                  \lam x i => \let orIn => distjoin-in a b2 x i \in
+                    \case orIn \with {
+                      | inl a1 => left-in a b1 x a1
+                      | inr b => right-in a b1 x (r.2 x b)
+                    }
+                )
+          )
+      | ~-equiv a1 a2 r, in~ b => Quotient.fromEquality
+          (
+            Equivalence.cin
+                (
+                  \lam x i => \let orIn => distjoin-in a1 b x i \in
+                    \case orIn \with {
+                      | inl a_ => left-in a2 b x (r.1 x a_)
+                      | inr b_ => right-in a2 b x b_
+                    },
+                  \lam x i => \let orIn => distjoin-in a2 b x i \in
+                    \case orIn \with {
+                      | inl a_ => left-in a1 b x (r.2 x a_)
+                      | inr b_ => right-in a1 b x b_
+                    }
+                )
+          )
+      \where {
+        \func from_inSet {T : \Set} {d : DecSet T} {x : T} {a b : Set T}
+                         (either : Or (x in a) (x in b))
+          : x in (a v b) \elim a, b
+          | in~ a, in~ b => \case either \with {
+            | inl inA => from_inSet-lemma-1 x a b inA
+            | inr inB => from_inSet-lemma-2 x a b inB
+          }
+          \where {
+            \func from_inSet-lemma-1 {T : \Set} {d : DecSet T}
+                                   (x : T)
+                                   (a : Array T)
+                                   (b : Array T)
+                                   (inA : x in in~ a)
+              : x in in~ (a ++ b) \elim a, inA
+              | nil, inA => absurd (true/=false (inv inA))
+              | e :: a, inA => \let indexA => inArray_index x (e :: a) inA \in
+                \case indexA \with {
+                  | (0, [0]=) => index_to_inArray x (e :: a ++ b) (0, [0]=)
+                  | (suc j, [j]=) =>
+                    \let
+                      | rec => from_inSet-lemma-1 x a b (index_to_inArray x a (j, [j]=))
+                      | index-rec => inArray_index x (a ++ b) rec
+                    \in index_to_inArray x (e :: a ++ b) (suc index-rec.1, index-rec.2)
+                }
+
+            \func from_inSet-lemma-2 {T : \Set} {d : DecSet T}
+                                     (x : T)
+                                     (a : Array T)
+                                     (b : Array T)
+                                     (inB : x in in~ b)
+              : x in in~ (a ++ b) \elim a, inB
+              | nil, inB => inB
+              | e :: a, inB =>
+                  \let
+                    | rec => from_inSet-lemma-2 x a b inB
+                    | index-rec => inArray_index x (a ++ b) rec
+                  \in index_to_inArray x (e :: a ++ b) (suc index-rec.1, index-rec.2)
+          }
+
+          \func to_inSet {T : \Set} {d : DecSet T} {x : T} {a b : Array T}
+                         (inAvB : x in (in~ a v in~ b))
+            : Or (x in in~ a) (x in in~ b) \elim a, b
+            | nil, nil => inl inAvB
+            | nil, a :: l => inr inAvB
+            | e :: a, b => \case inArray_index x ((e :: a) ++ b) inAvB \with {
+              | (0, [0]=) => inl $ index_to_inArray x (e :: a) (0, [0]=)
+              | (suc f,p) => \let rec => to_inSet (index_to_inArray x (a ++ b) (f, p)) \in \case rec \with {
+                | inl L => \let inA => inArray_index x a L \in inl (index_to_inArray x (e :: a) (suc inA.1, inA.2))
+                | inr R => inr R
+              }
+            }
+      }
+
+    \func inSet {T : \Set} {d : DecSet T} (x : T) (s : Set T) : Bool \elim s
+      | in~ a => inArray x a
+      | ~-equiv a b (to, from) =>
+        \case
+          inArray x a \as x-in-a,
+          inArray x b \as x-in-b,
+          idp : inArray x a = x-in-a,
+          idp : inArray x b = x-in-b
+        \return x-in-a = x-in-b
+        \with {
+          | false, false, _, _ => idp
+          | false, true, not-inA, inB =>
+            \let
+              | index-a => from x (inArray_index x b inB)
+              | inA     => index_to_inArray x a index-a
+            \in inv not-inA *> inA
+          | true, false, inA, not-inB =>
+            \let
+              | index-b => to x (inArray_index x a inA)
+              | inB     => index_to_inArray x b index-b
+            \in inv inB *> not-inB
+          | true, true, _, _ => idp
+        }
+
+    \func filter_ {T : \Set} (f : T -> Bool) (s : Set T) : Set T \elim s
+      | in~ a => in~ (filter f a)
+      | ~-equiv la lb (to, from) => Quotient.fromEquality
+          (
+            Equivalence.cin
+                (
+                  \lam e inFa =>
+                      \let
+                        | index-la => filter_contains la e inFa
+                        | index-lb => to e index-la
+                        | fe=true => filter_predicate_true la e inFa
+                        | tmp => filter-index f lb index-lb.1 (rewrite index-lb.2 fe=true)
+                      \in rewrite (inv index-lb.2) tmp,
+                  \lam e inFb =>
+                      \let
+                        | index-lb => filter_contains lb e inFb
+                        | index-la => from e index-lb
+                        | fe=true => filter_predicate_true lb e inFb
+                        | tmp => filter-index f la index-la.1 (rewrite index-la.2 fe=true)
+                      \in rewrite (inv index-la.2) tmp
+                )
+          )
+  }
+
+\module ArrayUtils \where {
+  \func left-in {T : \Set} (a b : Array T) : \Pi (x : T) (Index x a) -> Index x (a ++ b) \elim a
+    | nil => \lam x i => absurd (\case i.1 \with {
+    })
+    | :: x_a a => \lam x i => \case i \with {
+      | (0, inJ) => (0, inJ)
+      | (suc j, inJ) =>
+        \let
+          | rec => left-in a b
+          | (j', inJ') => rec x (j, inJ)
+        \in (suc j', inJ')
+    }
+
+  \func right-in {T : \Set} (a b : Array T) : \Pi (x : T) (Index x b) -> Index x (a ++ b) \elim a
+    | nil => \lam x i => i
+    | :: x_a a => \lam x (j, inJ) =>
+        \let
+          | rec => right-in a b
+          | (j', inJ') => rec x (j, inJ)
+        \in (suc j', inJ')
+
+  \func distjoin-in {T : \Set} (a b : Array T) : \Pi (x : T) (Index x (a ++ b)) -> Or (Index x a) (Index x b) \elim a
+    | nil => \lam x i => inr i
+    | :: x_a a => \lam x i =>
+        \let
+          | rec => distjoin-in a b x
+        \in
+          \case i \with {
+            | (0, inJ) => inl (0, inJ)
+            | (suc j, inJ) =>
+              \let rec2 => rec (j, inJ) \in
+                \case rec2 \with {
+                  | inl a1 => inl (suc a1.1, a1.2)
+                  | inr b1 => inr b1
+                }
+          }
+
+  \func filter_predicate_true {T : \Set} {f : T -> Bool} (l : Array T) (x : T) (inFiltered : Index x (filter f l)) : f x = true \elim l
+    | nil => absurd (\case inFiltered.1 \with {
+    })
+    | a :: l =>
+      \case
+        a \as a',
+        f a' \as result,
+        idp : f a' = result,
+        inFiltered : Index {T} x (if {Array T} result (a' :: filter {T} f l) (filter {T} f l))
+      \return f x = true
+      \with {
+        | a', false, d, i => \let rec => filter_predicate_true l x i \in rec
+        | a', true, d, i => \case i \with {
+          | (0, a=x) => rewrite (inv a=x) d
+          | (suc j, inJ) => \let rec => filter_predicate_true l x (j, inJ) \in rec
+        }
+      }
+
+  \func filter_contains {T : \Set} {f : T -> Bool} (l : Array T) (x : T) (inFiltered : Index x (filter f l)) : Index x l \elim l
+    | nil => absurd (\case inFiltered.1 \with {
+    })
+    | a :: l => \case f a \as result, inFiltered : Index {T} x (if {Array T} result (a :: filter {T} f l) (filter {T} f l)) \with {
+      | false, inF => \let rec => filter_contains l x inF \in (suc rec.1, rec.2)
+      | true, inF => \case inF \with {
+        | (0, inJ) => (0, inJ)
+        | (suc j, inJ) => \let rec => filter_contains l x (j, inJ) \in (suc rec.1, rec.2)
+      }
+    }
+
+  \func inArray {T : \Set} {d : DecSet T} (x : T) (l : Array T) : Bool \elim l
+    | nil => false
+    | a :: l => if (a d.== x) true (inArray x l)
+
+  \func inArray_index {T : \Set} {d : DecSet T} (x : T) (l : Array T) (x-in-l : inArray x l = true) : Index x l \elim l
+    | nil => absurd (true/=false (inv x-in-l))
+    | a :: l => \case d.decideEq a x \as dec, x-in-l : if {Bool} (decToBool dec) true (inArray {T} {d} x l) = true \with {
+      | yes e, p => (0, e)
+      | no n, p => \let rec => inArray_index x l p \in (suc rec.1, rec.2)
+    }
+
+  \func index_to_inArray {T : \Set} {d : DecSet T} (x : T) (l : Array T) (index : Index x l) : inArray x l = true \elim l, index
+    | nil, i => absurd (\case i.1 \with {
+    })
+    | a :: l, (0, a=x) => \case d.decideEq a x \as dec \return if {Bool} (decToBool dec) true (inArray {T} {d} x l) = true \with {
+      | yes e => idp
+      | no n => absurd (n a=x)
+    }
+    | a :: l, (suc j, inJ) => \case d.decideEq a x \as dec \return if {Bool} (decToBool dec) true (inArray {T} {d} x l) = true \with {
+      | yes e => idp
+      | no n => index_to_inArray x l (j, inJ)
+    }
+}
