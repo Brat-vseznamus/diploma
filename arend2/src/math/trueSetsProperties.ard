@@ -1,0 +1,115 @@
+\import Data.Bool
+\import Data.Or
+\import Function.Meta ($)
+\import Logic
+\import Logic.PropFin
+\import Paths
+\import Paths.Meta
+\import Relation.Equivalence
+\import Set
+\import math.trueSets (ArrayUtils, Set, in)
+\open Set
+
+\func @ {T : \Set} : Set T => in~ nil
+  \where {
+    \func size=0=>@ {T : \Set} {d : DecSet T} {s : Set T} : size s = 0 -> s = @ \elim s
+      | in~ nil => \lam p => idp
+      | in~ (a :: arr) => \lam p =>
+          \case ArrayUtils.inArray a arr \as dec,
+                idp : ArrayUtils.inArray a arr = dec,
+                p : DArray.len {if {Array T} dec (ArrayUtils.unique-array {T} {d} arr) (a :: ArrayUtils.unique-array {T} {d} arr)} = 0
+          \with {
+            | true, inArr : a in in~ arr, p1 => set-equlity
+                (
+                  \lam x i =>
+                      \let
+                        | rec => size=0=>@ {T} {d} {in~ arr} p1
+                        | inSet : a in in~ arr => inArr
+                      \in rewriteF rec inSet,
+                  \lam x i => absurd (true/=false (inv i))
+                )
+          }
+  }
+
+\func intersect-union {T : \Set} {d : DecSet T} (A B C : Set T) : A u (B ^ C) = (A u B) ^ (A u C) \elim A, B, C
+  | in~ a, in~ b, in~ c => set-equlity
+      (
+        \lam x i => \case u.to_inSet i \with {
+          | inl inA =>
+            ^.from_inSet {T} {d} {_} {in~ a u in~ b} {in~ a u in~ c}
+                (
+                  u.from_inSet {T} {d} {_} {in~ a} {in~ b} (inl inA),
+                  u.from_inSet {T} {d} {_} {in~ a} {in~ c} (inl inA)
+                )
+          | inr inBC => \let (inB, inC) => ^.to_inSet {T} {d} {_} {in~ b} {in~ c} inBC \in
+            ^.from_inSet {T} {d} {_} {in~ a u in~ b} {in~ a u in~ c}
+                (
+                  u.from_inSet {T} {d} {_} {in~ a} {in~ b} (inr inB),
+                  u.from_inSet {T} {d} {_} {in~ a} {in~ c} (inr inC)
+                )
+        },
+        \lam x i => \case ^.to_inSet {T} {d} {_} {in~ a u in~ b} {in~ a u in~ c}  i \with {
+          | (inAuB, inAuC) =>
+            \case u.to_inSet inAuB, u.to_inSet inAuC \with {
+              | inl inA, _ => u.from_inSet {T} {d} {_} {in~ a} {in~ b ^ in~ c} (inl inA)
+              | _, inl inA => u.from_inSet {T} {d} {_} {in~ a} {in~ b ^ in~ c} (inl inA)
+              | inr inB, inr inC => u.from_inSet {T} {d} {_} {in~ a} {in~ b ^ in~ c}
+                  (inr $ ^.from_inSet {T} {d} {_} {in~ b} {in~ c} (inB, inC))
+            }
+        }
+      )
+
+\func union-intersaction {T : \Set} {d : DecSet T} (A B C : Set T) : A ^ (B u C) = (A ^ B) u (A ^ C) \elim A, B, C
+  | in~ a, in~ b, in~ c => set-equlity
+      (
+        \lam x i => \case ^.to_inSet {T} {d} {x} {in~ a} {in~ b u in~ c} i \with {
+          | (inA , inBuC) => \case u.to_inSet inBuC \with {
+            | inl inB => u.from_inSet {T} {d} {_} {in~ a ^ in~ b} {in~ a ^ in~ c}
+                (inl $ ^.from_inSet {T} {d} {x} {in~ a} {in~ b} (inA, inB))
+            | inr inC => u.from_inSet {T} {d} {_} {in~ a ^ in~ b} {in~ a ^ in~ c}
+                (inr $ ^.from_inSet {T} {d} {x} {in~ a} {in~ c} (inA, inC))
+          }
+        },
+        \lam x i => \case u.to_inSet i \with {
+          | inl inAB =>
+            \let
+              (inA, inB) => ^.to_inSet {T} {d} {x} {in~ a} {in~ b} inAB
+            \in ^.from_inSet {T} {d} {x} {in~ a} {in~ b u in~ c}
+                (
+                  inA,
+                  u.from_inSet {T} {d} {_} {in~ b} {in~ c} (inl inB)
+                )
+          | inr inAC =>
+            \let
+              (inA, inC) => ^.to_inSet {T} {d} {x} {in~ a} {in~ c} inAC
+            \in ^.from_inSet {T} {d} {x} {in~ a} {in~ b u in~ c}
+                (
+                  inA,
+                  u.from_inSet {T} {d} {_} {in~ b} {in~ c} (inr inC)
+                )
+        }
+      )
+
+\func destruct-set {T : \Set} {d : DecSet T} (A B : Set T) : A = (A ^ B) u (A / B) \elim A, B
+  | in~ a, in~ b => set-equlity
+      (
+        \lam x i => \case inSet x (in~ b) \as v, idp : inSet x (in~ b) = v \with {
+          | false, _x => u.from_inSet {T} {d} {x} {in~ a ^ in~ b} {in~ a / in~ b}
+              (inr $ /.from_inSet {T} {d} {x} {in~ a} {in~ b} (i, \lam i1 => absurd (true/=false (inv i1 *> _x))))
+          | true, _x => u.from_inSet {T} {d} {x} {in~ a ^ in~ b} {in~ a / in~ b}
+              (inl $ ^.from_inSet {T} {d} {x} {in~ a} {in~ b} (i, _x))
+        },
+        \lam x i => \case u.to_inSet i \with {
+          | inl inAB => (^.to_inSet {T} {d} {x} {in~ a} {in~ b} inAB).1
+          | inr inA/B => (/.to_inSet {T} {d} {x} {in~ a} {in~ b} inA/B).1
+        }
+      )
+
+--\func inj {A B : \Type} (f : A -> B) => \Pi (x y : A) (f x = f y) -> x = y
+--
+--\func cardinality {T : \Set} {d : DecSet T} (S : Set T) (n : Nat) =>
+--  \Sigma
+--    (f : \Pi (\Sigma (x : T) (x in S)) -> Fin n)
+--    (g : \Pi (m : Fin n) -> \Sigma (x : T) (x in S))
+--    (injF : inj f)
+--    (injG : inj g)

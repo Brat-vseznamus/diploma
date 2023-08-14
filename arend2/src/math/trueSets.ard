@@ -2,6 +2,7 @@
 \import Data.Array (filter)
 \import Data.Bool
 \import Data.Array
+\import Data.Fin (fsuc)
 \import Data.Or
 \import Function.Meta ($)
 \import Logic
@@ -17,6 +18,16 @@
 \func \infix 4 ~ {T : \Set} (a b : Array T) => \Sigma
   (\Pi (x : T) (Index x a) -> Index x b)
   (\Pi (x : T) (Index x b) -> Index x a)
+  \where {
+    \func ref {T : \Set} {a : Array T} : a ~ a =>
+      (\lam x i => i, \lam x i => i)
+
+    \func sym {T : \Set} {a b : Array T} : (a ~ b) -> (b ~ a) =>
+      \lam a~b => (\lam x i => a~b.2 x i, \lam x i => a~b.1 x i)
+
+    \func trans {T : \Set} {a b c : Array T} : (a ~ b) -> (b ~ c) -> (a ~ c) =>
+      \lam a~b b~c => (\lam x i => b~c.1 x (a~b.1 x i), \lam x i => a~b.2 x (b~c.2 x i))
+  }
 
 \func \infix 5 in {T : \Set} {d : DecSet T} (x : T) (s : Set T) => Set.inSet x s = true
 
@@ -26,6 +37,10 @@
 
 \func Set (T : \Set) => Quotient {Array T} (\lam a b => a ~ b)
   \where {
+    \func size {T : \Set} {d : DecSet T} (s : Set T) : Nat \elim s
+      | in~ a => DArray.len {unique-array a}
+      | ~-equiv x y r => unique-array.same-size x y r
+
     \func set-equlity {T : \Set} {d : DecSet T} {a b : Set T} (a><b : a >< b) : a = b \elim a, b
       | in~ a, in~ b => path
           (
@@ -63,19 +78,19 @@
                 rewrite (inv index-ab.2) $ filter-sat (\lam (e : T) => inArray {T} {d} e b) a index-ab.1
               )
 
-        \func refl {T : \Set} {d : DecSet T} (a : Set T) : a ^ a = a => set-equlity
+        \func ide {T : \Set} {d : DecSet T} (a : Set T) : a ^ a = a => set-equlity
             (
               \lam x i => (to_inSet i).1,
               \lam x i => from_inSet (i, i)
             )
 
-        \func sym {T : \Set} {d : DecSet T} (a b : Set T) : a ^ b = b ^ a => set-equlity
+        \func comm {T : \Set} {d : DecSet T} (a b : Set T) : a ^ b = b ^ a => set-equlity
             (
               \lam x i => from_inSet ((to_inSet i).2, (to_inSet i).1),
               \lam x i => from_inSet ((to_inSet i).2, (to_inSet i).1)
             )
 
-        \func trans {T : \Set} {d : DecSet T} (a b c : Set T) : (a ^ b) ^ c = a ^ (b ^ c) => set-equlity
+        \func asoc {T : \Set} {d : DecSet T} (a b c : Set T) : (a ^ b) ^ c = a ^ (b ^ c) => set-equlity
             (
               \lam x i =>
                   \let
@@ -112,7 +127,7 @@
                 )
 
         \func to_inSet {T : \Set} {d : DecSet T} {x : T} {a b : Set T}
-                        (xInA/B : x in (a / b))
+                       (xInA/B : x in (a / b))
           : \Sigma (x in a) (Not (x in b)) \elim a, b
           | in~ a, in~ b =>
             \let
@@ -120,10 +135,10 @@
               | not-inB => filter_predicate_true a x indexA/B
               | indexA => filter_contains a x (inArray_index x (filter (\lam e => not (inArray e b)) a) xInA/B)
             \in
-            (index_to_inArray x a indexA, \lam i => absurd (true/=false $ inv not-inB *> pmap not i))
+              (index_to_inArray x a indexA, \lam i => absurd (true/=false $ inv not-inB *> pmap not i))
       }
 
-    \func \infixl 5 v {T : \Set} (a b : Set T) : Set T \elim a, b
+    \func \infixl 5 u {T : \Set} (a b : Set T) : Set T \elim a, b
       | in~ a, in~ b => in~ (a ++ b)
       | in~ a, ~-equiv b1 b2 r => Quotient.fromEquality
           (
@@ -160,7 +175,7 @@
       \where {
         \func from_inSet {T : \Set} {d : DecSet T} {x : T} {a b : Set T}
                          (either : Or (x in a) (x in b))
-          : x in (a v b) \elim a, b
+          : x in (a u b) \elim a, b
           | in~ a, in~ b => \case either \with {
             | inl inA => from_inSet-lemma-1 x a b inA
             | inr inB => from_inSet-lemma-2 x a b inB
@@ -198,7 +213,7 @@
           }
 
         \func to_inSet {T : \Set} {d : DecSet T} {x : T} {a b : Array T}
-                       (inAvB : x in (in~ a v in~ b))
+                       (inAvB : x in (in~ a u in~ b))
           : Or (x in in~ a) (x in in~ b) \elim a, b
           | nil, nil => inl inAvB
           | nil, a :: l => inr inAvB
@@ -210,7 +225,7 @@
             }
           }
 
-        \func refl {T : \Set} {d : DecSet T} (a : Set T) : a = a v a \elim a
+        \func ide {T : \Set} {d : DecSet T} (a : Set T) : a = a u a \elim a
           | in~ a => set-equlity
               (
                 \lam x i => from_inSet {T} {d} {x} {in~ a} {in~ a} (inl i),
@@ -220,7 +235,7 @@
                 }
               )
 
-        \func sym {T : \Set} {d : DecSet T} (a b : Set T) : a v b = b v a \elim a, b
+        \func comm {T : \Set} {d : DecSet T} (a b : Set T) : a u b = b u a \elim a, b
           | in~ a, in~ b => set-equlity
               (
                 \lam x i => \case to_inSet {T} {d} {x} {a} {b} i \with {
@@ -233,7 +248,7 @@
                 }
               )
 
-        \func trans {T : \Set} {d : DecSet T} (a b c : Set T) : (a v b) v c = a v (b v c) \elim a, b, c
+        \func asoc {T : \Set} {d : DecSet T} (a b c : Set T) : (a u b) u c = a u (b u c) \elim a, b, c
           | in~ a, in~ b, in~ c => set-equlity
               (
                 \lam x i => \case to_inSet {T} {d} {x} {a ++ b} {c} i \with {
@@ -342,6 +357,10 @@
                 }
           }
 
+  \func join-size {T : \Set} (a b : Array T) : DArray.len {a ++ b} = DArray.len {a} Nat.+ DArray.len {b} \elim a
+    | nil => idp
+    | a :: l => rewrite (join-size l b) idp
+
   \func filter_predicate_true {T : \Set} {f : T -> Bool} (l : Array T) (x : T) (inFiltered : Index x (filter f l)) : f x = true \elim l
     | nil => absurd (\case inFiltered.1 \with {
     })
@@ -392,5 +411,304 @@
     | a :: l, (suc j, inJ) => \case d.decideEq a x \as dec \return if {Bool} (decToBool dec) true (inArray {T} {d} x l) = true \with {
       | yes e => idp
       | no n => index_to_inArray x l (j, inJ)
+    }
+
+  \func circle-shift {T : \Set} (l : Array T) : Array T \elim l
+    | nil => nil
+    | a :: l => l ++ (a :: nil)
+    \where {
+      \func contains-same-elements {T : \Set} (l : Array T) : l ~ circle-shift l \elim l
+        | nil => (\lam x i => i, \lam x i => i)
+        | a :: l =>
+          (
+            \lam x i => \case i \with {
+              | (0, a=x) => index-right (0, a=x)
+              | (suc f,p) => index-left (f, p)
+            },
+            \lam x i => \case distjoin-in l (a :: nil) x i \with {
+              | inl inL => (suc inL.1, inL.2)
+              | inr (0, a=x) => (0, a=x)
+            }
+          )
+
+      \func same-size {T : \Set} (l : Array T) : DArray.len {l} = DArray.len {circle-shift l} \elim l
+        | nil => idp
+        | a :: l => rewrite (join-size l (a :: nil)) idp
+    }
+
+  \func circle-n-shift {T : \Set} (n : Nat) (l : Array T) : Array T \elim n
+    | 0 => l
+    | suc n => circle-shift (circle-n-shift n l)
+    \where {
+      \func contains-same-elements {T : \Set} {n : Nat} (l : Array T) : l ~ circle-n-shift n l \elim n
+        | 0 => ~.ref
+        | suc n => ~.trans (contains-same-elements {_} {n} l) (circle-shift.contains-same-elements (circle-n-shift n l))
+
+      \func same-size {T : \Set} {n : Nat} (l : Array T) : DArray.len {l} = DArray.len {circle-n-shift n l} \elim n
+        | 0 => idp
+        | suc n => same-size l *> circle-shift.same-size (circle-n-shift n l)
+    }
+
+  \func unique-array {T : \Set} {d : DecSet T} (l : Array T) : Array T \elim l
+    | nil => nil
+    | a :: l => if (inArray a l) (unique-array l) (a :: unique-array l)
+    \where {
+      \func contains-same-elements {T : \Set} {d : DecSet T} (l : Array T) : l ~ unique-array l \elim l
+        | nil => (\lam x i => i, \lam x i => i)
+        | a :: l =>
+          \case
+            inArray a l \as inL,
+            idp : inArray a l = inL
+          \return a :: l ~ if {Array T} inL (unique-array {T} {d} l) (a :: unique-array {T} {d} l)
+          \with {
+            | false, p => \let rec => contains-same-elements l \in
+              (
+                \lam x i => \case i \with {
+                  | (0, a=x) => (0, a=x)
+                  | (suc f, inL) => \let recL => rec.1 x (f, inL) \in (suc recL.1, recL.2)
+                },
+                \lam x i => \case i \with {
+                  | (0, a=x) => (0, a=x)
+                  | (suc f, inL) => \let recL => rec.2 x (f, inL) \in (suc recL.1, recL.2)
+                }
+              )
+            | true, p =>
+              \let
+                | a::l~l : a :: l ~ l =>
+                  (
+                    \lam x i => \case i \with {
+                      | (0, a=x) => rewrite (inv a=x) (inArray_index a l p)
+                      | (suc f, inL) => (f, inL)
+                    },
+                    \lam x i => (suc i.1, i.2)
+                  )
+                | l~uL : l ~ unique-array l => contains-same-elements l
+              \in
+                ~.trans a::l~l l~uL
+          }
+
+      \func Count {T : \Set} {d : DecSet T} (x : T) (l : Array T) : Nat \elim l
+        | nil => 0
+        | a :: l => if (a == x) (suc (Count x l)) (Count x l)
+        \where {
+          \func not_element_to_count {T : \Set} {d : DecSet T} (x : T) (l : Array T)
+            : (Not (Index x l)) -> Count x l = 0 \elim l
+            | nil => \lam n => idp
+            | a :: l => \lam n => \case decideEq a x \as dec \return if {Nat} (decToBool dec) (suc (Count {T} {d} x l)) (Count {T} {d} x l) = 0 \with {
+              | yes e => absurd (n (0, e))
+              | no n1 => not_element_to_count x l (\lam i => n (suc i.1, i.2))
+            }
+        }
+
+      \func Unique {T : \Set} (x : T) (l : Array T) => \Pi (i j : Index x l) -> i.1 = j.1
+        \where {
+          \func uniqueT_to_count {T : \Set} {d : DecSet T} {n : Nat} (x : T) (l : Array T n)
+            : (Index x l) -> (Unique x l) -> Count x l = 1 \elim n, l
+            | 0, nil => \lam i u => absurd (\case i.1)
+            | suc s_n, a :: l => \lam i u => \case i \as i', idp : i.1 = i'.1 \with {
+              | (0, a=x), i1= => \case decideEq a x \as dec \return if {Nat} (decToBool dec) (suc (Count {T} {d} x l)) (Count {T} {d} x l) = 1 \with {
+                | yes e =>
+                  \let
+                    | name : Not (Index x l) =>
+                      \lam j =>
+                          \let j1=0 => rewrite i1= $ u i (suc j.1, j.2)
+                          \in suc/=0 (inv j1=0)
+                  \in
+                    pmap suc (Count.not_element_to_count x l name)
+                | no n => absurd (n a=x)
+              }
+              | (suc f, p), i1= => \case decideEq a x \as dec \return if {Nat} (decToBool dec) (suc (Count {T} {d} x l)) (Count {T} {d} x l) = 1 \with {
+                | yes e => absurd (suc/=0 (inv i1= *> u i (0, e)))
+                | no n => uniqueT_to_count x l (f, p)
+                    (\lam i' j' =>
+                        \let
+                          | name => u (suc i'.1, i'.2) (suc j'.1, j'.2)
+                        \in
+                          \case
+                            s_n \as n',
+                            l \as l' : Array T n',
+                            i'.1 \as i : Fin (DArray.len {l'}),
+                            j'.1 \as j : Fin (DArray.len {l'}),
+                            name : suc i = suc j
+                          \return i = j
+                          \with {
+                            | 0, nil, i, _, _ => absurd (\case i)
+                            | suc s_n, b :: l', i, j, i=j => pmap (\lam x => \case x \with {
+                              | suc x => x
+                              | 0 => 0
+                            }) i=j
+                          }
+                    )
+              }
+            }
+        }
+
+      \func size {T : \Set} (l : Array T) : Nat \elim l
+        | nil => 0
+        | a :: l1 => suc (size l1)
+
+      \func size=len {T : \Set} (l : Array T) : l.len = size l \elim l
+        | nil => idp
+        | a :: l1 => pmap suc (size=len l1)
+
+      \func without-x {T : \Set} {d : DecSet T} (l : Array T) (x : T) : Array T => filter (\lam y => not (y == x)) l
+
+      \func without-x-size {T : \Set} {d : DecSet T} (l : Array T) (x : T)
+        : size l = Count x l Nat.+ size (without-x l x) \elim l
+        | nil => idp
+        | a :: l =>
+          \case
+            decideEq a x \as dec
+          \return suc (size {T} l) = if {Nat} (decToBool dec) (suc (Count {T} {d} x l)) (Count {T} {d} x l)
+                                       Nat.+ size {T} (if (not (decToBool dec)) (a :: without-x {T} {d} l x) (without-x {T} {d} l x))
+          \with {
+            | yes e => pmap suc (without-x-size l x)
+            | no n => pmap suc (without-x-size l x)
+          }
+
+      \func each-element-unique {T : \Set} {d : DecSet T} (x : T) (l : Array T) : Unique x (unique-array l) \elim l
+        | nil => \lam xInA1 _  => absurd (\case xInA1.1 \with {
+        })
+        | a :: l => \lam xInA1 xInA2 =>
+            \case
+              inArray a l \as dec,
+              idp : inArray a l = dec,
+              xInA1 \as inA1 : Index {T} x (if {Array T} dec (unique-array {T} {d} l) (a :: unique-array {T} {d} l)),
+              xInA2 \as inA2 : Index {T} x (if {Array T} dec (unique-array {T} {d} l) (a :: unique-array {T} {d} l))
+            \return inA1.1 = inA2.1
+            \with {
+              | false, p, inA1, inA2 => \case inA1 \as inA1', inA2 \as inA2' \return inA1'.1 = inA2'.1 \with {
+                | (0, _), (0, _) => idp
+                | (suc f, p1), (0, a=x) =>
+                  \let
+                    | tmp : Index x l => (contains-same-elements l).2 x (f, p1)
+                    | inL : inArray a l = true => rewrite a=x $ index_to_inArray x l tmp
+                  \in
+                    absurd (true/=false (inv inL *> p))
+                | (0, a=x), (suc f, p1) =>
+                  \let
+                    | tmp : Index x l => (contains-same-elements l).2 x (f, p1)
+                    | inL : inArray a l = true => rewrite a=x $ index_to_inArray x l tmp
+                  \in
+                    absurd (true/=false (inv inL *> p))
+                | (suc f1, p1), (suc f2, p2) => pmap fsuc $ each-element-unique x l (f1, p1) (f2, p2)
+              }
+              | true, p, inA1, inA2 => each-element-unique x l inA1 inA2
+            }
+
+      \func same-size {T : \Set} {d : DecSet T} (a b : Array T) (a~b : a ~ b)
+        : DArray.len {unique-array a} = DArray.len {unique-array b} =>
+        \let
+          | a~uA : a ~ unique-array a => contains-same-elements a
+          | b~uB : b ~ unique-array b => contains-same-elements b
+          | uA~uB : unique-array a ~ unique-array b => ~.trans (~.trans (~.sym a~uA) a~b) b~uB
+          | all-unique-a : \Pi (x : T) -> Unique x (unique-array a) =>
+            \lam x => each-element-unique x a
+          | all-unique-b : \Pi (x : T) -> Unique x (unique-array b) =>
+            \lam x => each-element-unique x b
+        \in
+          lemma
+              (unique-array a)
+              (unique-array b)
+              uA~uB
+              all-unique-a
+              all-unique-b
+        \where {
+          \func lemma {T : \Set} {d : DecSet T} (a b : Array T) :
+            a ~ b ->
+            (\Pi (x : T) -> Unique x a) ->
+            (\Pi (x : T) -> Unique x b) ->
+            DArray.len {a} = DArray.len {b} \elim a
+            | nil => \case b \as c \return \Pi (nil ~ c) (\Pi (x : T) -> Unique {T} x nil) (\Pi (x : T) -> Unique {T} x c) -> 0 = DArray.len{c} \with {
+              | nil => \lam _ _ _ => idp
+              | y :: l => \lam a~b _ _ => absurd (\case (a~b.2 y (0, idp)).1)
+            }
+            | :: {n} e a => \lam a~b u-a u-b =>
+                \let
+                  | a~without-e-b : a ~ without-x b e =>
+                    (
+                      \lam x i =>
+                          \let
+                            | index-b => a~b.1 x (suc i.1, i.2)
+                            | x/=e : Not (x = e) => \lam p => suc/=0 (inv (u-a x (0, inv p) (suc i.1, i.2)))
+                            | x/==e=true : not (x == e) = true => \case decideEq x e \as d \return not(decToBool d) = true \with {
+                              | yes e1 => absurd (x/=e e1)
+                              | no n1 => idp
+                            }
+                            | index-b/e  => rewrite index-b.2 $
+                            filter-index (\lam y => not (y == e)) b index-b.1 (rewrite index-b.2 x/==e=true)
+                          \in
+                            index-b/e,
+                      \lam x i =>
+                          \let
+                            | index-b => filter_contains b x i
+                            | index-ea => a~b.2 x index-b
+                            | index-a : Index x a => \case index-ea \with {
+                              | (0, e=x) =>
+                                \let
+                                  | name => rewrite e=x $ rewrite i.2 $ filter-sat (\lam y => not (y == e)) b i.1
+                                \in \case decideEq x x \as dec, name : not (decToBool dec) = true \with {
+                                  | yes e1, p => absurd (true/=false (inv p))
+                                  | no n1, p => absurd (n1 idp)
+                                }
+                              | (suc f,p) => (f, p)
+                            }
+                          \in index-a
+                    )
+                  | u-a' : \Pi (x : T) -> Unique x a => \lam x i j =>
+                      \case decideEq x e \with {
+                        | yes e1 => absurd (suc/=0 $ u-a x (suc i.1, i.2) (0, inv e1))
+                        | no n1 =>
+                          \let
+                            | name => u-a x (suc i.1, i.2) (suc j.1, j.2)
+                          \in
+                            \case
+                              n \as n',
+                              a \as l' : Array T n',
+                              i.1 \as i : Fin (DArray.len {l'}),
+                              j.1 \as j : Fin (DArray.len {l'}),
+                              name : suc i = suc j
+                            \return i = j
+                            \with {
+                              | 0, nil, i, _, _ => absurd (\case i)
+                              | suc s_n, b :: l', i, j, i=j => pmap (\lam x => \case x \with {
+                                | suc x => x
+                                | 0 => 0
+                              }) i=j
+                            }
+                      }
+                  | u-b/e : \Pi (x : T) -> Unique x (without-x b e) =>
+                    \let name => lemma-lemma b e u-b \in \lam x  =>
+                        \case decideEq x e \with {
+                          | yes e1 => \lam i j =>
+                              \let
+                                | inA => a~without-e-b.2 x i
+                                | un-a => suc/=0 {inA.1} $ inv $ u-a x (0, inv e1) (suc inA.1, inA.2)
+                              \in
+                                absurd un-a
+                          | no n1 => name x n1
+                        }
+                  | name => lemma a (without-x b e) a~without-e-b u-a' u-b/e
+                  | name1 : Count e b = 1 => \case b \as b', a~b.1 e (0, idp) : Index e b', u-b e : Unique e b' \return Count e b' = 1 \with {
+                    | nil, i, u => Unique.uniqueT_to_count e nil i u
+                    | :: {n} xb b, i, u => Unique.uniqueT_to_count e (xb :: b) i u
+                  }
+                  | dec-size-b =>
+                    rewrite
+                        (
+                          name1,
+                          inv $ size=len b,
+                          inv $ size=len (without-x b e)
+                        )
+                      $ without-x-size b e
+                \in
+                  inv (dec-size-b *> pmap suc (inv name))
+            \where {
+              \func lemma-lemma {T : \Set} {d : DecSet T} (b : Array T) (e : T) :
+                (\Pi (x : T)  -> Unique x b) ->
+                \Pi (x : T) (x /= e) -> Unique x (without-x b e) =>
+                {?} -- ужасно впадлу
+            }
+        }
     }
 }
