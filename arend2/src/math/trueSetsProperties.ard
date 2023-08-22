@@ -1,3 +1,4 @@
+\import Arith.Nat
 \import Data.Array
 \import Data.Bool
 \import Data.Or
@@ -224,4 +225,36 @@
           | inl inAB => (^.to_inSet (in~ a) (in~ b) inAB).1
           | inr inA/B => (/.to_inSet {T} {d} {x} {in~ a} {in~ b} inA/B).1
         }
+      )
+
+\func destuct-set-size {T : \Set} {d : DecSet T} (a b : Set T) : size a = size (a ^ b) + size (a / b) \elim a, b
+  | in~ a, in~ b =>
+    \let
+      | destruct => pmap size $ destruct-set (in~ a) (in~ b)
+      | step1 => size-sum-prop (in~ a ^ in~ b) (in~ a / in~ b)
+      | step2 : (in~ a ^ in~ b) ^ (in~ a / in~ b) = @ => set-equlity
+          (
+            \lam x i => \case ^.to_inSet (in~ a ^ in~ b) (in~ a / in~ b) i \with {
+              | (i1,i2) => \case ^.to_inSet (in~ a) (in~ b) i1, /.to_inSet {_} {_} {_} {in~ a} {in~ b} i2 \with {
+                | (_, inB), (_, not-inB) => absurd (not-inB inB)
+              }
+            },
+            \lam x i => absurd (true/=false (inv i))
+          )
+      | step3 : size ((in~ a ^ in~ b) u (in~ a / in~ b)) = size (in~ a ^ in~ b) + size (in~ a / in~ b) => pmap (\lam s => size ((in~ a ^ in~ b) u (in~ a / in~ b)) + size s) (inv step2)
+        *> step1
+    \in
+    destruct *> step3
+
+\func destuct-set-size-2 {T : \Set} {d : DecSet T} (a b : Set T) : size (a u b) = size (a / b) + size b =>
+  \let
+    | step1 => destuct-set-size a b
+    | step2 => size-sum-prop a b
+    | step3 => rewrite step1 step2
+  \in NatSemiring.cancel-left (size (a ^ b))
+      (
+        rewriteI (
+                   NatSemiring.+-comm {size (a u b)} {size (a ^ b)},
+                   NatSemiring.+-assoc {size (a ^ b)} {size (a / b)} {size b}
+                 ) step3
       )
