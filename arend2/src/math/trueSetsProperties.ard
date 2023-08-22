@@ -1,17 +1,39 @@
+\import Data.Array
 \import Data.Bool
 \import Data.Or
 \import Function.Meta ($)
 \import Logic
-\import Logic.PropFin
 \import Paths
 \import Paths.Meta
 \import Relation.Equivalence
 \import Set
-\import math.trueSets (ArrayUtils, Set, in)
+\import math.trueSets (ArrayUtils, Set, set, in)
+\import math.utils
 \open Set
+\open Nat
 
 \func @ {T : \Set} : Set T => in~ nil
   \where {
+    \func u-netral {T : \Set} {d : DecSet T} (s : Set T): s u @ = s \elim s
+      | in~ s =>
+        set-equlity
+            (
+              \lam x i => \case u.to_inSet {_} {_} {_} {s} {nil} i \with {
+                | inl a => a
+                | inr b => absurd (true/=false (inv b))
+              },
+              \lam x i => u.from_inSet {_} {_} {_} {in~ s} {@} (inl i)
+            )
+
+    \func ^-zero {T : \Set} {d : DecSet T} (s : Set T) : s ^ @ = @ =>
+      set-equlity
+          (
+            \lam x i => \case ^.to_inSet s @ i \with {
+              | (inS, in@) => in@
+            },
+            \lam x i => absurd (true/=false (inv i))
+          )
+
     \func size=0=>@ {T : \Set} {d : DecSet T} {s : Set T} : size s = 0 -> s = @ \elim s
       | in~ nil => \lam p => idp
       | in~ (a :: arr) => \lam p =>
@@ -31,58 +53,157 @@
           }
   }
 
+\func size-sum-prop {T : \Set} {d : DecSet T} (a b : Set T) : size (a u b) + size (a ^ b) = size a + size b \elim a, b
+  | in~ nil, _ => rewrite (u.comm (in~ nil), @.u-netral) idp
+  | in~ (x :: a) \as a', b =>
+    \case inSet x (in~ a) \as dec, idp : inSet x (in~ a) = dec \with {
+      | false, p =>
+        \case b \as b', inSet x b' \as inB, idp : inSet x b' = inB, inSet x (in~ a) \as inA, idp : inSet x (in~ a) = inA \return size (a' u b') + DArray.len {ArrayUtils.unique-array (if inB (x :: filter (\lam e => inSet e b') a) (filter (\lam e => inSet e b') a))} = DArray.len {if inA (ArrayUtils.unique-array a) (x :: ArrayUtils.unique-array a)} + size b'
+        \with {
+          | _, _, _, true, p1 => absurd (true/=false (inv p1 *> p))
+          | b'', false, p1, false, _ =>
+            \let
+              | name : in~ (x :: a) u b'' = set x u (in~ a u b'') => u.asoc (set x) (in~ a) b''
+              | x!inaub : Not (x in (in~ a u b'')) => \lam i => \case b'' \as b', i : x in (in~ a u b'), p1 : inSet x b' = false \with {
+                | in~ b', i, p1 => \case u.to_inSet {_} {_} {_} {a} {b'} i \with {
+                  | inl inA => true/=false (inv inA *> p)
+                  | inr inB => true/=false (inv inB *> p1)
+                }
+              }
+              | suc-size : size (in~ (x :: a) u b'') = suc (size (in~ a u b'')) => pmap size name *> size-destruct-up (in~ a u b'') x x!inaub
+            \in
+              pmap (\lam r => r + DArray.len {ArrayUtils.unique-array (filter (\lam e => inSet e b'') a)}) suc-size
+                *> (pmap suc $ size-sum-prop (in~ a) b'')
+          | b, true, p1, false, _ =>
+            \let
+              | name : in~ (x :: a) u b = in~ a u b =>
+                \let
+                  | step1 => u.asoc (set x) (in~ a) b
+                  | step2 => rewrite (u.comm (in~ a) b) step1
+                  | step3 => rewrite (inv $ u.asoc (set x) b (in~ a)) step2
+                  | step4 : b = set x u b => set-equlity (
+                    \lam x1 i => u.from_inSet{_}{_}{_}{set x}{b} (inr i),
+                    \lam x1 i => \case b \as b', i : x1 in (set x u b'), p1 : inSet x b' = true \return inSet x1 b' = true \with {
+                      | in~ b''', i , p1 => \case u.to_inSet{_}{_}{_}{x :: nil}{b'''} i : Or (x1 in set x) (x1 in in~ b''') \with {
+                        | inl inX => rewrite (set.extract x x1 inX) p1
+                        | inr inB => inB
+                      }
+                    })
+                  | step5 => rewriteI step4 step3
+                \in rewrite (u.comm (in~ a) b) step5
+              | name3 : Not (x in (in~ a ^ b)) => \lam i => \case ^.to_inSet (in~ a) b i \with {
+                | (i1, i2) => true/=false (inv i1 *> p)
+              }
+            \in
+              pmap (\lam s => size s + DArray.len {if (ArrayUtils.inArray x (filter (\lam e => inSet e b) a)) (ArrayUtils.unique-array (filter (\lam e => inSet e b) a))
+          (x :: ArrayUtils.unique-array (filter (\lam e => inSet e b) a))}) name *>
+              rewrite (math.utils.not-x=>false name3 : ArrayUtils.inArray x (filter (\lam e => inSet e b) a) = false) (pmap suc (size-sum-prop (in~ a) b))
+        }
+      | true, p =>
+        \let
+          | a'=a : a' = in~ a => set-equlity
+              (
+                \lam x1 i => \let i' : x1 in (set x u in~ a) => i \in \case u.to_inSet {_} {_} {x1} {x :: nil} {a} i' \with {
+                  | inl a1 => \let name => set.extract x x1 a1 \in rewrite name p
+                  | inr b1 => b1
+                },
+                \lam x1 i => u.from_inSet {_} {_} {x1} {set x} {in~ a} (inr i)
+              )
+          | p1 : size (a' u b) = size (in~ a u b) => rewrite a'=a idp
+          | p2 : a' ^ b = in~ a ^ b => set-equlity
+              (\lam x1 i => \case ^.to_inSet a' b i \with {
+                | (i1,i2) => ^.from_inSet (in~ a) b (rewrite (inv a'=a) i1, i2)
+              },
+               \lam x1 i => \case ^.to_inSet (in~ a) b i \with {
+                 | (i1,i2) => ^.from_inSet a' b (rewrite a'=a i1, i2)
+               })
+          | p2' : size (a' ^ b) = size (in~ a ^ b) => pmap size p2
+        \in  (rewrite (a'=a, p2', pmap size a'=a) (size-sum-prop (in~ a) b) : size (a' u b) + size (a' ^ b) = size a' + size b)
+    }
+
+\func size-destruct-up {T : \Set} {d : DecSet T} (s : Set T) : \Pi (x : T) (Not(x in s)) -> size (set x u s) = suc (size s) \elim s
+  | in~ a => \lam x n =>
+      \let
+        | not-false : Not(ArrayUtils.inArray x a = true) => n
+        | =false : ArrayUtils.inArray x a = false => math.utils.not-x=>false not-false
+      \in \case ArrayUtils.inArray x a \as dec, =false : dec = false \return DArray.len {if {Array T} dec (ArrayUtils.unique-array {T} {d} a) (x :: ArrayUtils.unique-array {T} {d} a)} = suc (DArray.len {ArrayUtils.unique-array {T} {d} a}) \with {
+        | false, p => idp
+      }
+
+\func size-destruct-down {T : \Set} {d : DecSet T} (s : Set T) : \Pi (x : T) (x in s) -> size s = suc (size (s / set x)) =>
+  \lam x inS =>
+      \let
+        | s=xus/x : s = set x u (s / set x) =>
+          rewrite
+              {1}
+              (
+                set-equlity
+                    (
+                      \lam x1 i =>
+                          \let
+                            | x1=x : x = x1 => inv $ set.extract x x1 i
+                          \in ^.from_inSet s (set x) (rewrite (inv x1=x) inS, i),
+                      \lam x1 i => (^.to_inSet s (set x) i).2
+                    )
+                : set x = s ^ set x
+              )
+              (destruct-set s (set x))
+        | x!inS/x : Not (x in (s / set x)) => \lam i =>
+            (/.to_inSet {_} {_} {_} {s} {set x} i).2 (ArrayUtils.index_to_inArray x (x :: nil) (0, idp))
+      \in rewrite {1} s=xus/x $ size-destruct-up (s / set x) x x!inS/x
+
 \func intersect-union {T : \Set} {d : DecSet T} (A B C : Set T) : A u (B ^ C) = (A u B) ^ (A u C) \elim A, B, C
-  | in~ a, in~ b, in~ c => set-equlity
+  | in~ a \as as, in~ b \as bs, in~ c \as cs => set-equlity
       (
         \lam x i => \case u.to_inSet i \with {
           | inl inA =>
-            ^.from_inSet {T} {d} {_} {in~ a u in~ b} {in~ a u in~ c}
+            ^.from_inSet {T} {d} {_} (as u bs) (as u cs)
                 (
                   u.from_inSet {T} {d} {_} {in~ a} {in~ b} (inl inA),
                   u.from_inSet {T} {d} {_} {in~ a} {in~ c} (inl inA)
                 )
-          | inr inBC => \let (inB, inC) => ^.to_inSet {T} {d} {_} {in~ b} {in~ c} inBC \in
-            ^.from_inSet {T} {d} {_} {in~ a u in~ b} {in~ a u in~ c}
+          | inr inBC => \let (inB, inC) => ^.to_inSet {T} {d} {_} bs cs inBC \in
+            ^.from_inSet {T} {d} {_} (as u bs) (as u cs)
                 (
                   u.from_inSet {T} {d} {_} {in~ a} {in~ b} (inr inB),
                   u.from_inSet {T} {d} {_} {in~ a} {in~ c} (inr inC)
                 )
         },
-        \lam x i => \case ^.to_inSet {T} {d} {_} {in~ a u in~ b} {in~ a u in~ c}  i \with {
+        \lam x i => \case ^.to_inSet {T} {d} {_} (as u bs) (as u cs)  i \with {
           | (inAuB, inAuC) =>
             \case u.to_inSet inAuB, u.to_inSet inAuC \with {
               | inl inA, _ => u.from_inSet {T} {d} {_} {in~ a} {in~ b ^ in~ c} (inl inA)
               | _, inl inA => u.from_inSet {T} {d} {_} {in~ a} {in~ b ^ in~ c} (inl inA)
               | inr inB, inr inC => u.from_inSet {T} {d} {_} {in~ a} {in~ b ^ in~ c}
-                  (inr $ ^.from_inSet {T} {d} {_} {in~ b} {in~ c} (inB, inC))
+                  (inr $ ^.from_inSet {T} {d} {_} bs cs (inB, inC))
             }
         }
       )
 
 \func union-intersaction {T : \Set} {d : DecSet T} (A B C : Set T) : A ^ (B u C) = (A ^ B) u (A ^ C) \elim A, B, C
-  | in~ a, in~ b, in~ c => set-equlity
+  | in~ a \as as, in~ b \as bs, in~ c \as cs => set-equlity
       (
-        \lam x i => \case ^.to_inSet {T} {d} {x} {in~ a} {in~ b u in~ c} i \with {
+        \lam x i => \case ^.to_inSet {T} {d} {x} as (bs u cs) i \with {
           | (inA , inBuC) => \case u.to_inSet inBuC \with {
             | inl inB => u.from_inSet {T} {d} {_} {in~ a ^ in~ b} {in~ a ^ in~ c}
-                (inl $ ^.from_inSet {T} {d} {x} {in~ a} {in~ b} (inA, inB))
+                (inl $ ^.from_inSet {T} {d} {x} as bs (inA, inB))
             | inr inC => u.from_inSet {T} {d} {_} {in~ a ^ in~ b} {in~ a ^ in~ c}
-                (inr $ ^.from_inSet {T} {d} {x} {in~ a} {in~ c} (inA, inC))
+                (inr $ ^.from_inSet {T} {d} {x} as cs (inA, inC))
           }
         },
         \lam x i => \case u.to_inSet i \with {
           | inl inAB =>
             \let
-              (inA, inB) => ^.to_inSet {T} {d} {x} {in~ a} {in~ b} inAB
-            \in ^.from_inSet {T} {d} {x} {in~ a} {in~ b u in~ c}
+              (inA, inB) => ^.to_inSet {T} {d} {x} as bs inAB
+            \in ^.from_inSet {T} {d} {x} as (bs u cs)
                 (
                   inA,
                   u.from_inSet {T} {d} {_} {in~ b} {in~ c} (inl inB)
                 )
           | inr inAC =>
             \let
-              (inA, inC) => ^.to_inSet {T} {d} {x} {in~ a} {in~ c} inAC
-            \in ^.from_inSet {T} {d} {x} {in~ a} {in~ b u in~ c}
+              (inA, inC) => ^.to_inSet {T} {d} {x} as cs inAC
+            \in ^.from_inSet {T} {d} {x} as (bs u cs)
                 (
                   inA,
                   u.from_inSet {T} {d} {_} {in~ b} {in~ c} (inr inC)
@@ -97,19 +218,10 @@
           | false, _x => u.from_inSet {T} {d} {x} {in~ a ^ in~ b} {in~ a / in~ b}
               (inr $ /.from_inSet {T} {d} {x} {in~ a} {in~ b} (i, \lam i1 => absurd (true/=false (inv i1 *> _x))))
           | true, _x => u.from_inSet {T} {d} {x} {in~ a ^ in~ b} {in~ a / in~ b}
-              (inl $ ^.from_inSet {T} {d} {x} {in~ a} {in~ b} (i, _x))
+              (inl $ ^.from_inSet (in~ a) (in~ b) (i, _x))
         },
         \lam x i => \case u.to_inSet i \with {
-          | inl inAB => (^.to_inSet {T} {d} {x} {in~ a} {in~ b} inAB).1
+          | inl inAB => (^.to_inSet (in~ a) (in~ b) inAB).1
           | inr inA/B => (/.to_inSet {T} {d} {x} {in~ a} {in~ b} inA/B).1
         }
       )
-
---\func inj {A B : \Type} (f : A -> B) => \Pi (x y : A) (f x = f y) -> x = y
---
---\func cardinality {T : \Set} {d : DecSet T} (S : Set T) (n : Nat) =>
---  \Sigma
---    (f : \Pi (\Sigma (x : T) (x in S)) -> Fin n)
---    (g : \Pi (m : Fin n) -> \Sigma (x : T) (x in S))
---    (injF : inj f)
---    (injG : inj g)

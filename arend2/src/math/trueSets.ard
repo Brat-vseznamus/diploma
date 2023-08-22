@@ -3,6 +3,7 @@
 \import Data.Bool
 \import Data.Array
 \import Data.Fin (fsuc)
+\import Data.Maybe
 \import Data.Or
 \import Function.Meta ($)
 \import Logic
@@ -13,7 +14,13 @@
 \import math.utils
 \open ArrayUtils
 
-\use \coerce fromT {T : \Set} (x : T) : Set T => in~ (x :: nil)
+\use \coerce set {T : \Set} (x : T) : Set T => in~ (x :: nil)
+  \where {
+      \func extract {T : \Set} {d : DecSet T} (x : T) : \Pi (y : T) (y in set x) -> y = x =>
+        \lam y i => \case decideEq x y \as dec, i : if (decToBool dec) true false = true \with {
+          | yes e, p => inv e
+        }
+  }
 
 \func \infix 4 ~ {T : \Set} (a b : Array T) => \Sigma
   (\Pi (x : T) (Index x a) -> Index x b)
@@ -57,7 +64,7 @@
 
     \func \infixl 5 ^ {T : \Set} {d : DecSet T} (a b : Set T) : Set T => filter_ (\lam e => inSet e b) a
       \where {
-        \func from_inSet {T : \Set} {d : DecSet T} {x : T} {a b : Set T}
+        \func from_inSet {T : \Set} {d : DecSet T} {x : T} (a b : Set T)
                          (both : \Sigma (x in a) (x in b))
           : x in (a ^ b) \elim a, b
           | in~ a, in~ b =>
@@ -68,7 +75,7 @@
             \in
               index_to_inArray x (filter (\lam (e : T) => inArray {T} {d} e b) a) index-in-A^B
 
-        \func to_inSet {T : \Set} {d : DecSet T} {x : T} {a b : Set T}
+        \func to_inSet {T : \Set} {d : DecSet T} {x : T} (a b : Set T)
                        (xInA^B : x in (a ^ b))
           : \Sigma (x in a) (x in b) \elim a, b
           | in~ a, in~ b =>
@@ -80,28 +87,28 @@
 
         \func ide {T : \Set} {d : DecSet T} (a : Set T) : a ^ a = a => set-equlity
             (
-              \lam x i => (to_inSet i).1,
-              \lam x i => from_inSet (i, i)
+              \lam x i => (to_inSet a a i).1,
+              \lam x i => from_inSet a a (i, i)
             )
 
         \func comm {T : \Set} {d : DecSet T} (a b : Set T) : a ^ b = b ^ a => set-equlity
             (
-              \lam x i => from_inSet ((to_inSet i).2, (to_inSet i).1),
-              \lam x i => from_inSet ((to_inSet i).2, (to_inSet i).1)
+              \lam x i => from_inSet b a ((to_inSet a b i).2, (to_inSet a b i).1),
+              \lam x i => from_inSet a b ((to_inSet b a i).2, (to_inSet b a i).1)
             )
 
         \func asoc {T : \Set} {d : DecSet T} (a b c : Set T) : (a ^ b) ^ c = a ^ (b ^ c) => set-equlity
             (
               \lam x i =>
                   \let
-                    | (inAB, inC) => to_inSet i
-                    | (inA, inB) => to_inSet inAB
-                  \in from_inSet (inA, from_inSet (inB, inC)),
+                    | (inAB, inC) => to_inSet (a ^ b) c i
+                    | (inA, inB) => to_inSet a b inAB
+                  \in from_inSet a (b ^ c) (inA, from_inSet b c (inB, inC)),
               \lam x i =>
                   \let
-                    | (inA, inBC) => to_inSet i
-                    | (inB, inC) => to_inSet inBC
-                  \in from_inSet (from_inSet (inA, inB), inC)
+                    | (inA, inBC) => to_inSet a (b ^ c) i
+                    | (inB, inC) => to_inSet b c inBC
+                  \in from_inSet (a ^ b) c (from_inSet a b (inA, inB), inC)
             )
       }
 
@@ -295,6 +302,21 @@
             \in inv inB *> not-inB
           | true, true, _, _ => idp
         }
+
+    \func map_ {T1 T2 : \Set} (f : T1 -> T2) (s : Set T1) : Set T2 \elim s
+      | in~ a => in~ (filterMap (\lam x => just (f x)) a)
+      | ~-equiv a b r => Quotient.fromEquality
+          (
+            Equivalence.cin
+                (
+                  \lam x i =>
+                      \let
+                        | name => filterMap-index (\lam x => just (f x)) b
+                      \in
+                        {?},
+                  {?}
+                )
+          )
 
     \func filter_ {T : \Set} (f : T -> Bool) (s : Set T) : Set T \elim s
       | in~ a => in~ (filter f a)
@@ -705,9 +727,13 @@
                   inv (dec-size-b *> pmap suc (inv name))
             \where {
               \func lemma-lemma {T : \Set} {d : DecSet T} (b : Array T) (e : T) :
-                (\Pi (x : T)  -> Unique x b) ->
-                \Pi (x : T) (x /= e) -> Unique x (without-x b e) =>
-                {?} -- ужасно впадлу
+                (\Pi (x : T) -> Unique x b) ->
+                \Pi (x : T) (x /= e) -> Unique x (without-x b e) \elim b
+                | nil => rewrite (idp : without-x nil e = nil) (\lam un x x/=e => un x)
+                | xb :: b => \lam un x x/=e => \case decideEq xb e \as dec \return Unique x (if (not (decToBool dec)) (xb :: without-x b e) (without-x b e)) \with {
+                  | yes xb=e => {?} -- lemma-lemma b e {?} x x/=e
+                  | no n => {?}
+                }
             }
         }
     }
