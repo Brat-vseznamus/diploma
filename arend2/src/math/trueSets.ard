@@ -38,9 +38,9 @@
 
 \func \infix 5 in {T : \Set} {d : DecSet T} (x : T) (s : Set T) => Set.inSet x s = true
 
-\func \infix 4 >< {T : \Set} {d : DecSet T} (a b : Set T) => \Sigma
-  (\Pi (x : T) (x in a) -> x in b)
-  (\Pi (x : T) (x in b) -> x in a)
+\func \infix 4 < {T : \Set} {d : DecSet T} (a b : Set T) => \Pi (x : T) (x in a) -> x in b
+
+\func \infix 4 <> {T : \Set} {d : DecSet T} (a b : Set T) => \Sigma (a < b) (b < a)
 
 \func Set (T : \Set) => Quotient {Array T} (\lam a b => a ~ b)
   \where {
@@ -48,7 +48,7 @@
       | in~ a => DArray.len {unique-array a}
       | ~-equiv x y r => unique-array.same-size x y r
 
-    \func set-equlity {T : \Set} {d : DecSet T} {a b : Set T} (a><b : a >< b) : a = b \elim a, b
+    \func set-equlity {T : \Set} {d : DecSet T} {a b : Set T} (a<>b : a <> b) : a = b \elim a, b
       | in~ a, in~ b => path
           (
             ~-equiv
@@ -56,8 +56,8 @@
                 b
                 (
                   (
-                    \lam x i => inArray_index x b (a><b.1 x (index_to_inArray x a i)),
-                    \lam x i => inArray_index x a (a><b.2 x (index_to_inArray x b i))
+                    \lam x i => inArray_index x b (a<>b.1 x (index_to_inArray x a i)),
+                    \lam x i => inArray_index x a (a<>b.2 x (index_to_inArray x b i))
                   ) : a ~ b
                 )
           )
