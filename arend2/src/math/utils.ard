@@ -9,8 +9,7 @@
 \import Order.StrictOrder
 \import Paths
 \import Paths.Meta
-\import Set
-
+\import Set \hiding (#)
 \open IntRing
 
 \func h_c (h : Nat) (i : Nat) => h Nat.- suc i

@@ -16,10 +16,10 @@
 
 \use \coerce set {T : \Set} (x : T) : Set T => in~ (x :: nil)
   \where {
-      \func extract {T : \Set} {d : DecSet T} (x : T) : \Pi (y : T) (y in set x) -> y = x =>
-        \lam y i => \case decideEq x y \as dec, i : if (decToBool dec) true false = true \with {
-          | yes e, p => inv e
-        }
+    \func extract {T : \Set} {d : DecSet T} (x : T) : \Pi (y : T) (y in set x) -> y = x =>
+      \lam y i => \case decideEq x y \as dec, i : if (decToBool dec) true false = true \with {
+        | yes e, p => inv e
+      }
   }
 
 \func \infix 4 ~ {T : \Set} (a b : Array T) => \Sigma
@@ -231,6 +231,35 @@
               | inr R => inr R
             }
           }
+
+        \func to_inSet2 {T : \Set} {d : DecSet T} {x : T} {a b : Set T}
+                        (inAvB : x in (a u b))
+          : Or (x in a) (x in b) \elim a, b
+          | in~ nil, in~ nil => inr inAvB
+          | in~ nil, in~ (a :: l) => inr inAvB
+          | in~ (e :: a), in~ b => \case inArray_index x ((e :: a) ++ b) inAvB \with {
+            | (0, [0]=) => inl $ index_to_inArray x (e :: a) (0, [0]=)
+            | (suc f,p) => \let rec => to_inSet (index_to_inArray x (a ++ b) (f, p)) \in \case rec \with {
+              | inl L => \let inA => inArray_index x a L \in inl (index_to_inArray x (e :: a) (suc inA.1, inA.2))
+              | inr R => inr R
+            }
+          }
+          | in~ nil, ~-equiv nil nil r i => inr (
+            \let
+              | f => \lam pp => x in Quotient.fromEquality {Array T} {~} {nil} {nil}
+                               (Equivalence.cin {Array T} {~} {nil ++ nil} {nil ++ nil} (
+                                 \lam (x : T) (i : Index {T} x nil) => r.1 x i,
+                                 \lam (x : T) (i : Index {T} x nil) => r.2 x i)
+                               ) @ pp
+              | leftIn : x in in~ nil => coe2 f i inAvB left
+              | rightIn : x in in~ nil => coe2 f i inAvB right
+            \in
+            @ {_} {leftIn} {rightIn} (absurd (true/=false (inv leftIn)) : leftIn = rightIn) i
+          )
+          | in~ nil, ~-equiv nil (e :: b) r i => {?}
+          | in~ nil, ~-equiv b1 b2 r i => {?}
+          | ~-equiv a1 a2 r i, b => {?}
+          | in~ (e :: a), ~-equiv x1 y r i => {?}
 
         \func ide {T : \Set} {d : DecSet T} (a : Set T) : a = a u a \elim a
           | in~ a => set-equlity
